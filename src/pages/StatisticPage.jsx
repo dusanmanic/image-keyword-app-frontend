@@ -1,0 +1,1221 @@
+import React, { useState, useRef, useMemo, useEffect } from "react";
+import styled from "styled-components";
+import { DataGrid } from "react-data-grid";
+import ToastComponent from "../components/Toast";
+import { useToast } from "../hooks/useToast";
+
+const Container = styled.div`
+  min-height: 100vh;
+  background: #f3f4f6;
+  padding: 20px;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+`;
+
+const Title = styled.h1`
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: -0.5px;
+`;
+
+const Button = styled.button`
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  font-weight: 700;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  &:hover { 
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+  }
+  &:disabled { 
+    opacity: 0.6; 
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const FileInput = styled.input`
+  display: none;
+`;
+
+const ContentArea = styled.div`
+  padding: 0 20px 20px 20px;
+  min-height: 400px;
+  position: relative;
+`;
+
+
+// Match ImportPage dashed DropZone design
+const DropZone = styled.div`
+  height: calc(100vh - 300px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(70vh - 112px);
+  border: 2px dashed #93c5fd;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 24px;
+  color: #1e40af;
+`;
+
+// Tab system styles - Simple color change
+const TabContainer = styled.div`
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+`;
+
+const TabButton = styled.button`
+  padding: 10px 20px;
+  border: none;
+  background: ${props => props.active 
+    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
+    : 'transparent'};
+  color: ${props => props.active ? '#ffffff' : '#64748b'};
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  flex: 1;
+  border-radius: 6px;
+  
+  &:hover {
+    background: ${props => props.active 
+      ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
+      : 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)'};
+    color: ${props => props.active ? '#ffffff' : '#3b82f6'};
+  }
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+`;
+
+const TabText = styled.div`
+  color: inherit;
+  font-weight: inherit;
+  transition: all 0.3s ease;
+`;
+
+const TabContent = styled.div`
+  display: ${props => props.active ? 'block' : 'none'};
+  animation: ${props => props.active ? 'fadeInUp 0.4s ease-out' : 'none'};
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const LoadingText = styled.div`
+  color: #6b7280;
+  font-size: 16px;
+  text-align: center;
+  padding: 40px;
+`;
+
+const LoadingContainer = styled.div`
+  height: calc(100vh - 270px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 16px;
+  margin: 20px 0;
+  border: 2px solid #e2e8f0;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingTitle = styled.div`
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const LoadingSubtitle = styled.div`
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+`;
+
+const ErrorText = styled.div`
+  color: #dc2626;
+  font-size: 16px;
+  text-align: center;
+  padding: 40px;
+`;
+
+const StatsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+`;
+
+const StatCard = styled.div`
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #3b82f6;
+  }
+`;
+
+const StatValue = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+  line-height: 1.2;
+`;
+
+const StatLabel = styled.div`
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+`;
+
+const ExportButton = styled.button`
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-weight: 700;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-left: 12px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  &:hover { 
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  }
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: center;
+`;
+
+const FilterInput = styled.input`
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  min-width: 250px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #374151;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    background: #ffffff;
+  }
+  &::placeholder {
+    color: #9ca3af;
+    font-style: italic;
+  }
+`;
+
+const DataGridContainer = styled.div`
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  height: calc(100vh - 300px);
+  display: flex;
+  flex-direction: column;
+  
+  .rdg {
+    border: none;
+    font-family: inherit;
+    --rdg-background-color: white;
+    --rdg-header-background-color: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    --rdg-row-hover-background-color: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    --rdg-border-color: #f1f5f9;
+    --rdg-selection-color: transparent;
+    /* Let react-data-grid manage column widths to avoid header/body misalignment */
+  }
+  
+  .rdg *:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  .rdg-header-row {
+    background: #ffffff;
+    border-bottom: 2px solid #3b82f6;
+    height: 50px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 0;
+  }
+  
+  .rdg-header-cell {
+    font-weight: 700;
+    color: #1e40af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 13px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+  }
+  
+  .rdg-row {
+    transition: all 0.2s ease;
+    height: 60px;
+  }
+  
+  .rdg-row:hover {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .rdg-row:nth-child(even) {
+    background: #fafafa;
+  }
+  
+  .rdg-cell {
+    border-bottom: 1px solid #f1f5f9;
+    box-sizing: border-box;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .rdg-cell:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  
+  .rdg-cell[aria-selected="true"] {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  .rdg-cell[aria-colindex="1"] {
+    justify-content: center;
+  }
+  
+  .rdg-cell[aria-colindex="6"] {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  
+  .rdg-header-cell,
+  .rdg-cell {
+    min-width: 0;
+  }
+  
+  .rdg {
+    width: 100% !important;
+  }
+  
+  .rdg-header-row,
+  .rdg-row {
+    width: 100% !important;
+  }
+  
+  .rdg-header-cell,
+  .rdg-cell {
+    width: auto !important;
+    min-width: 0;
+  }
+`;
+
+const StyledDataGrid = styled(DataGrid)`
+  height: calc(100vh - 300px) !important;
+  border: none !important;
+  flex: 1;
+  width: 100%;
+`;
+
+// Reusable TableCell component
+const TableCell = styled.span`
+  color: ${props => props.color || '#1f2937'};
+  font-weight: ${props => props.fontWeight || '400'};
+  font-size: ${props => props.fontSize || '14px'};
+  font-family: ${props => props.fontFamily || 'inherit'};
+  text-align: ${props => props.textAlign || 'center'};
+  text-decoration: ${props => props.textDecoration || 'none'};
+  cursor: ${props => props.cursor || 'default'};
+  transition: ${props => props.transition || 'color 0.3s ease'};
+  display: ${props => props.display || 'inline'};
+  ${props => props.webkitLineClamp && `
+    display: -webkit-box;
+    -webkit-line-clamp: ${props.webkitLineClamp};
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `}
+  &:hover {
+    color: ${props => props.hoverColor || props.color};
+    cursor: pointer;
+  }
+`;
+
+// Styled components for Asset ID cell
+const AssetIdCell = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background-color: transparent;
+  outline: none;
+  border: none;
+`;
+
+const AssetIdText = styled(TableCell)`
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: monospace;
+  text-align: center;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.3s ease;
+
+  ${AssetIdCell}:hover & {
+    color: #10b981;
+  }
+`;
+
+
+// Helper functions for asset styling
+const getAssetColor = (type, isDarker = false) => {
+  const colors = {
+    'RF Clip': isDarker ? '#1e40af' : '#3b82f6',
+    'RF Image': isDarker ? '#059669' : '#10b981',
+    'iStock Subscription': isDarker ? '#dc2626' : '#ef4444',
+    'Premium Access Time Limited': isDarker ? '#7c3aed' : '#8b5cf6',
+    'Credit Pack': isDarker ? '#ea580c' : '#f97316',
+    'default': isDarker ? '#6b7280' : '#9ca3af'
+  };
+  return colors[type] || colors.default;
+};
+
+const getAssetIcon = (contentType) => {
+  if (contentType === 'VIDEO') return '🎥';
+  if (contentType === 'PHOTO') return '📷';
+  return '🖼️';
+};
+
+export default function StatisticPage() {
+  const [pdfData, setPdfData] = useState([]);
+  const [parsedData, setParsedData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [filterText, setFilterText] = useState("");
+  const [stats, setStats] = useState(null);
+  const fileInputRef = useRef(null);
+  const { toasts, success, error: showError, removeToast } = useToast();
+  const [sortColumns, setSortColumns] = useState([]);
+  const [loadingFromDb, setLoadingFromDb] = useState(false);
+  const [dataSource, setDataSource] = useState(null); // 'file' or 'database'
+  const [activeTab, setActiveTab] = useState('view'); // 'view' or 'upload'
+  const [columnWidths, setColumnWidths] = useState({});
+
+  // Load data from database on component mount and when switching to view tab
+  useEffect(() => {
+    if (activeTab === 'view') {
+      loadDataFromDatabase();
+    } else if (activeTab === 'upload') {
+      // Reset upload tab data when switching to upload tab
+      setParsedData([]);
+      setStats(null);
+      setDataSource(null);
+      setError("");
+    }
+  }, [activeTab]);
+
+
+  // Define columns for DataGrid with fixed widths
+  const columns = useMemo(() => [
+    {
+      key: 'assetId',
+      name: 'Asset ID',
+      width: columnWidths.assetId || '8%',
+      minWidth: 100,
+      renderCell: ({ row }) => (
+        <AssetIdCell
+          onClick={() => {
+            const iStockUrl = `https://www.istockphoto.com/search/2/image-film?family=creative&phrase=${row.imageId}`;
+            window.open(iStockUrl, '_blank', 'noopener,noreferrer');
+            success(`Opening iStock page for Asset ID ${row.imageId}`);
+          }}
+        >
+          <AssetIdText>{row.imageId}</AssetIdText>
+        </AssetIdCell>
+      )
+    },
+    {
+      key: 'id',
+      name: 'ID',
+      width: columnWidths.id || '6%',
+      minWidth: 60,
+      renderCell: ({ row }) => (
+        <TableCell color="#1e40af" fontWeight="600" fontSize="14px">{row.id}</TableCell>
+      )
+    },
+    {
+      key: 'date',
+      name: 'Date',
+      width: columnWidths.date || '8%',
+      minWidth: 80,
+      renderCell: ({ row }) => (
+        <TableCell color="#059669" fontSize="14px">{row.date}</TableCell>
+      )
+    },
+    {
+      key: 'type',
+      name: 'Type',
+      width: columnWidths.type || '10%',
+      minWidth: 120,
+      renderCell: ({ row }) => (
+        <TableCell color="#dc2626" fontWeight="600" fontSize="14px">{row.type}</TableCell>
+      )
+    },
+    {
+      key: 'contentType',
+      name: 'Content Type',
+      width: columnWidths.contentType || '8%',
+      minWidth: 100,
+      renderCell: ({ row }) => (
+        <TableCell color="#7c3aed" fontSize="14px">{row.contentType || 'N/A'}</TableCell>
+      )
+    },
+    {
+      key: 'description',
+      name: 'Description',
+      width: columnWidths.description || '20%',
+      minWidth: 200,
+      maxWidth: 500,
+      renderCell: ({ row }) => (
+        <TableCell 
+          color="#1f2937" 
+          fontSize="14px" 
+          hoverColor="#1e40af"
+          onClick={(e) => {
+              e.preventDefault();
+              const iStockUrl = `https://www.istockphoto.com/search/2/image-film?family=creative&phrase=${row.imageId}`;
+              window.open(iStockUrl, '_blank', 'noopener,noreferrer');
+          }}
+        >
+          {row.description}
+        </TableCell>
+      )
+    },
+    {
+      key: 'country',
+      name: 'Country',
+      width: columnWidths.country || '8%',
+      minWidth: 80,
+      renderCell: ({ row }) => (
+        <TableCell color="#0891b2" fontSize="14px">{row.country}</TableCell>
+      )
+    },
+    {
+      key: 'platform',
+      name: 'Platform',
+      width: columnWidths.platform || '8%',
+      minWidth: 100,
+      renderCell: ({ row }) => (
+        <TableCell color="#ea580c" fontWeight="600" fontSize="14px">{row.platform}</TableCell>
+      )
+    },
+    {
+      key: 'exclusivity',
+      name: 'Exclusivity',
+      width: columnWidths.exclusivity || '8%',
+      minWidth: 100,
+      renderCell: ({ row }) => (
+        <TableCell 
+          color={row.exclusivity === 'Exclusive' ? '#dc2626' : '#6b7280'}
+          fontSize="14px"
+        >
+          {row.exclusivity || 'N/A'}
+        </TableCell>
+      )
+    },
+    {
+      key: 'price',
+      name: 'Price',
+      width: columnWidths.price || '6%',
+      minWidth: 60,
+      renderCell: ({ row }) => (
+        <TableCell color="#059669" fontWeight="600" fontSize="14px">${row.price}</TableCell>
+      )
+    },
+    {
+      key: 'earnings',
+      name: 'Earnings',
+      width: columnWidths.earnings || '8%',
+      minWidth: 80,
+      renderCell: ({ row }) => (
+        <TableCell color="#16a34a" fontWeight="700" fontSize="14px">${row.earnings}</TableCell>
+      )
+    },
+    {
+      key: 'percentage',
+      name: '%',
+      width: columnWidths.percentage || '5%',
+      minWidth: 50,
+      renderCell: ({ row }) => (
+        <TableCell color="#7c2d12" fontSize="14px">{row.percentage}%</TableCell>
+      )
+    },
+    {
+      key: 'agent',
+      name: 'Agent',
+      width: columnWidths.agent || '8%',
+      minWidth: 80,
+      renderCell: ({ row }) => (
+        <TableCell color="#6b7280" fontSize="14px">{row.agent || 'N/A'}</TableCell>
+      )
+    }
+  ], [columnWidths]);
+
+  // Filter data based on search text
+  const filteredData = useMemo(() => {
+    if (!filterText) return parsedData;
+    
+    return parsedData.filter(item => 
+      (item.description && item.description.toLowerCase().includes(filterText.toLowerCase())) ||
+      (item.country && item.country.toLowerCase().includes(filterText.toLowerCase())) ||
+      (item.platform && item.platform.toLowerCase().includes(filterText.toLowerCase())) ||
+      (item.id && item.id.toLowerCase().includes(filterText.toLowerCase())) ||
+      (item.type && item.type.toLowerCase().includes(filterText.toLowerCase()))
+    );
+  }, [parsedData, filterText]);
+
+  // Sorting helpers
+  const getCellValue = (row, key) => {
+    const value = row[key];
+    if (value === undefined || value === null) return '';
+    // Numeric fields
+    if (["price", "earnings", "percentage"].includes(key)) return Number(value) || 0;
+    // Dates
+    if (key === "date") return new Date(value).getTime() || 0;
+    // Image ID numeric-like
+    if (key === "imageId") return Number(value) || 0;
+    return String(value).toLowerCase();
+  };
+
+  const compareBy = (key, direction) => (a, b) => {
+    const va = getCellValue(a, key);
+    const vb = getCellValue(b, key);
+    if (va < vb) return direction === 'ASC' ? -1 : 1;
+    if (va > vb) return direction === 'ASC' ? 1 : -1;
+    return 0;
+  };
+
+  // Custom sort handler that defaults to DESC for price columns
+  const handleSortColumnsChange = (newSortColumns) => {
+    if (newSortColumns.length > 0) {
+      const lastColumn = newSortColumns[newSortColumns.length - 1];
+      // If it's a price-related column and direction is ASC, change to DESC
+      if (['price', 'earnings', 'percentage'].includes(lastColumn.columnKey) && lastColumn.direction === 'ASC') {
+        lastColumn.direction = 'DESC';
+      }
+    }
+    setSortColumns(newSortColumns);
+  };
+
+  // Handle column resize
+  const handleColumnResize = (columnKey, width) => {
+    setColumnWidths(prev => ({
+      ...prev,
+      [columnKey]: width
+    }));
+  };
+
+  // Compute sorted rows
+  const sortedRows = useMemo(() => {
+    if (!sortColumns || sortColumns.length === 0) return filteredData;
+    // Apply multi-column sorting in order
+    let rows = [...filteredData];
+    for (let i = sortColumns.length - 1; i >= 0; i -= 1) {
+      const { columnKey, direction } = sortColumns[i];
+      rows.sort(compareBy(columnKey, direction));
+    }
+    return rows;
+  }, [filteredData, sortColumns]);
+
+  // Calculate stats from sales data
+  const calculateStatsFromSales = (sales) => {
+    const totalEarnings = sales.reduce((sum, item) => sum + (item.earnings || 0), 0);
+    const totalSales = sales.length;
+    const countries = [...new Set(sales.map(item => item.country).filter(Boolean))];
+    const platforms = [...new Set(sales.map(item => item.platform).filter(Boolean))];
+    const productTypes = [...new Set(sales.map(item => item.type).filter(Boolean))];
+    
+    // Calculate average earnings per sale
+    const avgEarnings = totalSales > 0 ? totalEarnings / totalSales : 0;
+    
+    // Find top earning sale
+    const topSale = sales.reduce((max, item) => 
+      (item.earnings > max.earnings) ? item : max, 
+      { earnings: 0 }
+    );
+    
+    return {
+      totalEarnings: totalEarnings.toFixed(2),
+      totalSales,
+      avgEarnings: avgEarnings.toFixed(2),
+      countries: countries.length,
+      platforms: platforms.length,
+      productTypes: productTypes.length,
+      topEarning: topSale.earnings.toFixed(2),
+      topSaleDescription: topSale.description || '',
+      countryList: countries.join(', '),
+      platformList: platforms.join(', '),
+      productTypeList: productTypes.join(', ')
+    };
+  };
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+
+
+  const exportToCSV = () => {
+    if (parsedData.length === 0) return;
+    
+    const headers = ['ID', 'Date', 'Type', 'Content Type', 'Description', 'Country', 'Platform', 'Exclusivity', 'Price', 'Earnings', 'Percentage', 'Agent', 'Credit Line', 'Notes', 'Image ID', 'Filename'];
+    const csvContent = [
+      headers.join(','),
+      ...parsedData.map(item => [
+        item.id,
+        item.date,
+        `"${item.type}"`,
+        `"${item.contentType || ''}"`,
+        `"${item.description}"`,
+        `"${item.country}"`,
+        `"${item.platform}"`,
+        `"${item.exclusivity || ''}"`,
+        item.price,
+        item.earnings,
+        item.percentage,
+        `"${item.agent || ''}"`,
+        `"${item.creditLine || ''}"`,
+        `"${item.notes || ''}"`,
+        item.imageId,
+        `"${item.filename || ''}"`
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'istock_sales_data.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const processTsvFile = async (file) => {
+    if (!file) return;
+    if (!file.name.endsWith('.tsv') && !file.name.endsWith('.txt')) {
+      setError('Please select a TSV or TXT file');
+      showError('Unsupported file type. Please drop a .tsv or .txt file.');
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setPdfData([]);
+    setParsedData([]);
+
+    try {
+      const formData = new FormData();
+      formData.append('tsv', file);
+
+      const response = await fetch('http://localhost:3001/tsv/parse', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to parse TSV file');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setParsedData(result.data.sales);
+        setPdfData([]);
+        const s = calculateStatsFromSales(result.data.sales);
+        setStats(s);
+        setDataSource('file');
+        success(`Imported ${result.data.sales.length} rows`);
+      } else {
+        throw new Error('Backend parsing failed');
+      }
+    } catch (err) {
+      setError('Failed to parse TSV file: ' + err.message);
+      showError('Failed to parse TSV file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    await processTsvFile(file);
+  };
+
+  // Function to load data from Firebase database
+  const loadDataFromDatabase = async () => {
+    setLoadingFromDb(true);
+    setError("");
+    
+    try {
+      const response = await fetch('http://localhost:3001/tsv/sales');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.sales) {
+        setParsedData(result.data.sales);
+        setStats(result.data.stats);
+        setDataSource('database');
+        // No toast needed - user can see the data loading
+      } else {
+        throw new Error('Invalid response format from server');
+      }
+    } catch (err) {
+      console.error('Error loading data from database:', err);
+      setError(`Failed to load data from database: ${err.message}`);
+      showError(`Failed to load data from database: ${err.message}`);
+    } finally {
+      setLoadingFromDb(false);
+    }
+  };
+
+
+
+  return (
+    <Container>
+      <Header>
+        <div>
+          <Title>iStock Sales Statistics</Title>
+          {activeTab === 'view' && (
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#059669',
+              marginTop: '4px',
+              fontWeight: '500'
+            }}>
+              📊 Data from: Firebase Database
+            </div>
+          )}
+          {activeTab === 'upload' && (
+            <div style={{ 
+              fontSize: '14px', 
+              color: '#3b82f6',
+              marginTop: '4px',
+              fontWeight: '500'
+            }}>
+              📊 Data from: TSV File
+            </div>
+          )}
+        </div>
+          {parsedData.length > 0 && !loading && !loadingFromDb && !error && dataSource === 'database' && (
+            <FilterContainer>
+              <FilterInput
+                type="text"
+                placeholder="Filter by description, country, platform..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+              />
+              <ExportButton onClick={exportToCSV}>
+                Export to CSV
+              </ExportButton>
+            </FilterContainer>
+          )}
+        <TabContainer>
+          <TabButton 
+            active={activeTab === 'view'} 
+            onClick={() => setActiveTab('view')}
+          >
+            <TabText>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '16px' }}>📊</span>
+                <span>View Database</span>
+              </span>
+            </TabText>
+          </TabButton>
+          <TabButton 
+            active={activeTab === 'upload'} 
+            onClick={() => activeTab === 'view' ? setActiveTab('upload') : parsedData.length === 0 ? setActiveTab('upload') : handleFileSelect()}
+          >
+            <TabText>
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '16px' }}>📁</span>
+                <span>{activeTab === 'view' ? 'Upload TSV' : parsedData.length === 0 ? 'Upload TSV' : 'Reupload TSV'}</span>
+              </span>
+            </TabText>
+          </TabButton>
+        </TabContainer>
+      </Header>
+
+      <FileInput
+        ref={fileInputRef}
+        type="file"
+        accept=".tsv,.txt"
+        onChange={handleFileChange}
+      />
+
+      <ContentArea>
+        {loading && (
+          <LoadingContainer>
+            <LoadingSpinner />
+            <LoadingTitle>Processing TSV File</LoadingTitle>
+            <LoadingSubtitle>Parsing data and saving to database...</LoadingSubtitle>
+          </LoadingContainer>
+        )}
+        {loadingFromDb && (
+          <LoadingContainer>
+            <LoadingSpinner />
+            <LoadingTitle>Loading Database</LoadingTitle>
+            <LoadingSubtitle>Fetching latest data from Firebase...</LoadingSubtitle>
+          </LoadingContainer>
+        )}
+        {error && <ErrorText>{error}</ErrorText>}
+
+        {/* View Tab - Database Data */}
+        <TabContent active={activeTab === 'view'}>
+          {parsedData.length > 0 && !loading && !loadingFromDb && !error && dataSource === 'database' && (
+          <>
+            <StatsContainer>
+              {(() => {
+                const s = calculateStatsFromSales(parsedData);
+                const items = [
+                  { label: 'Total Earnings', value: `$${s.totalEarnings}` },
+                  { label: 'Total Sales', value: s.totalSales },
+                  { label: 'Avg per Sale', value: `$${s.avgEarnings}` },
+                  { label: 'Countries', value: s.countries },
+                  { label: 'Platforms', value: s.platforms },
+                  { label: 'Product Types', value: s.productTypes },
+                  { label: 'Top Sale', value: `$${s.topEarning}` }
+                ];
+                return (
+                  <>
+                    {items.map((it) => (
+                      <StatCard key={it.label}>
+                        <StatValue>{it.value}</StatValue>
+                        <StatLabel>{it.label}</StatLabel>
+                    </StatCard>
+                    ))}
+                  </>
+                );
+              })()}
+            </StatsContainer>
+            
+            <DataGridContainer>
+              <StyledDataGrid
+                columns={columns}
+                rows={sortedRows}
+                rowHeight={60}
+                headerRowHeight={44}
+                enableColumnResizing={true}
+                defaultColumnOptions={{
+                  sortable: true,
+                  resizable: true
+                }}
+                sortColumns={sortColumns}
+                onSortColumnsChange={handleSortColumnsChange}
+                onColumnResize={handleColumnResize}
+                style={{ width: '100%' }}
+              />
+            </DataGridContainer>
+          </>
+          )}
+          
+          {parsedData.length === 0 && !loading && !loadingFromDb && !error && dataSource !== 'database' && (
+            <DropZone style={{
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              border: '2px dashed #0ea5e9',
+              borderRadius: '16px',
+              padding: '48px 24px',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                textAlign: 'center',
+                position: 'relative',
+                zIndex: 2
+              }}>
+                <div style={{ 
+                  fontSize: '64px', 
+                  marginBottom: '20px',
+                  filter: 'drop-shadow(0 4px 8px rgba(14, 165, 233, 0.2))',
+                  animation: 'pulse 2s infinite'
+                }}>📊</div>
+                <div style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  marginBottom: '12px',
+                  color: '#0369a1',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                }}>No data in database</div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  color: '#64748b',
+                  marginBottom: '8px'
+                }}>Upload TSV files to populate the database</div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#0ea5e9',
+                  fontWeight: '600',
+                  padding: '8px 16px',
+                  background: 'rgba(14, 165, 233, 0.1)',
+                  borderRadius: '20px',
+                  display: 'inline-block',
+                  marginTop: '8px'
+                }}>💡 Switch to Upload tab to get started</div>
+              </div>
+              <style jsx>{`
+                @keyframes pulse {
+                  0%, 100% {
+                    transform: scale(1);
+                  }
+                  50% {
+                    transform: scale(1.05);
+                  }
+                }
+              `}</style>
+            </DropZone>
+          )}
+        </TabContent>
+
+        {/* Upload Tab - TSV Upload */}
+        <TabContent active={activeTab === 'upload'}>
+          {parsedData.length > 0 && !loading && !error && dataSource === 'file' && (
+            <>
+              <StatsContainer>
+                {(() => {
+                  const s = calculateStatsFromSales(parsedData);
+                  const items = [
+                    { label: 'Total Earnings', value: `$${s.totalEarnings}` },
+                    { label: 'Total Sales', value: s.totalSales },
+                    { label: 'Avg per Sale', value: `$${s.avgEarnings}` },
+                    { label: 'Countries', value: s.countries },
+                    { label: 'Platforms', value: s.platforms },
+                    { label: 'Product Types', value: s.productTypes },
+                    { label: 'Top Sale', value: `$${s.topEarning}` }
+                  ];
+                  return (
+                    <>
+                      {items.map((it) => (
+                        <StatCard key={it.label}>
+                          <StatValue>{it.value}</StatValue>
+                          <StatLabel>{it.label}</StatLabel>
+                        </StatCard>
+                      ))}
+                    </>
+                  );
+                })()}
+              </StatsContainer>
+              
+              <FilterContainer>
+                <FilterInput
+                  type="text"
+                  placeholder="Filter by description, country, platform..."
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                />
+                <ExportButton onClick={exportToCSV}>
+                  Export to CSV
+                </ExportButton>
+              </FilterContainer>
+              
+              <DataGridContainer>
+                <StyledDataGrid
+                  columns={columns}
+                  rows={sortedRows}
+                  rowHeight={60}
+                  headerRowHeight={44}
+                  enableColumnResizing={true}
+                  defaultColumnOptions={{
+                    sortable: true,
+                    resizable: true
+                  }}
+                  sortColumns={sortColumns}
+                  onSortColumnsChange={handleSortColumnsChange}
+                  onColumnResize={handleColumnResize}
+                  style={{ width: '100%' }}
+                />
+              </DataGridContainer>
+            </>
+          )}
+          
+          {parsedData.length === 0 && !loading && !error && (
+            <DropZone
+              onDragOver={(e)=> { e.preventDefault(); e.stopPropagation(); }}
+              onDrop={(e)=> { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer?.files?.length) processTsvFile(e.dataTransfer.files[0]); }}
+              style={{
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                border: '2px dashed #3b82f6',
+                borderRadius: '16px',
+                padding: '48px 24px',
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ 
+                textAlign: 'center',
+                position: 'relative',
+                zIndex: 2
+              }}>
+                <div style={{ 
+                  fontSize: '64px', 
+                  marginBottom: '20px',
+                  filter: 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2))',
+                  animation: 'bounce 2s infinite'
+                }}>📁</div>
+                <div style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  marginBottom: '12px',
+                  color: '#1e40af',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                }}>Drag & drop TSV file here</div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  color: '#64748b',
+                  marginBottom: '8px'
+                }}>or click "Select TSV File" button</div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#3b82f6',
+                  fontWeight: '600',
+                  padding: '8px 16px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: '20px',
+                  display: 'inline-block',
+                  marginTop: '8px'
+                }}>✨ Data will be automatically saved to database</div>
+              </div>
+              <style jsx>{`
+                @keyframes bounce {
+                  0%, 20%, 50%, 80%, 100% {
+                    transform: translateY(0);
+                  }
+                  40% {
+                    transform: translateY(-10px);
+                  }
+                  60% {
+                    transform: translateY(-5px);
+                  }
+                }
+              `}</style>
+            </DropZone>
+          )}
+        </TabContent>
+      </ContentArea>
+      
+      {/* Toast notifications */}
+      <ToastComponent toasts={toasts} onRemove={removeToast} />
+    </Container>
+  );
+}
+
+
