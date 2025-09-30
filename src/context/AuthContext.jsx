@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { loginUser, registerUser } from "../services/authService.js";
 
 const AuthContext = createContext(null);
 
@@ -16,9 +17,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (emailArg, password) => {
-    const res = await fetch("/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailArg, password }) });
-    if (!res.ok) throw new Error("Login failed");
-    const data = await res.json();
+    const data = await loginUser(emailArg, password);
     localStorage.setItem("auth_token", data.token || "");
     localStorage.setItem("auth_email", emailArg);
     setToken(data.token || "");
@@ -26,8 +25,7 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (emailArg, password) => {
-    const res = await fetch("/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: emailArg, password }) });
-    if (!res.ok) throw new Error("Registration failed");
+    await registerUser(emailArg, password);
     await login(emailArg, password);
   };
 

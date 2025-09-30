@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { DataGrid } from "react-data-grid";
 import ToastComponent from "../components/Toast";
 import { useToast } from "../hooks/useToast";
+import { getSalesData, parseTsvFile } from "../services/tsvService.js";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -817,20 +818,7 @@ export default function StatisticPage() {
     setParsedData([]);
 
     try {
-      const formData = new FormData();
-      formData.append('tsv', file);
-
-      const response = await fetch('http://localhost:3001/tsv/parse', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to parse TSV file');
-      }
-
-      const result = await response.json();
+      const result = await parseTsvFile(file);
       
       if (result.success) {
         setParsedData(result.data.sales);
@@ -861,13 +849,7 @@ export default function StatisticPage() {
     setError("");
     
     try {
-      const response = await fetch('http://localhost:3001/tsv/sales');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const result = await response.json();
+      const result = await getSalesData();
       
       if (result.success && result.data && result.data.sales) {
         setParsedData(result.data.sales);

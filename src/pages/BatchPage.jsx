@@ -6,6 +6,7 @@ import localforage from "localforage";
 import piexif from "piexifjs";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { analyzeImage } from "../services/analyzeService.js";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -267,13 +268,7 @@ export default function BatchPage() {
     if (!item) return;
     try {
       setBusy(true);
-      const fd = new FormData();
-      fd.append("image", item.blob);
-      fd.append("maxKeywords", "30");
-      const headers = {};
-      try { const t = localStorage.getItem("auth_token"); if (t) headers["Authorization"] = `Bearer ${t}`; } catch {}
-      const res = await fetch("/analyze", { method: "POST", headers, body: fd });
-      const data = await res.json();
+      const data = await analyzeImage(item.blob, 30);
       const kw = Array.isArray(data.keywords) ? data.keywords : String(data.keywords || "").split(",").map(s=>s.trim()).filter(Boolean);
       setItems(prev => prev.map((it, idx) => idx === index ? { ...it, title: data.title || it.title, description: data.description || it.description, keywords: kw.length ? kw : it.keywords } : it));
     } finally {

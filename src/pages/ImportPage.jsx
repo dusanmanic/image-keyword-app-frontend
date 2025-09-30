@@ -7,6 +7,7 @@ import ToastComponent from "../components/Toast";
 import { useToast } from "../hooks/useToast";
 import { useParams } from "react-router-dom";
 import { useEmbedToFolder } from "../components/AppHandlers.jsx";
+import { analyzeImage } from "../services/analyzeService.js";
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -427,16 +428,7 @@ export default function ImportPage() {
       }
       if (!(blob instanceof Blob)) { showToast('Image unavailable'); return; }
 
-      const formData = new FormData();
-      formData.append('image', blob);
-      // reuse max 30 like App.jsx
-      formData.append('maxKeywords', String(30));
-      if (extraPrompt && extraPrompt.trim()) formData.append('prompt', extraPrompt.trim());
-      const headers = {};
-      try { const t = localStorage.getItem('auth_token'); if (t) headers['Authorization'] = `Bearer ${t}`; } catch {}
-
-      const res = await fetch('/analyze', { method: 'POST', headers, body: formData });
-      const data = await res.json();
+      const data = await analyzeImage(blob, 30, extraPrompt);
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';

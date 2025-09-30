@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
+import { parseTsvFile } from "../services/tsvService.js";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -378,20 +379,7 @@ export default function StatisticPage() {
     setParsedData([]);
 
     try {
-      const formData = new FormData();
-      formData.append('tsv', file);
-
-      const response = await fetch('http://localhost:3001/tsv/parse', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to parse TSV file');
-      }
-
-      const result = await response.json();
+      const result = await parseTsvFile(file);
       
       if (result.success) {
         // TSV parser returns sales data and stats

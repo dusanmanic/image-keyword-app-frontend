@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useNavigate, Link } from "react-router-dom";
 import { computeBlobSha256Hex } from "../utils/hash.js";
+import { analyzeImage } from "../services/analyzeService.js";
 import Controls from "../components/Controls.jsx";
 import Gallery from "../components/Gallery.jsx";
 import ImageModal from "../components/ImageModal.jsx";
@@ -285,11 +286,8 @@ function FirstTestInner() {
           return;
         }
       } catch {}
-      const headers = {};
-      try { const t = localStorage.getItem("auth_token"); if (t) headers["Authorization"] = `Bearer ${t}`; } catch {}
-      const res = await fetch("/analyze", { method: "POST", headers, body: formData });
-
-      const data = await res.json();
+      
+      const data = await analyzeImage(selected, maxKeywords);
 
       if ("description" in data || "keywords" in data || "title" in data) {
         const kw = Array.isArray(data.keywords)
