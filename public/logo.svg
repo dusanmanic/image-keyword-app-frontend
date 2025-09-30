@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Camera body -->
+  <rect x="20" y="30" width="60" height="45" rx="8" fill="url(#grad1)"/>
+  
+  <!-- Camera lens -->
+  <circle cx="50" cy="52" r="15" fill="#ffffff" opacity="0.9"/>
+  <circle cx="50" cy="52" r="10" fill="url(#grad1)"/>
+  <circle cx="50" cy="52" r="6" fill="#ffffff" opacity="0.3"/>
+  
+  <!-- Camera flash -->
+  <circle cx="70" cy="40" r="4" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- AI sparkles/keywords -->
+  <circle cx="25" cy="20" r="3" fill="#8b5cf6" opacity="0.8"/>
+  <circle cx="35" cy="15" r="2.5" fill="#3b82f6" opacity="0.8"/>
+  <circle cx="75" cy="20" r="3" fill="#8b5cf6" opacity="0.8"/>
+  <circle cx="65" cy="15" r="2.5" fill="#3b82f6" opacity="0.8"/>
+  
+  <!-- Keyword tags at bottom -->
+  <rect x="15" y="80" width="20" height="8" rx="4" fill="#3b82f6" opacity="0.7"/>
+  <rect x="40" y="80" width="20" height="8" rx="4" fill="#8b5cf6" opacity="0.7"/>
+  <rect x="65" y="80" width="20" height="8" rx="4" fill="#1e40af" opacity="0.7"/>
+</svg>
