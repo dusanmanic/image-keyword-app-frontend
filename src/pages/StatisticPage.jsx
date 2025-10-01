@@ -1,14 +1,14 @@
-import React, { useState, useRef, useMemo, useEffect } from "react";
+import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { DataGrid } from "react-data-grid";
 import ToastComponent from "../components/Toast";
 import { useToast } from "../hooks/useToast";
+import { useAuth } from "../context/AuthContext";
 import { getSalesData, parseTsvFile } from "../services/tsvService.js";
 
 const Container = styled.div`
-  min-height: 100vh;
   background: #f3f4f6;
-  padding: 20px;
+  padding: 20px 20px 0 20px;
 `;
 
 const Header = styled.div`
@@ -65,18 +65,106 @@ const ContentArea = styled.div`
 `;
 
 
-// Match ImportPage dashed DropZone design
-const DropZone = styled.div`
-  height: calc(100vh - 300px);
+// DropZone for View tab (no data state)
+const DropZoneView = styled.div`
+  height: calc(80vh - 112px);
   display: flex;
   justify-content: center;
   align-items: center;
-  height: calc(70vh - 112px);
-  border: 2px dashed #93c5fd;
-  background: #f9fafb;
-  border-radius: 12px;
-  padding: 24px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px dashed #0ea5e9;
+  border-radius: 16px;
+  padding: 48px 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
   color: #1e40af;
+`;
+
+// DropZone for Upload tab (drag & drop)
+const DropZoneUpload = styled.div`
+  height: calc(80vh - 112px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px dashed #3b82f6;
+  border-radius: 16px;
+  padding: 48px 24px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  color: #1e40af;
+  
+  &:hover {
+    border-color: #2563eb;
+    background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%);
+  }
+`;
+
+// Content wrapper for DropZones
+const DropZoneContent = styled.div`
+  text-align: center;
+  position: relative;
+  z-index: 2;
+`;
+
+// Animated emoji
+const DropZoneEmoji = styled.div`
+  font-size: 64px;
+  margin-bottom: 20px;
+  filter: ${props => props.filter || 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2))'};
+  animation: ${props => props.animation || 'bounce'} 2s infinite;
+  
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+`;
+
+// Heading text
+const DropZoneHeading = styled.div`
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: ${props => props.color || '#1e40af'};
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+// Subtitle text
+const DropZoneSubtitle = styled.div`
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 8px;
+`;
+
+// Hint badge
+const DropZoneHint = styled.div`
+  font-size: 14px;
+  color: ${props => props.color || '#3b82f6'};
+  font-weight: 600;
+  padding: 8px 16px;
+  background: ${props => props.background || 'rgba(59, 130, 246, 0.1)'};
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 8px;
 `;
 
 // Tab system styles - Simple color change
@@ -151,7 +239,7 @@ const LoadingText = styled.div`
 `;
 
 const LoadingContainer = styled.div`
-  height: calc(100vh - 270px);
+  height: calc(100vh - 320px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -265,6 +353,68 @@ const ExportButton = styled.button`
   }
 `;
 
+const PaginationInfo = styled.div`
+  width: 350px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  text-align: center;
+  
+  strong {
+    color: #1e40af;
+    font-weight: 700;
+  }
+`;
+
+const InfiniteScrollLoader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #3b82f6;
+  font-weight: 600;
+`;
+
+const MiniSpinner = styled.div`
+  width: 20px;
+  height: 20px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const InlineLoader = styled.span`
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #cbd5e1;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin: 0 2px;
+`;
+
 const FilterContainer = styled.div`
   display: flex;
   gap: 12px;
@@ -301,7 +451,7 @@ const DataGridContainer = styled.div`
   overflow: hidden;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   width: 100%;
-  height: calc(100vh - 300px);
+  height: calc(100vh - 350px);
   display: flex;
   flex-direction: column;
   
@@ -499,22 +649,138 @@ export default function StatisticPage() {
   const [stats, setStats] = useState(null);
   const fileInputRef = useRef(null);
   const { toasts, success, error: showError, removeToast } = useToast();
+  const { email, isAuthenticated } = useAuth();
   const [sortColumns, setSortColumns] = useState([]);
   const [loadingFromDb, setLoadingFromDb] = useState(false);
   const [dataSource, setDataSource] = useState(null); // 'file' or 'database'
   const [activeTab, setActiveTab] = useState('view'); // 'view' or 'upload'
   const [columnWidths, setColumnWidths] = useState({});
+  const [pagination, setPagination] = useState({
+    total: 0,
+    offset: 0,
+    limit: 20,
+    hasMore: false,
+    currentPage: 1,
+    totalPages: 1
+  });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollContainerRef = useRef(null);
+
+  // Function to load more data
+  const loadMoreData = useCallback(() => {
+    if (loadingMore || !pagination.hasMore) return;
+    
+    const loadData = async () => {
+      setLoadingMore(true);
+      setError("");
+      
+      try {
+        const offset = parsedData.length;
+        const result = await getSalesData({
+          limit: pagination.limit,
+          offset: offset,
+          includeStats: false // Don't fetch stats when loading more
+        });
+        
+        if (result.success && result.data) {
+          // Append new data (even if empty array)
+          setParsedData(prev => [...prev, ...(result.data.sales || [])]);
+          
+          // Update pagination info
+          if (result.data.pagination) {
+            setPagination(result.data.pagination);
+          }
+          
+          setDataSource('database');
+          
+          // Clear any previous errors if we got a successful response
+          setError("");
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+      } catch (err) {
+        console.error('Error loading more data:', err);
+        
+        // Check if it's an authentication error
+        if (err.message.includes('401') || err.message.includes('Authentication')) {
+          setError(`Authentication required: Please log in to view your data`);
+          showError(`Authentication required: Please log in to view your data`);
+        } else if (err.message.includes('500')) {
+          // Don't show 500 errors for loading more data
+          // Just stop loading more
+          setError("");
+        } else {
+          setError(`Failed to load more data: ${err.message}`);
+          showError(`Failed to load more data: ${err.message}`);
+        }
+      } finally {
+        setLoadingMore(false);
+      }
+    };
+    
+    loadData();
+  }, [loadingMore, pagination.hasMore, pagination.limit, parsedData.length, showError]);
+
+  // Infinite scroll handler
+  useEffect(() => {
+    const handleScroll = (e) => {
+      const target = e.target;
+      const { scrollTop, scrollHeight, clientHeight } = target;
+      
+      // Calculate distance from bottom
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      
+      // Trigger load more when user is within 200px from bottom
+      if (distanceFromBottom < 200 && dataSource === 'database' && pagination.hasMore && !loadingMore) {
+        loadMoreData();
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container && dataSource === 'database') {
+      // Try multiple possible scroll elements
+      const rdgViewport = container.querySelector('.rdg-viewport');
+      const rdgElement = container.querySelector('.rdg');
+      
+      // Add listener to whichever element exists
+      const scrollableElement = rdgViewport || rdgElement || container;
+      
+      scrollableElement.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        scrollableElement.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [dataSource, loadMoreData, pagination.hasMore, loadingMore]);
 
   // Load data from database on component mount and when switching to view tab
   useEffect(() => {
     if (activeTab === 'view') {
-      loadDataFromDatabase();
+      // Reset and load first page when switching to view tab
+      setParsedData([]);
+      setPagination({
+        total: 0,
+        offset: 0,
+        limit: 20,
+        hasMore: false,
+        currentPage: 1,
+        totalPages: 1
+      });
+      loadDataFromDatabase(true);
     } else if (activeTab === 'upload') {
       // Reset upload tab data when switching to upload tab
       setParsedData([]);
       setStats(null);
       setDataSource(null);
       setError("");
+      setPagination({
+        total: 0,
+        offset: 0,
+        limit: 20,
+        hasMore: false,
+        currentPage: 1,
+        totalPages: 1
+      });
     }
   }, [activeTab]);
 
@@ -821,18 +1087,29 @@ export default function StatisticPage() {
       const result = await parseTsvFile(file);
       
       if (result.success) {
-        setParsedData(result.data.sales);
+        setParsedData(result.data.sales || []);
         setPdfData([]);
-        const s = calculateStatsFromSales(result.data.sales);
+        const s = calculateStatsFromSales(result.data.sales || []);
         setStats(s);
         setDataSource('file');
-        success(`Imported ${result.data.sales.length} rows`);
+        success(`Imported ${(result.data.sales || []).length} rows`);
+        
+        // Clear any previous errors if upload was successful
+        setError("");
       } else {
         throw new Error('Backend parsing failed');
       }
     } catch (err) {
-      setError('Failed to parse TSV file: ' + err.message);
-      showError('Failed to parse TSV file');
+      console.error('Error processing TSV file:', err);
+      
+      // Check if it's an authentication error
+      if (err.message.includes('401') || err.message.includes('Authentication')) {
+        setError('Authentication required: Please log in to upload files');
+        showError('Authentication required: Please log in to upload files');
+      } else {
+        setError('Failed to parse TSV file: ' + err.message);
+        showError('Failed to parse TSV file');
+      }
     } finally {
       setLoading(false);
     }
@@ -843,26 +1120,60 @@ export default function StatisticPage() {
     await processTsvFile(file);
   };
 
-  // Function to load data from Firebase database
-  const loadDataFromDatabase = async () => {
+  // Function to load data from Firebase database with pagination
+  const loadDataFromDatabase = async (resetData = false) => {
     setLoadingFromDb(true);
     setError("");
     
     try {
-      const result = await getSalesData();
+      const offset = 0;
+      const result = await getSalesData({
+        limit: pagination.limit,
+        offset: offset,
+        includeStats: true // Fetch stats on first load
+      });
       
-      if (result.success && result.data && result.data.sales) {
-        setParsedData(result.data.sales);
-        setStats(result.data.stats);
+      if (result.success && result.data) {
+        // Set data (even if empty array)
+        setParsedData(result.data.sales || []);
+        
+        // Update stats (can be null if no data)
+        if (result.data.stats) {
+          setStats(result.data.stats);
+        } else {
+          setStats(null);
+        }
+        
+        // Update pagination info
+        if (result.data.pagination) {
+          setPagination(result.data.pagination);
+        }
+        
         setDataSource('database');
-        // No toast needed - user can see the data loading
+        
+        // Clear any previous errors if we got a successful response (even with empty data)
+        setError("");
       } else {
         throw new Error('Invalid response format from server');
       }
     } catch (err) {
       console.error('Error loading data from database:', err);
-      setError(`Failed to load data from database: ${err.message}`);
-      showError(`Failed to load data from database: ${err.message}`);
+      
+      // Check if it's an authentication error
+      if (err.message.includes('401') || err.message.includes('Authentication')) {
+        setError(`Authentication required: Please log in to view your data`);
+        showError(`Authentication required: Please log in to view your data`);
+      } else if (err.message.includes('500')) {
+        // Don't show 500 errors as they might be expected (no data, etc.)
+        // Just set empty data and let the "No data" screen show
+        setParsedData([]);
+        setStats(null);
+        setDataSource('database');
+        setError(""); // Clear any previous errors
+      } else {
+        setError(`Failed to load data from database: ${err.message}`);
+        showError(`Failed to load data from database: ${err.message}`);
+      }
     } finally {
       setLoadingFromDb(false);
     }
@@ -882,7 +1193,7 @@ export default function StatisticPage() {
               marginTop: '4px',
               fontWeight: '500'
             }}>
-              📊 Data from: Firebase Database
+              📊 Data from: Firebase Database {isAuthenticated && email && `(${email})`}
             </div>
           )}
           {activeTab === 'upload' && (
@@ -892,11 +1203,11 @@ export default function StatisticPage() {
               marginTop: '4px',
               fontWeight: '500'
             }}>
-              📊 Data from: TSV File
+              📊 Data from: TSV File {isAuthenticated && email && `(${email})`}
             </div>
           )}
         </div>
-          {parsedData.length > 0 && !loading && !loadingFromDb && !error && dataSource === 'database' && (
+          {parsedData.length > 0 && !loading && !loadingFromDb && dataSource === 'database' && (
             <FilterContainer>
               <FilterInput
                 type="text"
@@ -954,14 +1265,14 @@ export default function StatisticPage() {
           <LoadingContainer>
             <LoadingSpinner />
             <LoadingTitle>Loading Database</LoadingTitle>
-            <LoadingSubtitle>Fetching latest data from Firebase...</LoadingSubtitle>
+            <LoadingSubtitle>Fetching latest data from database...</LoadingSubtitle>
           </LoadingContainer>
         )}
-        {error && <ErrorText>{error}</ErrorText>}
+        {error && isAuthenticated && !error.includes('Authentication') && !error.includes('500') && parsedData.length > 0 && <ErrorText>{error}</ErrorText>}
 
         {/* View Tab - Database Data */}
         <TabContent active={activeTab === 'view'}>
-          {parsedData.length > 0 && !loading && !loadingFromDb && !error && dataSource === 'database' && (
+          {parsedData.length > 0 && !loading && !loadingFromDb && dataSource === 'database' && (
           <>
             <StatsContainer>
               {(() => {
@@ -988,7 +1299,7 @@ export default function StatisticPage() {
               })()}
             </StatsContainer>
             
-            <DataGridContainer>
+            <DataGridContainer ref={scrollContainerRef}>
               <StyledDataGrid
                 columns={columns}
                 rows={sortedRows}
@@ -1005,64 +1316,82 @@ export default function StatisticPage() {
                 style={{ width: '100%' }}
               />
             </DataGridContainer>
+            
+              {/* Pagination info */}
+              {parsedData.length > 0 && !error && (
+                <PaginationInfo>
+                  {pagination.hasMore ? (
+                    <>
+                      Showing{' '}
+                      {loadingMore ? (
+                        <InlineLoader />
+                      ) : (
+                        <strong>{parsedData.length}</strong>
+                      )}{' '}
+                      of <strong>{pagination.total}</strong> rows
+                      <div style={{ width: '140px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
+                        {loadingMore ? 'Loading more rows...' : 'Scroll down to load more'}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '16px', marginBottom: '4px' }}>📊</div>
+                      All <strong>{pagination.total}</strong> rows loaded
+                    </>
+                  )}
+                </PaginationInfo>
+              )}
           </>
           )}
           
-          {parsedData.length === 0 && !loading && !loadingFromDb && !error && dataSource !== 'database' && (
-            <DropZone style={{
-              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-              border: '2px dashed #0ea5e9',
-              borderRadius: '16px',
-              padding: '48px 24px',
-              transition: 'all 0.3s ease',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                textAlign: 'center',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <div style={{ 
-                  fontSize: '64px', 
-                  marginBottom: '20px',
-                  filter: 'drop-shadow(0 4px 8px rgba(14, 165, 233, 0.2))',
-                  animation: 'pulse 2s infinite'
-                }}>📊</div>
-                <div style={{ 
-                  fontSize: '20px', 
-                  fontWeight: '700', 
-                  marginBottom: '12px',
-                  color: '#0369a1',
-                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}>No data in database</div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  color: '#64748b',
-                  marginBottom: '8px'
-                }}>Upload TSV files to populate the database</div>
-                <div style={{ 
-                  fontSize: '14px', 
-                  color: '#0ea5e9',
-                  fontWeight: '600',
-                  padding: '8px 16px',
-                  background: 'rgba(14, 165, 233, 0.1)',
-                  borderRadius: '20px',
-                  display: 'inline-block',
-                  marginTop: '8px'
-                }}>💡 Switch to Upload tab to get started</div>
-              </div>
-              <style jsx>{`
-                @keyframes pulse {
-                  0%, 100% {
-                    transform: scale(1);
-                  }
-                  50% {
-                    transform: scale(1.05);
-                  }
-                }
-              `}</style>
-            </DropZone>
+          {!isAuthenticated && (
+            <DropZoneView>
+              <DropZoneContent>
+                <DropZoneEmoji 
+                  animation="pulse"
+                  filter="drop-shadow(0 4px 8px rgba(239, 68, 68, 0.2))"
+                >
+                  🔒
+                </DropZoneEmoji>
+                <DropZoneHeading color="#dc2626">
+                  Authentication Required
+                </DropZoneHeading>
+                <DropZoneSubtitle>
+                  Please log in to view your personal statistics
+                </DropZoneSubtitle>
+                <DropZoneHint 
+                  color="#dc2626" 
+                  background="rgba(239, 68, 68, 0.1)"
+                >
+                  🔑 Each user sees only their own data
+                </DropZoneHint>
+              </DropZoneContent>
+            </DropZoneView>
+          )}
+          
+          {isAuthenticated && parsedData.length === 0 && !loading && !loadingFromDb && (
+            <DropZoneView>
+              <DropZoneContent>
+                <DropZoneEmoji 
+                  animation="pulse"
+                  filter="drop-shadow(0 4px 8px rgba(14, 165, 233, 0.2))"
+                >
+                  📊
+                </DropZoneEmoji>
+                <DropZoneHeading color="#0369a1">
+                  No data in your database
+                </DropZoneHeading>
+                <DropZoneSubtitle>
+                  Upload TSV files to populate your personal database
+                </DropZoneSubtitle>
+                <DropZoneHint 
+                  color="#0ea5e9" 
+                  background="rgba(14, 165, 233, 0.1)"
+                >
+                  💡 Switch to Upload tab to get started
+                </DropZoneHint>
+              </DropZoneContent>
+            </DropZoneView>
           )}
         </TabContent>
 
@@ -1127,69 +1456,33 @@ export default function StatisticPage() {
             </>
           )}
           
-          {parsedData.length === 0 && !loading && !error && (
-            <DropZone
+          {!isAuthenticated && (
+            <DropZoneUpload>
+              <DropZoneContent>
+                <DropZoneEmoji>🔒</DropZoneEmoji>
+                <DropZoneHeading color="#dc2626">Authentication Required</DropZoneHeading>
+                <DropZoneSubtitle>Please log in to upload TSV files</DropZoneSubtitle>
+                <DropZoneHint color="#dc2626" background="rgba(239, 68, 68, 0.1)">
+                  🔑 Upload data will be saved to your personal account
+                </DropZoneHint>
+              </DropZoneContent>
+            </DropZoneUpload>
+          )}
+          
+          {isAuthenticated && parsedData.length === 0 && !loading && !error && (
+            <DropZoneUpload
               onDragOver={(e)=> { e.preventDefault(); e.stopPropagation(); }}
               onDrop={(e)=> { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer?.files?.length) processTsvFile(e.dataTransfer.files[0]); }}
-              style={{
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                border: '2px dashed #3b82f6',
-                borderRadius: '16px',
-                padding: '48px 24px',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
             >
-              <div style={{ 
-                textAlign: 'center',
-                position: 'relative',
-                zIndex: 2
-              }}>
-                <div style={{ 
-                  fontSize: '64px', 
-                  marginBottom: '20px',
-                  filter: 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2))',
-                  animation: 'bounce 2s infinite'
-                }}>📁</div>
-                <div style={{ 
-                  fontSize: '20px', 
-                  fontWeight: '700', 
-                  marginBottom: '12px',
-                  color: '#1e40af',
-                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                }}>Drag & drop TSV file here</div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  color: '#64748b',
-                  marginBottom: '8px'
-                }}>or click "Select TSV File" button</div>
-                <div style={{ 
-                  fontSize: '14px', 
-                  color: '#3b82f6',
-                  fontWeight: '600',
-                  padding: '8px 16px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  borderRadius: '20px',
-                  display: 'inline-block',
-                  marginTop: '8px'
-                }}>✨ Data will be automatically saved to database</div>
-              </div>
-              <style jsx>{`
-                @keyframes bounce {
-                  0%, 20%, 50%, 80%, 100% {
-                    transform: translateY(0);
-                  }
-                  40% {
-                    transform: translateY(-10px);
-                  }
-                  60% {
-                    transform: translateY(-5px);
-                  }
-                }
-              `}</style>
-            </DropZone>
+              <DropZoneContent>
+                <DropZoneEmoji>📁</DropZoneEmoji>
+                <DropZoneHeading>Drag & drop TSV file here</DropZoneHeading>
+                <DropZoneSubtitle>or click "Select TSV File" button</DropZoneSubtitle>
+                <DropZoneHint>
+                  ✨ Data will be automatically saved to your personal database
+                </DropZoneHint>
+              </DropZoneContent>
+            </DropZoneUpload>
           )}
         </TabContent>
       </ContentArea>

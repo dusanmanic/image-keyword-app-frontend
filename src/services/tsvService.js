@@ -3,6 +3,7 @@
  */
 
 import { getApiBaseUrl } from "../config/api.js";
+import { getAuthHeaders } from "./authService.js";
 
 /**
  * Parse TSV file
@@ -15,6 +16,7 @@ export async function parseTsvFile(file) {
 
   const response = await fetch(`${getApiBaseUrl()}/tsv/parse`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData,
   });
 
@@ -27,11 +29,25 @@ export async function parseTsvFile(file) {
 }
 
 /**
- * Get sales data from database
- * @returns {Promise<{success: boolean, data: {sales: Array, stats: Object}}>}
+ * Get sales data from database with optional pagination
+ * @param {Object} options - Pagination options
+ * @param {number} options.limit - Number of rows to fetch (default: 20)
+ * @param {number} options.offset - Number of rows to skip (default: 0)
+ * @param {boolean} options.includeStats - Whether to include statistics (default: true)
+ * @returns {Promise<{success: boolean, data: {sales: Array, stats: Object, pagination: Object}}>}
  */
-export async function getSalesData() {
-  const response = await fetch(`${getApiBaseUrl()}/tsv/sales`);
+export async function getSalesData(options = {}) {
+  const { limit = 20, offset = 0, includeStats = true } = options;
+  
+  const queryParams = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    includeStats: includeStats.toString()
+  });
+
+  const response = await fetch(`${getApiBaseUrl()}/tsv/sales?${queryParams}`, {
+    headers: getAuthHeaders()
+  });
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
