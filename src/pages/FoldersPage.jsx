@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { useFolders } from "../main.jsx";
 import { useApi } from "../hooks/useApi.js";
+import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 
 
 const Container = styled.div`
@@ -507,9 +507,7 @@ export default function FoldersPage() {
   const navigate = useNavigate();
   
   // Folders are loaded globally in MainApp
-  const { folders, setFolders } = useFolders();
-  const { saveFolder } = useApi();
-
+  const { folders, setFolders, saveFolder } = useFoldersRedux();
 
   useEffect(() => {
     (async () => {
@@ -601,9 +599,7 @@ export default function FoldersPage() {
     };
     
     try {
-      const savedFolder = await saveFolder(updatedFolder);
-      // Update local folders state
-      setFolders(prev => prev.map(f => f.id === updatedFolder.id ? savedFolder : f));
+      const savedFolder = await saveFolder(updatedFolder, true);
       setIsModalOpen(false);
     } catch (error) {
       console.error('Error updating folder:', error);
@@ -630,8 +626,6 @@ export default function FoldersPage() {
     });
   };
 
-  
-
   return (
     <Container>
       <Header>
@@ -639,7 +633,7 @@ export default function FoldersPage() {
           {/* Header content can be added here if needed */}
         </div>
       </Header>
-      {folders.length === 0 ? (
+      {folders?.length === 0 ? (
         <EmptyState>
           <EmptyIcon>📁</EmptyIcon>
           <EmptyTitle>No folders yet</EmptyTitle>
@@ -647,7 +641,7 @@ export default function FoldersPage() {
         </EmptyState>
       ) : (
         <CardsGrid>
-        {folders.map(f => (
+        {folders?.map(f => (
           <RowCard 
             key={f.id} 
             onClick={() => openFolder(f.id)}

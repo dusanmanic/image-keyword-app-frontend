@@ -2,14 +2,15 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
-import ToastComponent from "../components/Toast";
-import { useToast } from "../hooks/useToast";
+// import ToastComponent from "../components/Toast";
+// import { useToast } from "../hooks/useToast";
 import { useLocation } from "react-router-dom";
 import { useEmbedToFolder } from "../components/AppHandlers.jsx";
 import { analyzeImage } from "../services/analyzeService.js";
-import { useFolders } from "../main.jsx";
+import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 import { useApi } from "../hooks/useApi.js";
 import GlobalSpinner from "../components/GlobalSpinner.jsx";
+import { useStore } from "../store/index.js";
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -386,7 +387,7 @@ export default function ImportPage() {
   const [lastCopied, setLastCopied] = useState(null);
   
   // API integration
-  const { folders } = useFolders();
+  const { folders } = useFoldersRedux();
   const { getFolderImages, saveImageMetadata } = useApi();
   const [analyzingIds, setAnalyzingIds] = useState(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -416,7 +417,7 @@ export default function ImportPage() {
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const { embedOneToFolder } = useEmbedToFolder();
-  const { toasts, success, error: showError, warning, info, removeToast } = useToast();
+  const { showToast: showGlobalToast } = useStore();
   
   React.useEffect(() => {
     console.log('[ImportPage] rows', rows);
@@ -424,11 +425,7 @@ export default function ImportPage() {
   }, [rows]);
 
   const showToast = (msg, type = 'success') => {
-    if (type === 'success') success(msg);
-    else if (type === 'error') showError(msg);
-    else if (type === 'warning') warning(msg);
-    else if (type === 'info') info(msg);
-    else success(msg);
+    showGlobalToast({ type, message: msg });
   };
 
   const analyzeRow = async (row, extraPrompt = "") => {
@@ -937,11 +934,13 @@ export default function ImportPage() {
           saveMetadataChanges(row.id, { keywords: newKeywords });
           if (chipsRef.current) chipsRef.current.textContent = '';
           setHasDraft(false);
+          showToast('Keywords updated');
         };
         const removeAt = (idx) => {
           const next = list.filter((_, i) => i !== idx);
           onRowChange({ ...row, keywords: next }, true);
           saveMetadataChanges(row.id, { keywords: next });
+          showToast('Keywords updated');
         };
         const handleKeyDown = (e) => {
           if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
@@ -1597,7 +1596,8 @@ export default function ImportPage() {
         </PasteOverlay>
       )}
 
-      <ToastComponent toasts={toasts} onRemove={removeToast} />
+      {/* Toast notifications moved to global (main.jsx) */}
+      {/* <ToastComponent toasts={toasts} onRemove={removeToast} /> */}
       <GlobalSpinner show={pasteLoading} text="Applying paste..." />
       <GlobalSpinner show={analyzeLoading} text="Analyzing images..." />
       <GlobalSpinner show={embedLoading} text="Embedding metadata..." />

@@ -1,10 +1,11 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { DataGrid } from "react-data-grid";
-import ToastComponent from "../components/Toast";
-import { useToast } from "../hooks/useToast";
+// import ToastComponent from "../components/Toast";
+// import { useToast } from "../hooks/useToast";
 import { useAuth } from "../context/AuthContext";
 import { getSalesData, parseTsvFile } from "../services/tsvService.js";
+import { useStore } from "../store/index.js";
 
 const Container = styled.div`
   background: #f3f4f6;
@@ -648,8 +649,9 @@ export default function StatisticPage() {
   const [filterText, setFilterText] = useState("");
   const [stats, setStats] = useState(null);
   const fileInputRef = useRef(null);
-  const { toasts, success, error: showError, removeToast } = useToast();
+  // const { toasts, success, error: showError, removeToast } = useToast();
   const { email, isAuthenticated } = useAuth();
+  const { showToast } = useStore();
   const [sortColumns, setSortColumns] = useState([]);
   const [loadingFromDb, setLoadingFromDb] = useState(false);
   const [dataSource, setDataSource] = useState(null); // 'file' or 'database'
@@ -701,14 +703,14 @@ export default function StatisticPage() {
         // Check if it's an authentication error
         if (err.message.includes('401') || err.message.includes('Authentication')) {
           setError(`Authentication required: Please log in to view your data`);
-          showError(`Authentication required: Please log in to view your data`);
+          showToast({ type: 'error', message: `Authentication required: Please log in to view your data` });
         } else if (err.message.includes('500')) {
           // Don't show 500 errors for loading more data
           // Just stop loading more
           setError("");
         } else {
           setError(`Failed to load more data: ${err.message}`);
-          showError(`Failed to load more data: ${err.message}`);
+          showToast({ type: 'error', message: `Failed to load more data: ${err.message}` });
         }
       } finally {
         setLoadingMore(false);
@@ -716,7 +718,7 @@ export default function StatisticPage() {
     };
     
     loadData();
-  }, [loadingMore, pagination.hasMore, pagination.limit, parsedData.length, showError]);
+  }, [loadingMore, pagination.hasMore, pagination.limit, parsedData.length, showToast]);
 
   // Infinite scroll handler
   useEffect(() => {
@@ -792,7 +794,7 @@ export default function StatisticPage() {
           onClick={() => {
             const iStockUrl = `https://www.istockphoto.com/search/2/image-film?family=creative&phrase=${row.imageId}`;
             window.open(iStockUrl, '_blank', 'noopener,noreferrer');
-            success(`Opening iStock page for Asset ID ${row.imageId}`);
+            showToast({ type: 'success', message: `Opening iStock page for Asset ID ${row.imageId}` });
           }}
         >
           <AssetIdText>{row.imageId}</AssetIdText>
@@ -1069,7 +1071,7 @@ export default function StatisticPage() {
     if (!file) return;
     if (!file.name.endsWith('.tsv') && !file.name.endsWith('.txt')) {
       setError('Please select a TSV or TXT file');
-      showError('Unsupported file type. Please drop a .tsv or .txt file.');
+      showToast({ type: 'error', message: 'Unsupported file type. Please drop a .tsv or .txt file.' });
       return;
     }
 
@@ -1087,7 +1089,7 @@ export default function StatisticPage() {
         const s = calculateStatsFromSales(result.data.sales || []);
         setStats(s);
         setDataSource('file');
-        success(`Imported ${(result.data.sales || []).length} rows`);
+        showToast({ type: 'success', message: `Imported ${(result.data.sales || []).length} rows` });
         
         // Clear any previous errors if upload was successful
         setError("");
@@ -1100,10 +1102,10 @@ export default function StatisticPage() {
       // Check if it's an authentication error
       if (err.message.includes('401') || err.message.includes('Authentication')) {
         setError('Authentication required: Please log in to upload files');
-        showError('Authentication required: Please log in to upload files');
+        showToast({ type: 'error', message: 'Authentication required: Please log in to upload files' });
       } else {
         setError('Failed to parse TSV file: ' + err.message);
-        showError('Failed to parse TSV file');
+        showToast({ type: 'error', message: 'Failed to parse TSV file' });
       }
     } finally {
       setLoading(false);
@@ -1155,7 +1157,7 @@ export default function StatisticPage() {
       // Check if it's an authentication error
       if (err.message.includes('401') || err.message.includes('Authentication')) {
         setError(`Authentication required: Please log in to view your data`);
-        showError(`Authentication required: Please log in to view your data`);
+        showToast({ type: 'error', message: `Authentication required: Please log in to view your data` });
       } else if (err.message.includes('500')) {
         // Don't show 500 errors as they might be expected (no data, etc.)
         // Just set empty data and let the "No data" screen show
@@ -1165,7 +1167,7 @@ export default function StatisticPage() {
         setError(""); // Clear any previous errors
       } else {
         setError(`Failed to load data from database: ${err.message}`);
-        showError(`Failed to load data from database: ${err.message}`);
+        showToast({ type: 'error', message: `Failed to load data from database: ${err.message}` });
       }
     } finally {
       setLoadingFromDb(false);
@@ -1481,7 +1483,7 @@ export default function StatisticPage() {
       </ContentArea>
       
       {/* Toast notifications */}
-      <ToastComponent toasts={toasts} onRemove={removeToast} />
+      {/* <ToastComponent toasts={toasts} onRemove={removeToast} /> */}
     </Container>
   );
 }

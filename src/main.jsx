@@ -1,9 +1,11 @@
-import React, { useEffect, useState, createContext, useContext } from 'react'
+import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, useNavigate, useLocation, Link } from 'react-router-dom'
 import styled from 'styled-components'
-import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import { useApi } from './hooks/useApi.js'
+import { StoreProvider, useStore } from './store/index.js'
+import { useAuthRedux } from './hooks/useAuthRedux.js'
+import { useFoldersRedux } from './hooks/useFoldersRedux.js'
 import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
@@ -11,13 +13,7 @@ import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
 import StatisticPage from './pages/StatisticPage.jsx'
 import './index.css'
-
-// Folders Context
-const FoldersContext = createContext();
-
-export function useFolders() {
-  return useContext(FoldersContext);
-}
+import { AuthProvider } from './context/AuthContext.jsx'
 
 // Styled Components
 const Header = styled.header`
@@ -112,13 +108,44 @@ const LogoutButton = styled.button`
   }
 `;
 
+const ToastBox = styled.div`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: ${({ $type }) => $type === 'success' ? 'rgba(16,185,129,0.95)' : $type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(37,99,235,0.95)'};
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
 
+const ToastClose = styled.button`
+  background: transparent;
+  color: #e5e7eb;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+`;
 
 function AuthenticatedApp() {
-  const { logout, email } = useAuth();
-  const { folders } = useFolders();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { logout, email } = useAuthRedux();
+  const { uiLoading, toast, clearToast } = useStore();
+
+  // Auto-dismiss toast after 3s
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      try { clearToast(); } catch {}
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [toast, clearToast]);
   
   const isActive = (path) => {
     if (path === '/folders') {
@@ -172,27 +199,42 @@ function AuthenticatedApp() {
         </Nav>
       </Header>
       {renderCurrent()}
+      <GlobalSpinner show={!!uiLoading} text={typeof uiLoading === 'string' ? uiLoading : 'Loading...'} />
+      {toast ? (
+        <ToastBox role="status" aria-live="polite" $type={toast.type}>
+          <span>{toast.message || String(toast)}</span>
+          <ToastClose onClick={clearToast} aria-label="Close toast">×</ToastClose>
+        </ToastBox>
+      ) : null}
     </div>
   )
 }
 
 function MainApp() {
-  const { isAuthenticated, isTokenValid } = useAuth();
-  const { getFolders } = useApi();
-  const [folders, setFolders] = useState([]);
+  const { isAuthenticated, isTokenValid, initializeAuth } = useAuthRedux();
+  const { loadFolders } = useFoldersRedux();
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Load folders once when app starts
+  // Initialize auth from localStorage on mount
   useEffect(() => {
-    (async () => {
-      try {
-        const foldersData = await getFolders();
-        setFolders(foldersData);
-      } catch (error) {
-        console.error('Error loading folders:', error);
-        setFolders([]);
-      }
-    })();
-  }, [getFolders]);
+    const init = async () => {
+      await initializeAuth();
+      setIsInitializing(false);
+    };
+    init();
+  }, [initializeAuth]);
+
+  // Load folders only when authenticated
+  useEffect(() => {
+    if (isAuthenticated && isTokenValid()) {
+      loadFolders();
+    }
+  }, [isAuthenticated, isTokenValid()]);
+
+  // Show loading while initializing
+  if (isInitializing) {
+    return <div>Loading...</div>;
+  }
 
   // Ako nema tokena ili je token nevalidan, prikaži login screen
   if (!isAuthenticated || !isTokenValid()) {
@@ -200,21 +242,23 @@ function MainApp() {
   }
 
   // Ako je autentifikovan, prikaži glavnu aplikaciju
-  return (
-    <FoldersContext.Provider value={{ folders, setFolders }}>
-      <AuthenticatedApp />
-    </FoldersContext.Provider>
-  );
+  return <AuthenticatedApp />;
 }
 
 const router = createBrowserRouter([
   { path: '*', element: <MainApp /> },
-])
+], {
+  future: {
+    v7_startTransition: true
+  }
+})
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <AuthProvider>
-    <RouterProvider router={router} />
-  </AuthProvider>
+  <StoreProvider>
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  </StoreProvider>
 )
 
 // removed duplicate bootstrapping
