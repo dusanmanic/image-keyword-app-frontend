@@ -38,10 +38,10 @@ export function useStore() {
     removeFolder: (folderId) => dispatch(actions.removeFolder(folderId)),
     setSelectedFolder: (folder) => dispatch(actions.setSelectedFolder(folder)),
     setLoading: (loading) => dispatch(actions.setLoading(loading)),
-    setError: (error) => dispatch(actions.setError(error))
-    ,showSpinner: () => dispatch(actions.showSpinner())
-    ,hideSpinner: () => dispatch(actions.hideSpinner())
-    ,showToast: (toast) => dispatch(actions.showToast(toast))
-    ,clearToast: () => dispatch(actions.clearToast())
+    setError: (error) => dispatch(actions.setError(error)),
+    showSpinner: () => dispatch(actions.showSpinner()),
+    hideSpinner: () => dispatch(actions.hideSpinner()),
+    showToast: (toast) => dispatch(actions.showToast(toast)),
+    clearToast: () => dispatch(actions.clearToast())
   };
 }

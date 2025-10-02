@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuthRedux } from "../hooks/useAuthRedux.js";
 import GlobalSpinner from "./GlobalSpinner.jsx";
 
 const Wrapper = styled.div`
@@ -66,7 +66,7 @@ const ErrorLine = styled.div`
 `;
 
 export default function AuthPanel() {
-  const { isAuthenticated, email, login, register, logout } = useAuth();
+  const { isAuthenticated, email, login, register, logout } = useAuthRedux();
   const [em, setEm] = useState("");
   const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);

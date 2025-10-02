@@ -217,25 +217,24 @@ function MainApp() {
 
   // Initialize auth from localStorage on mount
   useEffect(() => {
-    const init = async () => {
-      await initializeAuth();
+    const init = () => {
+      initializeAuth();
       setIsInitializing(false);
     };
     init();
-  }, [initializeAuth]);
-
+  }, []); 
   // Load folders only when authenticated
   useEffect(() => {
     if (isAuthenticated && isTokenValid()) {
       loadFolders();
     }
-  }, [isAuthenticated, isTokenValid()]);
-
+  }, [isAuthenticated]);
+  
   // Show loading while initializing
   if (isInitializing) {
     return <div>Loading...</div>;
   }
-
+  
   // Ako nema tokena ili je token nevalidan, prikaži login screen
   if (!isAuthenticated || !isTokenValid()) {
     return <LoginPage />;
@@ -247,11 +246,7 @@ function MainApp() {
 
 const router = createBrowserRouter([
   { path: '*', element: <MainApp /> },
-], {
-  future: {
-    v7_startTransition: true
-  }
-})
+])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StoreProvider>

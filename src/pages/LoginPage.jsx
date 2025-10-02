@@ -1,10 +1,10 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuthRedux } from '../hooks/useAuthRedux.js';
 import AuthPanel from '../components/AuthPanel.jsx';
 
 function LoginPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthRedux();
   if (isAuthenticated) return <Navigate to="/" replace />
   
   return (

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import localforage from "localforage";
 import toastBus from "../utils/toastEventBus.js";
 import styled from "styled-components";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuthRedux } from "../hooks/useAuthRedux.js";
 import { useNavigate, Link } from "react-router-dom";
 import { computeBlobSha256Hex } from "../utils/hash.js";
 import { analyzeImage } from "../services/analyzeService.js";
@@ -226,7 +226,7 @@ const HiddenFileInput = styled.input`
 `;
 
 function FirstTestInner() {
-  const { logout, email } = useAuth();
+  const { logout } = useAuthRedux();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);

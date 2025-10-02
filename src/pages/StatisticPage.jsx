@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { DataGrid } from "react-data-grid";
 // import ToastComponent from "../components/Toast";
 // import { useToast } from "../hooks/useToast";
-import { useAuth } from "../context/AuthContext";
+import { useAuthRedux } from "../hooks/useAuthRedux.js";
 import { getSalesData, parseTsvFile } from "../services/tsvService.js";
 import { useStore } from "../store/index.js";
 
@@ -650,7 +650,7 @@ export default function StatisticPage() {
   const [stats, setStats] = useState(null);
   const fileInputRef = useRef(null);
   // const { toasts, success, error: showError, removeToast } = useToast();
-  const { email, isAuthenticated } = useAuth();
+  const { email, isAuthenticated } = useAuthRedux();
   const { showToast } = useStore();
   const [sortColumns, setSortColumns] = useState([]);
   const [loadingFromDb, setLoadingFromDb] = useState(false);

@@ -5,7 +5,7 @@ import toastBus from "../utils/toastEventBus.js";
 import localforage from "localforage";
 import piexif from "piexifjs";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuthRedux } from "../hooks/useAuthRedux.js";
 import { analyzeImage } from "../services/analyzeService.js";
 
 const Container = styled.div`
@@ -209,7 +209,7 @@ export default function BatchPage() {
   const [bulkDesc, setBulkDesc] = useState("");
   const [bulkKeywords, setBulkKeywords] = useState("");
   const [copyImages, setCopyImages] = useState(false);
-  const { logout, email } = useAuth();
+  const { logout, email } = useAuthRedux();
   const navigate = useNavigate();
   const [editorIndex, setEditorIndex] = useState(null);
   const [editorTitle, setEditorTitle] = useState("");

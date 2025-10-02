@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuthRedux } from './useAuthRedux.js';
 
 export function useAuthCheck() {
-  const { isAuthenticated, isTokenValid } = useAuth();
+  const { isAuthenticated, isTokenValid } = useAuthRedux();
   const navigate = useNavigate();
 
   useEffect(() => {
