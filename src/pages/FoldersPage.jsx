@@ -1,13 +1,45 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import localforage from "localforage";
 import { useNavigate } from "react-router-dom";
+import { useFolders } from "../main.jsx";
+import { useApi } from "../hooks/useApi.js";
 
 
 const Container = styled.div`
   min-height: 100vh;
   background: #f3f4f6;
   padding: 20px;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 40px 20px;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+`;
+
+const EmptyTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+`;
+
+const EmptyMessage = styled.p`
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.5;
 `;
 
 const Header = styled.div`
@@ -467,50 +499,32 @@ const FOLDER_COLORS = [
 ];
 
 export default function FoldersPage() {
-  const [folders, setFolders] = useState([]);
   const [counts, setCounts] = useState({});
   const [selectedId, setSelectedId] = useState(null);
  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draft, setDraft] = useState({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
   const navigate = useNavigate();
+  
+  // Folders are loaded globally in MainApp
+  const { folders, setFolders } = useFolders();
+  const { saveFolder } = useApi();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = (await localforage.getItem("folders_v1")) || [];
-        const sortedFolders = Array.isArray(data) 
-          ? data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-          : [];
-        setFolders(sortedFolders);
-      } catch {}
-    })();
-  }, []);
 
   useEffect(() => {
     (async () => {
       const out = {};
       try {
-        await Promise.all(
-          (folders || []).map(async (f) => {
-            const key = f?.id ? `folder_rows_${f.id}` : `folder_rows_default`;
-            try {
-              const rows = (await localforage.getItem(key)) || [];
-              out[f.id] = Array.isArray(rows) ? rows.length : 0;
-            } catch {
-              out[f.id] = 0;
-            }
-          })
-        );
+        // Use existing count if present on folder, else 0
+        (folders || []).forEach((f) => {
+          const existing = typeof f.imagesCount === 'number' ? f.imagesCount : 0;
+          out[f.id] = existing;
+        });
       } catch {}
       setCounts(out);
     })();
   }, [folders]);
 
-  const persist = async (next) => {
-    setFolders(next);
-    try { await localforage.setItem("folders_v1", next); } catch {}
-  };
 
   const openFolder = (id) => navigate(`/import/${id}`);
 
@@ -547,9 +561,8 @@ export default function FoldersPage() {
         return;
       }
       
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-      const next = [...folders, {
-        id,
+      const newFolder = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
         name: trimmedTitle || 'Untitled',
         createdAt: Date.now(),
         description: (draft.description || '').trim(),
@@ -557,11 +570,19 @@ export default function FoldersPage() {
         notes: (draft.notes || '').trim(),
         tags: draft.tags || [],
         color: draft.color || 'white',
-      }];
-      await persist(next);
-      setIsModalOpen(false);
+      };
+      
+      try {
+        const savedFolder = await saveFolder(newFolder);
+        // Update local folders state
+        setFolders(prev => [...prev, savedFolder]);
+        setIsModalOpen(false);
+      } catch (error) {
+        console.error('Error saving folder:', error);
+      }
       return;
     }
+    
     // Check for duplicate folder names when editing (exclude current folder)
     const existingFolder = folders.find(f => f.id !== selectedId && f.name.toLowerCase() === trimmedTitle.toLowerCase());
     if (existingFolder) {
@@ -569,18 +590,26 @@ export default function FoldersPage() {
       return;
     }
     
-    const next = folders.map(f => f.id === selectedId ? {
-      ...f,
+    const updatedFolder = {
+      ...folders.find(f => f.id === selectedId),
       name: trimmedTitle,
       description: (draft.description || '').trim(),
       shootingDate: draft.shootingDate || '',
       notes: (draft.notes || '').trim(),
       tags: draft.tags || [],
       color: draft.color || 'white',
-    } : f);
-    await persist(next);
-    setIsModalOpen(false);
+    };
+    
+    try {
+      const savedFolder = await saveFolder(updatedFolder);
+      // Update local folders state
+      setFolders(prev => prev.map(f => f.id === updatedFolder.id ? savedFolder : f));
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error updating folder:', error);
+    }
   };
+
 
   const formatDate = (val) => {
     if (!val) return '';
@@ -610,7 +639,14 @@ export default function FoldersPage() {
           {/* Header content can be added here if needed */}
         </div>
       </Header>
-      <CardsGrid>
+      {folders.length === 0 ? (
+        <EmptyState>
+          <EmptyIcon>📁</EmptyIcon>
+          <EmptyTitle>No folders yet</EmptyTitle>
+          <EmptyMessage>Click on the plus button to create a folder and add images</EmptyMessage>
+        </EmptyState>
+      ) : (
+        <CardsGrid>
         {folders.map(f => (
           <RowCard 
             key={f.id} 
@@ -675,7 +711,8 @@ export default function FoldersPage() {
             </CardBody>
           </RowCard>
         ))}
-      </CardsGrid>
+        </CardsGrid>
+      )}
 
       {isModalOpen && (
         <ModalOverlay onClick={()=> setIsModalOpen(false)}>

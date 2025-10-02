@@ -657,7 +657,6 @@ export default function StatisticPage() {
   const [columnWidths, setColumnWidths] = useState({});
   const [pagination, setPagination] = useState({
     total: 0,
-    offset: 0,
     limit: 20,
     hasMore: false,
     currentPage: 1,
@@ -675,10 +674,8 @@ export default function StatisticPage() {
       setError("");
       
       try {
-        const offset = parsedData.length;
         const result = await getSalesData({
           limit: pagination.limit,
-          offset: offset,
           includeStats: false // Don't fetch stats when loading more
         });
         
@@ -760,7 +757,6 @@ export default function StatisticPage() {
       setParsedData([]);
       setPagination({
         total: 0,
-        offset: 0,
         limit: 20,
         hasMore: false,
         currentPage: 1,
@@ -775,7 +771,6 @@ export default function StatisticPage() {
       setError("");
       setPagination({
         total: 0,
-        offset: 0,
         limit: 20,
         hasMore: false,
         currentPage: 1,
@@ -1126,10 +1121,8 @@ export default function StatisticPage() {
     setError("");
     
     try {
-      const offset = 0;
       const result = await getSalesData({
         limit: pagination.limit,
-        offset: offset,
         includeStats: true // Fetch stats on first load
       });
       

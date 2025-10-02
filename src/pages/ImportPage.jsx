@@ -1,13 +1,15 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
-import localforage from "localforage";
 import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
 import ToastComponent from "../components/Toast";
 import { useToast } from "../hooks/useToast";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useEmbedToFolder } from "../components/AppHandlers.jsx";
 import { analyzeImage } from "../services/analyzeService.js";
+import { useFolders } from "../main.jsx";
+import { useApi } from "../hooks/useApi.js";
+import GlobalSpinner from "../components/GlobalSpinner.jsx";
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -373,19 +375,33 @@ const WandIcon = () => (
 export default function ImportPage() {
   const fileRef = useRef(null);
   const gridRef = useRef(null);
+  const location = useLocation();
 
-  const { folderId } = useParams();
-
+  const folderId = location.pathname.startsWith('/import/') ? location.pathname.split('/import/')[1] : null;
+  console.log('folderId', folderId)
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState([]);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
   const [lastCopied, setLastCopied] = useState(null);
+  
+  // API integration
+  const { folders } = useFolders();
+  const { getFolderImages, saveImageMetadata } = useApi();
   const [analyzingIds, setAnalyzingIds] = useState(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkTotal, setBulkTotal] = useState(0);
   const [bulkDone, setBulkDone] = useState(0);
+  const [pasteLoading, setPasteLoading] = useState(false);
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [embedLoading, setEmbedLoading] = useState(false);
+  const [singleAnalyzeLoading, setSingleAnalyzeLoading] = useState(false);
+  const [processingImages, setProcessingImages] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const controlsRef = useRef(null);
+
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteData, setPasteData] = useState({ title: '', description: '', keywords: [] });
@@ -394,6 +410,7 @@ export default function ImportPage() {
     description: { include: true, clear: false },
     keywords: { include: true, clear: false },
   });
+
   const [bulkPromptOpen, setBulkPromptOpen] = useState(false);
   const [bulkPrompt, setBulkPrompt] = useState("");
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -401,7 +418,10 @@ export default function ImportPage() {
   const { embedOneToFolder } = useEmbedToFolder();
   const { toasts, success, error: showError, warning, info, removeToast } = useToast();
   
-  React.useEffect(() => { try { console.log('[ImportPage] rows', rows); } catch {} }, [rows]);
+  React.useEffect(() => {
+    console.log('[ImportPage] rows', rows);
+    
+  }, [rows]);
 
   const showToast = (msg, type = 'success') => {
     if (type === 'success') success(msg);
@@ -413,16 +433,11 @@ export default function ImportPage() {
 
   const analyzeRow = async (row, extraPrompt = "") => {
     try {
+      setSingleAnalyzeLoading(true);
       setAnalyzingIds(prev => { const s = new Set(prev); s.add(row.id); return s; });
       showToast('Analyzing...');
-      // Load blob from localforage via blobKey, fallback to fetching thumbUrl
-      let blob = null;
-      if (row?.blobKey) {
-        try {
-          const b = await localforage.getItem(row.blobKey);
-          if (b instanceof Blob) blob = b;
-        } catch {}
-      }
+      // Use thumbnailBlob for analysis
+      let blob = row?.thumbnailBlob;
       if (!blob && row?.thumbUrl) {
         try { const res = await fetch(row.thumbUrl); blob = await res.blob(); } catch {}
       }
@@ -449,16 +464,22 @@ export default function ImportPage() {
       }
 
       setRows(prev => prev.map(r => r.id === row.id ? ({ ...r, title: nextTitle, description: nextDescription, keywords: nextKeywords }) : r));
+      
+      // Save metadata changes to Firebase
+      saveMetadataChanges(row.id, { title: nextTitle, description: nextDescription, keywords: nextKeywords });
+      
       showToast('Metadata updated');
     } catch (e) {
       showToast('Analyze failed', 'error');
     } finally {
       setAnalyzingIds(prev => { const s = new Set(prev); s.delete(row.id); return s; });
+      setSingleAnalyzeLoading(false);
     }
   };
 
   const analyzeSelected = async (extraPrompt = "") => {
     try {
+      setAnalyzeLoading(true);
       showToast('Bulk analyze start');
       let ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
       if (!ids.length && lastSelectedIndex !== null && rows[lastSelectedIndex]) {
@@ -488,6 +509,7 @@ export default function ImportPage() {
       showToast('Bulk analysis failed', 'error');
     } finally {
       setBulkRunning(false);
+      setAnalyzeLoading(false);
       // clear analyzing marks for the batch
       setAnalyzingIds(prev => {
         const s = new Set(prev);
@@ -502,6 +524,7 @@ export default function ImportPage() {
 
   const embedSelected = async () => {
     try {
+      setEmbedLoading(true);
       let ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
       if (!ids.length && lastSelectedIndex !== null && rows[lastSelectedIndex]) {
         ids = [rows[lastSelectedIndex].id];
@@ -521,9 +544,8 @@ export default function ImportPage() {
         const r = rows.find(x => String(x.id) === String(id));
         if (!r) { skippedCount++; continue; }
         try {
-          // Try to fetch original blob from localForage
-          let blob = null;
-          try { blob = await localforage.getItem(r.blobKey); } catch {}
+          // Use blob directly from row
+          let blob = r.blob;
           if (!(blob instanceof Blob)) {
             try { const res = await fetch(r.thumbUrl); blob = await res.blob(); } catch {}
           }
@@ -568,6 +590,8 @@ export default function ImportPage() {
       showToast(`Embedded: ${embeddedCount}${skippedCount ? `, skipped: ${skippedCount}` : ''}`);
     } catch (e) {
       showToast(e && e.message ? e.message : 'Embedding failed', 'error');
+    } finally {
+      setEmbedLoading(false);
     }
   };
 
@@ -724,11 +748,18 @@ export default function ImportPage() {
             } catch {}
           }}
         >
+          {row.thumbUrl ? (
           <img
             src={row.thumbUrl}
-            alt={row.name}
+              alt={row.name || 'thumbnail'}
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+              onError={(e) => { try { e.currentTarget.style.display = 'none'; } catch {} }}
           />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 12 }}>
+              No preview
+            </div>
+          )}
           {row.embedded && (
             <div
               style={{
@@ -811,6 +842,7 @@ export default function ImportPage() {
               const prev = (row.title || '').trim();
               if (next !== prev) {
                 onRowChange({ ...row, title: next }, true);
+                saveMetadataChanges(row.id, { title: next });
               showToast('Title updated');
               }
             }}
@@ -873,6 +905,7 @@ export default function ImportPage() {
               const prev = (row.description || '').trim();
               if (next !== prev) {
                 onRowChange({ ...row, description: next }, true);
+                saveMetadataChanges(row.id, { description: next });
               showToast('Description updated');
               }
             }}
@@ -899,13 +932,16 @@ export default function ImportPage() {
           const t = (val || '').trim();
           if (!t) return;
           if (list.includes(t)) return;
-          onRowChange({ ...row, keywords: [...list, t] }, true);
+          const newKeywords = [...list, t];
+          onRowChange({ ...row, keywords: newKeywords }, true);
+          saveMetadataChanges(row.id, { keywords: newKeywords });
           if (chipsRef.current) chipsRef.current.textContent = '';
           setHasDraft(false);
         };
         const removeAt = (idx) => {
           const next = list.filter((_, i) => i !== idx);
           onRowChange({ ...row, keywords: next }, true);
+          saveMetadataChanges(row.id, { keywords: next });
         };
         const handleKeyDown = (e) => {
           if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
@@ -1095,69 +1131,263 @@ export default function ImportPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [rows, selectedRows, lastSelectedIndex]);
 
-  // load/save per-folder rows
+  // Load images from API
   useEffect(() => {
+    let isMounted = true;
     (async () => {
+      console.log('Loading images for folder:', folderId);
       try {
-        const key = folderId ? `folder_rows_${folderId}` : `folder_rows_default`;
-        const data = (await localforage.getItem(key)) || [];
-        const base = folderId ? `folder_${folderId}` : `folder_default`;
-        const arr = Array.isArray(data) ? data : [];
-        // Rebuild thumbnails from stored blobs per row
-        const enriched = await Promise.all(arr.map(async (r) => {
-          if (r?.blobKey) {
-            try {
-              const blob = await localforage.getItem(r.blobKey);
-              if (blob instanceof Blob) {
-                const url = URL.createObjectURL(blob);
-                return { ...r, thumbUrl: url };
-              }
-            } catch {}
+        if (folderId) {
+          const images = await getFolderImages(folderId);
+          if (isMounted) {
+            // Process images to use Firebase URLs when available
+            const processedImages = images.map(img => ({
+              ...img,
+              thumbUrl: img.thumbUrl // Use Firestore thumbUrl (base64 data URL)
+            }));
+            setRows(processedImages);
           }
-          return r;
-        }));
-        setRows(enriched);
-      } catch {}
+        } else {
+          if (isMounted) {
+            setRows([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading images:', error);
+        if (isMounted) {
+          setRows([]);
+        }
+      }
     })();
-  }, [folderId]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [folderId]); // Remove getFolderImages from dependencies
 
+  // Save new images to API in batch (only when new images are added)
   useEffect(() => {
-    (async () => {
+    const timeoutId = setTimeout(async () => {
       try {
-        const key = folderId ? `folder_rows_${folderId}` : `folder_rows_default`;
-        await localforage.setItem(key, rows);
-      } catch {}
-    })();
-  }, [rows, folderId]);
+        if (folderId && rows.length > 0) {
+          // Only save images that don't have thumbUrl (newly added)
+          const unsavedImages = rows.filter(row => !row.thumbUrl && row.thumbnailBlob);
+          
+          if (unsavedImages.length > 0) {
+            console.log('Saving new images to API in batch:', unsavedImages.length, 'images');
+            setUploadingImages(true);
+            setUploadProgress({ current: 0, total: unsavedImages.length });
+            
+            // Save all images in batch
+            const batchSize = 5; // Process 5 images at a time
+            let processedCount = 0;
+            
+            for (let i = 0; i < unsavedImages.length; i += batchSize) {
+              const batch = unsavedImages.slice(i, i + batchSize);
+              
+              await Promise.all(
+                batch.map(async (row) => {
+                  try {
+                    console.log('Saving new image:', row.name);
+                    const savedImage = await saveImageMetadata(folderId, row);
+                    console.log('New image saved successfully:', row.name);
+                    
+                    // Update with Firestore thumbUrl
+                    setRows(prev => prev.map(r => 
+                      r.id === row.id ? { 
+                        ...r, 
+                        thumbUrl: savedImage.thumbUrl
+                      } : r
+                    ));
+                    
+                    processedCount++;
+                    setUploadProgress({ current: processedCount, total: unsavedImages.length });
+                  } catch (error) {
+                    console.error('Error saving new image to API:', error);
+                    processedCount++;
+                    setUploadProgress({ current: processedCount, total: unsavedImages.length });
+                  }
+                })
+              );
+              
+              // Small delay between batches
+              if (i + batchSize < unsavedImages.length) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+            }
+            
+            setUploadingImages(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error persisting new images:', error);
+      }
+    }, 1000); // Debounce saves by 1 second for batch processing
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [rows, folderId, saveImageMetadata]);
 
-  const onFiles = (files) => {
+  // Save metadata changes (when title, description, keywords change)
+  const saveMetadataChanges = useCallback(async (rowId, updatedData) => {
+    try {
+      if (folderId && rowId) {
+        console.log('Saving metadata changes for:', rowId);
+        const updatedRow = rows.find(r => r.id === rowId);
+        if (updatedRow) {
+          const updatedImage = { ...updatedRow, ...updatedData };
+          await saveImageMetadata(folderId, updatedImage);
+          console.log('Metadata saved successfully for:', rowId);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving metadata changes:', error);
+    }
+  }, [folderId, rows, saveImageMetadata]);
+
+
+  // Image resize function
+  const resizeImage = async (fileOrBlob, maxSize, outputType = "image/jpeg", quality = 0.85) => {
+    const file = fileOrBlob;
+    const imgUrl = URL.createObjectURL(file);
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = imgUrl;
+    });
+
+    let { width, height } = img;
+    if (width <= maxSize && height <= maxSize) {
+      // no resize needed; still return a new URL so caller can manage lifecycle
+      return { blob: file, url: imgUrl };
+    }
+
+    const ratio = width / height;
+    if (width > height) {
+      width = maxSize;
+      height = Math.round(maxSize / ratio);
+    } else {
+      height = maxSize;
+      width = Math.round(maxSize * ratio);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, outputType, quality));
+    URL.revokeObjectURL(imgUrl);
+    const url = URL.createObjectURL(blob);
+    return { blob, url };
+  };
+
+  // Create thumbnail function
+  const createThumbnail = async (fileOrBlob, size = 300) => {
+    const file = fileOrBlob;
+    const imgUrl = URL.createObjectURL(file);
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = imgUrl;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    
+    // Draw image centered and cropped to square
+    const ratio = img.width / img.height;
+    let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
+    
+    if (ratio > 1) {
+      // Landscape - crop width
+      sourceWidth = img.height;
+      sourceX = (img.width - sourceWidth) / 2;
+    } else {
+      // Portrait - crop height
+      sourceHeight = img.width;
+      sourceY = (img.height - sourceHeight) / 2;
+    }
+    
+    ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, size, size);
+    
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
+    URL.revokeObjectURL(imgUrl);
+    const url = URL.createObjectURL(blob);
+    return { blob, url };
+  };
+
+  const onFiles = async (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
-    (async () => {
-      const base = folderId ? `folder_${folderId}` : `folder_default`;
+    
+    setProcessingImages(true);
+    setProcessingProgress({ current: 0, total: list.length });
+    showToast('Processing images...');
+    
+    // Process all images in parallel with limited concurrency
+    const concurrency = 3;
       const added = [];
-      for (const f of list) {
+    
+    const processImage = async (f, index) => {
+      try {
         const newId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
-        const blobKey = `${base}_blob_${newId}`;
-        try { await localforage.setItem(blobKey, f); } catch {}
-        const thumbUrl = URL.createObjectURL(f);
-        added.push({
+        
+        // Create thumbnail (300x300px) - only thumbnail, no original
+        const { blob: thumbnailBlob, url: thumbnailUrl } = await createThumbnail(f, 300);
+        
+        return {
           id: newId,
           name: f.name,
-          size: Math.round(f.size / 1024),
+          size: Math.round(f.size / 1024), // Original file size for reference
           type: f.type,
-          thumbUrl,
-          blobKey,
+          thumbUrl: null, // Will be set after Firebase upload
+          thumbnailBlob: thumbnailBlob, // Store thumbnail blob for Firebase upload
           title: "",
           description: "",
           keywords: [],
-        });
+        };
+      } catch (error) {
+        console.error('Error processing image:', f.name, error);
+        // Add fallback if processing fails
+        return {
+          id: `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`,
+          name: f.name,
+          size: Math.round(f.size / 1024),
+          type: f.type,
+          thumbUrl: null,
+          title: "",
+          description: "",
+          keywords: [],
+        };
       }
-      setRows(prev => [...prev, ...added]);
-    })();
-    try { console.log('[ImportPage] onFiles added', added); } catch {}
-    showToast('Imported files');
+    };
+    
+    // Process images in batches
+    for (let i = 0; i < list.length; i += concurrency) {
+      const batch = list.slice(i, i + concurrency);
+      const batchResults = await Promise.all(batch.map((f, idx) => processImage(f, i + idx)));
+      added.push(...batchResults);
+      
+      // Update UI with processed images
+      setRows(prev => [...prev, ...batchResults]);
+      
+      // Update progress
+      setProcessingProgress({ current: Math.min(i + concurrency, list.length), total: list.length });
+      
+      // Small delay to allow UI to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    showToast(`Processed ${added.length} images`);
     setOpen(false);
+    setProcessingImages(false);
   };
 
   const pickFolder = async () => {
@@ -1166,6 +1396,7 @@ export default function ImportPage() {
       return;
     }
     const dir = await window.showDirectoryPicker();
+    
     const entries = [];
     for await (const handle of dir.values()) {
       try {
@@ -1179,8 +1410,9 @@ export default function ImportPage() {
   };
 
   // Apply paste modal action
-  const applyPaste = () => {
+  const applyPaste = async () => {
     try {
+      setPasteLoading(true);
       let ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
       if (!ids.length && lastSelectedIndex !== null && rows[lastSelectedIndex]) {
         ids = [rows[lastSelectedIndex].id];
@@ -1204,11 +1436,20 @@ export default function ImportPage() {
           const pasted = normalizeKeywords(payload.keywords);
           nextKeywords = opts.keywords.clear ? pasted : Array.from(new Set([...(nextKeywords||[]), ...pasted]));
         }
-        return { ...r, title: nextTitle, description: nextDescription, keywords: nextKeywords };
+        
+        // Save metadata changes to Firebase
+        const updatedData = { title: nextTitle, description: nextDescription, keywords: nextKeywords };
+        saveMetadataChanges(r.id, updatedData);
+        
+        return { ...r, ...updatedData };
       }));
       setPasteOpen(false);
       showToast('Metadata pasted');
-    } catch { setPasteOpen(false); }
+    } catch { 
+      setPasteOpen(false); 
+    } finally {
+      setPasteLoading(false);
+    }
   };
   
   return (
@@ -1357,6 +1598,17 @@ export default function ImportPage() {
       )}
 
       <ToastComponent toasts={toasts} onRemove={removeToast} />
+      <GlobalSpinner show={pasteLoading} text="Applying paste..." />
+      <GlobalSpinner show={analyzeLoading} text="Analyzing images..." />
+      <GlobalSpinner show={embedLoading} text="Embedding metadata..." />
+      <GlobalSpinner 
+        show={processingImages} 
+        text={`Processing images... ${processingProgress.current}/${processingProgress.total}`} 
+      />
+      <GlobalSpinner 
+        show={uploadingImages} 
+        text={`Saving to Firestore... ${uploadProgress.current}/${uploadProgress.total}`} 
+      />
     </Container>
   );
 }

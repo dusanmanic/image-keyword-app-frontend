@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { loginUser, registerUser } from "../services/authService.js";
+import { useApi } from "../hooks/useApi.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
+  const { login: apiLogin, register: apiRegister, logout: apiLogout } = useApi();
 
   useEffect(() => {
     try {
@@ -17,7 +18,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (emailArg, password) => {
-    const data = await loginUser(emailArg, password);
+    const data = await apiLogin(emailArg, password);
     localStorage.setItem("auth_token", data.token || "");
     localStorage.setItem("auth_email", emailArg);
     setToken(data.token || "");
@@ -25,11 +26,18 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (emailArg, password) => {
-    await registerUser(emailArg, password);
+    // Register user first
+    await apiRegister(emailArg, password);
+    // Then login automatically
     await login(emailArg, password);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      console.log('Logout error (ignored):', error);
+    }
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_email");
     setToken("");

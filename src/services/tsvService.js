@@ -32,16 +32,14 @@ export async function parseTsvFile(file) {
  * Get sales data from database with optional pagination
  * @param {Object} options - Pagination options
  * @param {number} options.limit - Number of rows to fetch (default: 20)
- * @param {number} options.offset - Number of rows to skip (default: 0)
  * @param {boolean} options.includeStats - Whether to include statistics (default: true)
  * @returns {Promise<{success: boolean, data: {sales: Array, stats: Object, pagination: Object}}>}
  */
 export async function getSalesData(options = {}) {
-  const { limit = 20, offset = 0, includeStats = true } = options;
+  const { limit = 20, includeStats = true } = options;
   
   const queryParams = new URLSearchParams({
     limit: limit.toString(),
-    offset: offset.toString(),
     includeStats: includeStats.toString()
   });
 

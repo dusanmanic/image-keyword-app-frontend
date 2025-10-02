@@ -1,15 +1,23 @@
-import React from 'react'
+import React, { useEffect, useState, createContext, useContext } from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, Navigate, Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, useNavigate, useLocation, Link } from 'react-router-dom'
 import styled from 'styled-components'
-import App from './App.jsx'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
-import AuthPanel from './components/AuthPanel.jsx'
+import { useApi } from './hooks/useApi.js'
+import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import ImportPage from './pages/ImportPage.jsx'
+import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
+import ImportPage from './pages/ImportPage.jsx'
 import StatisticPage from './pages/StatisticPage.jsx'
 import './index.css'
+
+// Folders Context
+const FoldersContext = createContext();
+
+export function useFolders() {
+  return useContext(FoldersContext);
+}
 
 // Styled Components
 const Header = styled.header`
@@ -105,14 +113,10 @@ const LogoutButton = styled.button`
 `;
 
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />
-  return children;
-}
 
-function RootLayout() {
+function AuthenticatedApp() {
   const { logout, email } = useAuth();
+  const { folders } = useFolders();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -127,6 +131,24 @@ function RootLayout() {
       return location.pathname === '/statistics';
     }
     return location.pathname.startsWith(path);
+  };
+  
+  // Render the current page based on route
+  const renderCurrent = () => {
+    switch (location.pathname) {
+      case '/home':
+        return <WelcomePage />;
+      case '/folders':
+        return <FoldersPage />;
+      case '/statistics':
+        return <StatisticPage />;
+      default:
+        if (location.pathname.startsWith('/import/')) {
+          return <ImportPage />;
+        }
+        // Default na folders
+        return <FoldersPage />;
+    }
   };
   
   return (
@@ -149,32 +171,50 @@ function RootLayout() {
           </LogoutButton>
         </Nav>
       </Header>
-      <Outlet />
+      {renderCurrent()}
     </div>
   )
 }
 
+function MainApp() {
+  const { isAuthenticated, isTokenValid } = useAuth();
+  const { getFolders } = useApi();
+  const [folders, setFolders] = useState([]);
+
+  // Load folders once when app starts
+  useEffect(() => {
+    (async () => {
+      try {
+        const foldersData = await getFolders();
+        setFolders(foldersData);
+      } catch (error) {
+        console.error('Error loading folders:', error);
+        setFolders([]);
+      }
+    })();
+  }, [getFolders]);
+
+  // Ako nema tokena ili je token nevalidan, prikaži login screen
+  if (!isAuthenticated || !isTokenValid()) {
+    return <LoginPage />;
+  }
+
+  // Ako je autentifikovan, prikaži glavnu aplikaciju
+  return (
+    <FoldersContext.Provider value={{ folders, setFolders }}>
+      <AuthenticatedApp />
+    </FoldersContext.Provider>
+  );
+}
+
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
-  {
-    path: '/',
-    element: <ProtectedRoute><RootLayout /></ProtectedRoute>,
-    children: [
-      { index: true, element: <FoldersPage /> },
-      { path: 'home', element: <App /> },
-      { path: 'folders', element: <FoldersPage /> },
-      { path: 'import/:folderId', element: <ImportPage /> },
-      { path: 'statistics', element: <StatisticPage /> },
-    ],
-  },
+  { path: '*', element: <MainApp /> },
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
-  </React.StrictMode>,
+  <AuthProvider>
+    <RouterProvider router={router} />
+  </AuthProvider>
 )
 
 // removed duplicate bootstrapping

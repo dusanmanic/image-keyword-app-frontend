@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useAuth } from "../context/AuthContext.jsx";
+import GlobalSpinner from "./GlobalSpinner.jsx";
 
 const Wrapper = styled.div`
   display: flex;
@@ -96,6 +97,7 @@ export default function AuthPanel() {
         <Button onClick={doLogin} disabled={busy || !em || !pw}>Login</Button>
         <Button onClick={doRegister} disabled={busy || !em || !pw}>Register</Button>
       </Row>
+      <GlobalSpinner show={busy} text="Authenticating..." />
     </Wrapper>
   );
 }
