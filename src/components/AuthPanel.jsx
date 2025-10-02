@@ -54,6 +54,17 @@ const Line = styled.div`
   margin-top: 6px;
 `;
 
+const ErrorLine = styled.div`
+  font-family: 'Nunito Sans';
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 6px;
+  background: #fef2f2;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
+`;
+
 export default function AuthPanel() {
   const { isAuthenticated, email, login, register, logout } = useAuth();
   const [em, setEm] = useState("");
@@ -62,21 +73,50 @@ export default function AuthPanel() {
   const [err, setErr] = useState("");
   const navigate = useNavigate();
 
+  const validateInputs = () => {
+    if (!em || !pw) {
+      setErr("Please fill in all fields");
+      return false;
+    }
+    if (!em.includes("@")) {
+      setErr("Please enter a valid email address");
+      return false;
+    }
+    if (pw.length < 8) {
+      setErr("Password must be at least 8 characters long");
+      return false;
+    }
+    return true;
+  };
+
   const doLogin = async () => {
+    if (!validateInputs()) return;
+    
     try {
       setBusy(true); setErr("");
       await login(em, pw);
       setEm(""); setPw("");
       navigate("/", { replace: true });
-    } catch(e) { setErr("Login failed"); } finally { setBusy(false); }
+    } catch(e) { 
+      setErr(e.message || "Login failed. Please check your credentials.");
+    } finally { 
+      setBusy(false); 
+    }
   };
+  
   const doRegister = async () => {
+    if (!validateInputs()) return;
+    
     try {
       setBusy(true); setErr("");
       await register(em, pw);
       setEm(""); setPw("");
       navigate("/", { replace: true });
-    } catch(e) { setErr("Register failed"); } finally { setBusy(false); }
+    } catch(e) { 
+      setErr(e.message || "Registration failed. Please try again.");
+    } finally { 
+      setBusy(false); 
+    }
   };
 
   if (isAuthenticated) {
@@ -90,9 +130,9 @@ export default function AuthPanel() {
 
   return (
     <Wrapper>
-      <Input placeholder="Email" type="email" value={em} onChange={(e)=>setEm(e.target.value)} />
-      <Input placeholder="Password" type="password" value={pw} onChange={(e)=>setPw(e.target.value)} />
-      {err && <Line>{err}</Line>}
+      <Input placeholder="Email" type="email" value={em} onChange={(e)=>{setEm(e.target.value); if(err) setErr("");}} />
+      <Input placeholder="Password" type="password" value={pw} onChange={(e)=>{setPw(e.target.value); if(err) setErr("");}} />
+      {err && <ErrorLine>{err}</ErrorLine>}
       <Row>
         <Button onClick={doLogin} disabled={busy || !em || !pw}>Login</Button>
         <Button onClick={doRegister} disabled={busy || !em || !pw}>Register</Button>

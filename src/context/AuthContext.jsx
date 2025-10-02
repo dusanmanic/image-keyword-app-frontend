@@ -18,18 +18,28 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (emailArg, password) => {
-    const data = await apiLogin(emailArg, password);
-    localStorage.setItem("auth_token", data.token || "");
-    localStorage.setItem("auth_email", emailArg);
-    setToken(data.token || "");
-    setEmail(emailArg);
+    try {
+      const data = await apiLogin(emailArg, password);
+      localStorage.setItem("auth_token", data.token || "");
+      localStorage.setItem("auth_email", emailArg);
+      setToken(data.token || "");
+      setEmail(emailArg);
+    } catch (error) {
+      // Re-throw with more specific error message
+      throw new Error(error.message || "Login failed. Please check your credentials.");
+    }
   };
 
   const register = async (emailArg, password) => {
-    // Register user first
-    await apiRegister(emailArg, password);
-    // Then login automatically
-    await login(emailArg, password);
+    try {
+      // Register user first
+      await apiRegister(emailArg, password);
+      // Then login automatically
+      await login(emailArg, password);
+    } catch (error) {
+      // Re-throw with more specific error message
+      throw new Error(error.message || "Registration failed. Please try again.");
+    }
   };
 
   const logout = async () => {
