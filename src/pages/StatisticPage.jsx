@@ -1271,16 +1271,31 @@ export default function StatisticPage() {
           <>
             <StatsContainer>
               {(() => {
-                const s = calculateStatsFromSales(parsedData);
-                const items = [
-                  { label: 'Total Earnings', value: `$${s.totalEarnings}` },
-                  { label: 'Total Sales', value: s.totalSales },
-                  { label: 'Avg per Sale', value: `$${s.avgEarnings}` },
-                  { label: 'Countries', value: s.countries },
-                  { label: 'Platforms', value: s.platforms },
-                  { label: 'Product Types', value: s.productTypes },
-                  { label: 'Top Sale', value: `$${s.topEarning}` }
-                ];
+                // Prefer backend-provided stats snapshot when viewing database
+                const s = stats || null;
+                let items = [];
+                if (s) {
+                  const avg = s.totalSales ? (s.totalEarnings / s.totalSales) : 0;
+                  const platforms = s.byPlatform ? Object.keys(s.byPlatform).length : 0;
+                  items = [
+                    { label: 'Total Earnings', value: `$${Number(s.totalEarnings || 0).toFixed(2)}` },
+                    { label: 'Total Sales', value: Number(s.totalSales || 0) },
+                    { label: 'Avg per Sale', value: `$${avg.toFixed(2)}` },
+                    { label: 'Platforms', value: platforms }
+                  ];
+                } else {
+                  // Fallback to client-side calculation if stats are missing
+                  const cs = calculateStatsFromSales(parsedData);
+                  items = [
+                    { label: 'Total Earnings', value: `$${cs.totalEarnings}` },
+                    { label: 'Total Sales', value: cs.totalSales },
+                    { label: 'Avg per Sale', value: `$${cs.avgEarnings}` },
+                    { label: 'Countries', value: cs.countries },
+                    { label: 'Platforms', value: cs.platforms },
+                    { label: 'Product Types', value: cs.productTypes },
+                    { label: 'Top Sale', value: `$${cs.topEarning}` }
+                  ];
+                }
                 return (
                   <>
                     {items.map((it) => (

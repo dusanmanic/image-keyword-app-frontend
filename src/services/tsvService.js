@@ -36,10 +36,11 @@ export async function parseTsvFile(file) {
  * @returns {Promise<{success: boolean, data: {sales: Array, stats: Object, pagination: Object}}>}
  */
 export async function getSalesData(options = {}) {
-  const { limit = 20, includeStats = true } = options;
+  const { limit = 20, page = 1, includeStats = true } = options;
   
   const queryParams = new URLSearchParams({
     limit: limit.toString(),
+    page: page.toString(),
     includeStats: includeStats.toString()
   });
 
