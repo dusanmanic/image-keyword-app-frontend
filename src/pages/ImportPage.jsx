@@ -89,6 +89,11 @@ const EmbedButton = styled(Button)`
   &:hover { background: #047857; }
 `;
 
+const ExportButton = styled(Button)`
+  background: #0ea5e9;
+  &:hover { background: #0284c7; }
+`;
+
 const InlineCheckbox = styled.label`
   display: inline-flex;
   align-items: center;
@@ -1452,6 +1457,54 @@ export default function ImportPage() {
     onFiles(entries);
   };
 
+  // Export current rows to CSV
+  const exportCsv = () => {
+    try {
+      const headers = [
+        'file name',
+        'title',
+        'description',
+        'keywords',
+        'created date',
+        'country'
+      ];
+      const toCsvValue = (v) => {
+        const s = (v ?? '').toString();
+        if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      };
+      const lines = [headers.join(',')];
+      for (const r of rows) {
+        const fileName = r.name || r.originalName || '';
+        const title = r.title || '';
+        const description = r.description || '';
+        const keywordsArr = Array.isArray(r.keywords) ? r.keywords : String(r.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const keywordsStr = keywordsArr.join(', ');
+        const createdDate = '';
+        const country = '';
+        const briefCode = '';
+        const rowVals = [fileName, title, description, keywordsStr, createdDate, country, briefCode].map(toCsvValue);
+        lines.push(rowVals.join(','));
+      }
+      const csvContent = lines.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const folderName = (Array.isArray(folders) ? folders.find(f => String(f.id) === String(folderId))?.name : null) || 'export';
+      const safeName = String(folderName).replace(/[^\w\-\s]/g, '').trim() || 'export';
+      a.download = `${safeName}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showToast('CSV export failed', 'error');
+    }
+  };
+
   // Apply paste modal action
   const applyPaste = async () => {
     try {
@@ -1509,6 +1562,7 @@ export default function ImportPage() {
           <EmbedButton onClick={embedSelected} type="button" title="Embed to folder">
             Embed to folder
           </EmbedButton>
+          <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
         </div>
         <KeywordsControls>
             <KeywordsLabel>Keywords:</KeywordsLabel>
