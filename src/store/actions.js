@@ -66,7 +66,7 @@ export const setError = (error) => ({
 });
 
 // UI global spinner
-export const showSpinner = () => ({ type: 'UI_SHOW_SPINNER' });
+export const showSpinner = (message = true) => ({ type: 'UI_SHOW_SPINNER', payload: message });
 export const hideSpinner = () => ({ type: 'UI_HIDE_SPINNER' });
 
 // UI toast

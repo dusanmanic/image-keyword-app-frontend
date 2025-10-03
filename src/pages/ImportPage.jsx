@@ -376,10 +376,11 @@ const WandIcon = () => (
 export default function ImportPage() {
   const fileRef = useRef(null);
   const gridRef = useRef(null);
+  const controlsRef = useRef(null);
   const location = useLocation();
 
   const folderId = location.pathname.startsWith('/import/') ? location.pathname.split('/import/')[1] : null;
-  console.log('folderId', folderId)
+
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState([]);
   const [selectedRows, setSelectedRows] = useState(new Set());
@@ -401,7 +402,7 @@ export default function ImportPage() {
   const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
-  const controlsRef = useRef(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -421,7 +422,6 @@ export default function ImportPage() {
   
   React.useEffect(() => {
     console.log('[ImportPage] rows', rows);
-    
   }, [rows]);
 
   const showToast = (msg, type = 'success') => {
@@ -1145,16 +1145,19 @@ export default function ImportPage() {
               thumbUrl: img.thumbUrl // Use Firestore thumbUrl (base64 data URL)
             }));
             setRows(processedImages);
+            setPageLoading(false);
           }
         } else {
           if (isMounted) {
             setRows([]);
+            setPageLoading(false);
           }
         }
       } catch (error) {
         console.error('Error loading images:', error);
         if (isMounted) {
           setRows([]);
+          setPageLoading(false);
         }
       }
     })();
@@ -1220,6 +1223,7 @@ export default function ImportPage() {
         }
       } catch (error) {
         console.error('Error persisting new images:', error);
+        setPageLoading(false);
       }
     }, 1000); // Debounce saves by 1 second for batch processing
     
@@ -1238,10 +1242,12 @@ export default function ImportPage() {
           const updatedImage = { ...updatedRow, ...updatedData };
           await saveImageMetadata(folderId, updatedImage);
           console.log('Metadata saved successfully for:', rowId);
+          setPageLoading(false);
         }
       }
     } catch (error) {
       console.error('Error saving metadata changes:', error);
+      setPageLoading(false);
     }
   }, [folderId, rows, saveImageMetadata]);
 
@@ -1598,16 +1604,19 @@ export default function ImportPage() {
 
       {/* Toast notifications moved to global (main.jsx) */}
       {/* <ToastComponent toasts={toasts} onRemove={removeToast} /> */}
-      <GlobalSpinner show={pasteLoading} text="Applying paste..." />
-      <GlobalSpinner show={analyzeLoading} text="Analyzing images..." />
-      <GlobalSpinner show={embedLoading} text="Embedding metadata..." />
+      
+      {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
-        show={processingImages} 
-        text={`Processing images... ${processingProgress.current}/${processingProgress.total}`} 
-      />
-      <GlobalSpinner 
-        show={uploadingImages} 
-        text={`Saving to Firestore... ${uploadProgress.current}/${uploadProgress.total}`} 
+        show={pageLoading || pasteLoading || analyzeLoading || embedLoading || processingImages || uploadingImages} 
+        text={
+          pageLoading ? "Loading..." :
+          pasteLoading ? "Applying paste..." :
+          analyzeLoading ? "Analyzing images..." :
+          embedLoading ? "Embedding metadata..." :
+          processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
+          uploadingImages ? `Saving to Firestore... ${uploadProgress.current}/${uploadProgress.total}` :
+          "Loading..."
+        } 
       />
     </Container>
   );

@@ -57,7 +57,7 @@ const reducer = (state = initialState, action) => {
     case 'SET_ERROR':
       return { ...state, error: action.payload };
     case 'UI_SHOW_SPINNER':
-      return { ...state, uiLoading: true };
+      return { ...state, uiLoading: action.payload };
     case 'UI_HIDE_SPINNER':
       return { ...state, uiLoading: false };
     case 'UI_SHOW_TOAST':

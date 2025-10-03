@@ -606,7 +606,6 @@ export default function FoldersPage() {
     }
   };
 
-
   const formatDate = (val) => {
     if (!val) return '';
     try { return new Date(val).toLocaleDateString(); } catch { return val; }
