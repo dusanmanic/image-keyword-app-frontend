@@ -49,7 +49,7 @@ function PastePreview({ data }) {
 const Container = styled.div`
   height: calc(100vh - 100px);
   background: #f3f4f6;
-  padding: 20px;
+  padding: 20px 20px 0 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -95,6 +95,32 @@ const InlineCheckbox = styled.label`
   gap: 6px;
   color: #1e40af;
   font-weight: 600;
+`;
+
+const KeywordsControls = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+`;
+
+const KeywordsLabel = styled.span`
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 14px;
+`;
+
+const KeywordsSelect = styled.select`
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #93c5fd;
+  color: #1e40af;
+  background: white;
+  padding: 0 10px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:focus, &:active, &:focus-visible, &:focus-within { outline: none; }
 `;
 
 const PasteOverlay = styled.div`
@@ -403,6 +429,7 @@ export default function ImportPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [pageLoading, setPageLoading] = useState(true);
+  const [keywordsCount, setKeywordsCount] = useState(30);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -413,9 +440,11 @@ export default function ImportPage() {
     keywords: { include: true, clear: false },
   });
 
-  const [bulkPromptOpen, setBulkPromptOpen] = useState(false);
-  const [bulkPrompt, setBulkPrompt] = useState("");
-  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  // Unified AI prompt modal state (used for bulk and single analyze)
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptText, setPromptText] = useState("");
+  const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
+  const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
 
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
@@ -440,7 +469,7 @@ export default function ImportPage() {
       }
       if (!(blob instanceof Blob)) { showToast('Image unavailable'); return; }
 
-      const data = await analyzeImage(blob, 30, extraPrompt);
+      const data = await analyzeImage(blob, keywordsCount, extraPrompt);
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';
@@ -642,7 +671,7 @@ export default function ImportPage() {
   useEffect(() => {
     const handleGlobalClick = (e) => {
       try {
-        if (open || pasteOpen || bulkPromptOpen || bulkConfirmOpen) return; // keep selection when modals are open
+        if (open || pasteOpen || promptOpen || promptConfirmOpen) return; // keep selection when modals are open
         const gridEl = gridRef.current;
         const controlsEl = controlsRef.current;
         if (!gridEl) return;
@@ -656,7 +685,7 @@ export default function ImportPage() {
     };
     window.addEventListener('mousedown', handleGlobalClick);
     return () => window.removeEventListener('mousedown', handleGlobalClick);
-  }, [open, pasteOpen, bulkPromptOpen, bulkConfirmOpen]);
+  }, [open, pasteOpen, promptOpen, promptConfirmOpen]);
 
   const cols = [
     {
@@ -998,7 +1027,15 @@ export default function ImportPage() {
       renderHeaderCell: () => <div className="hdr"></div>,
       renderCell: ({ row }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <ActionButton title="Analyze" onClick={(e)=> { e.stopPropagation(); analyzeRow(row); }} disabled={analyzingIds.has(row.id)}>
+          <ActionButton
+            title="Analyze"
+            onClick={(e)=> {
+              e.stopPropagation();
+              setPromptTargetRow(row);
+              setPromptConfirmOpen(true);
+            }}
+            disabled={analyzingIds.has(row.id)}
+          >
             <WandIcon />
           </ActionButton>
         </div>
@@ -1463,7 +1500,7 @@ export default function ImportPage() {
       <Header>
         <div ref={controlsRef} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Button onClick={() => setOpen(true)} type="button">Upload</Button>
-          <MagicButton onClick={() => setBulkConfirmOpen(true)} type="button" disabled={bulkRunning} title="Analyze selected">
+          <MagicButton onClick={() => { setPromptTargetRow(null); setPromptConfirmOpen(true); }} type="button" disabled={bulkRunning} title="Analyze selected">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <WandIcon />
               {bulkRunning ? 'Analyzing…' : ' Magic'}
@@ -1473,6 +1510,19 @@ export default function ImportPage() {
             Embed to folder
           </EmbedButton>
         </div>
+        <KeywordsControls>
+            <KeywordsLabel>Keywords:</KeywordsLabel>
+            <KeywordsSelect
+              value={keywordsCount}
+              onChange={(e) => setKeywordsCount(Number(e.target.value))}
+              aria-label="Keywords count"
+              title="Keywords count"
+            >
+              {Array.from({ length: 5 }, (_, i) => 10 + i * 10).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </KeywordsSelect>
+          </KeywordsControls>
       </Header>
 
       {rows.length === 0 ? (
@@ -1569,7 +1619,7 @@ export default function ImportPage() {
         </PasteOverlay>
       )}
 
-      {bulkConfirmOpen && (
+      {promptConfirmOpen && (
         <PasteOverlay onClick={() => setBulkConfirmOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="420px" $h="150px">
             <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add suggestion?</h3></ModalHeader>
@@ -1577,27 +1627,41 @@ export default function ImportPage() {
               <div style={{ color: '#1f2937', fontSize: 14 }}>Do you want to add an extra prompt suggestion for Magic analyze?</div>
             </ModalBody>
             <ModalActions>
-              <Button type="button" onClick={() => { setBulkConfirmOpen(false); analyzeSelected(""); }}>Continue without suggestion</Button>
-              <Button type="button" onClick={() => { setBulkConfirmOpen(false); setBulkPrompt(""); setBulkPromptOpen(true); }}>Yes</Button>
+              <Button type="button" onClick={() => {
+                setPromptConfirmOpen(false);
+                if (promptTargetRow) {
+                  analyzeRow(promptTargetRow, "");
+                } else {
+                  analyzeSelected("");
+                }
+              }}>Continue without suggestion</Button>
+              <Button type="button" onClick={() => { setPromptConfirmOpen(false); setPromptText(""); setPromptOpen(true); }}>Yes</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
       )}
 
-      {bulkPromptOpen && (
-        <PasteOverlay onClick={() => setBulkPromptOpen(false)}>
+      {promptOpen && (
+        <PasteOverlay onClick={() => setPromptOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="725px" $h="270px">
             <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add details for AI suggestion</h3></ModalHeader>
             <ModalBody>
               <ModalTextArea
-                value={bulkPrompt}
-                onChange={(e)=> setBulkPrompt(e.target.value)}
+                value={promptText}
+                onChange={(e)=> setPromptText(e.target.value)}
                 placeholder="e.g., emphasize medical professionalism, focus on calm mood, avoid technical jargon"
               />
             </ModalBody>
             <ModalActions>
-              <Button type="button" onClick={() => { setBulkPromptOpen(false); analyzeSelected(bulkPrompt); }}>Run magic</Button>
-              <Button type="button" $variant="secondary" onClick={() => setBulkPromptOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={() => {
+                setPromptOpen(false);
+                if (promptTargetRow) {
+                  analyzeRow(promptTargetRow, promptText);
+                } else {
+                  analyzeSelected(promptText);
+                }
+              }}>Run magic</Button>
+              <Button type="button" $variant="secondary" onClick={() => setPromptOpen(false)}>Cancel</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
