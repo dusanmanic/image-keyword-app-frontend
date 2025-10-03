@@ -20,7 +20,7 @@ export function useFoldersRedux() {
   const { getFolders, saveFolder: apiSaveFolder, deleteFolder: apiDeleteFolder } = useApi();
 
   // Load folders function
-  const loadFolders = useCallback(async () => {
+  const loadFolders = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -29,7 +29,10 @@ export function useFoldersRedux() {
     } catch (error) {
       console.error('Error loading folders:', error);
       setError('Failed to load folders');
-      setFolders([]);
+      // Don't clear folders on error to maintain UI stability
+      if (forceRefresh) {
+        setFolders([]);
+      }
     } finally {
       setLoading(false);
     }

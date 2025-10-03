@@ -212,14 +212,17 @@ function AuthenticatedApp() {
 
 function MainApp() {
   const { isAuthenticated, isTokenValid, initializeAuth } = useAuthRedux();
-  const { loadFolders } = useFoldersRedux();
+  const { loadFolders, loading: foldersLoading } = useFoldersRedux();
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Initialize auth from localStorage on mount
   useEffect(() => {
-    const init = () => {
+    const init = async () => {
+      setIsRefreshing(true);
       initializeAuth();
       setIsInitializing(false);
+      setIsRefreshing(false);
     };
     init();
   }, []); 
@@ -229,6 +232,34 @@ function MainApp() {
       loadFolders();
     }
   }, [isAuthenticated]);
+  
+  // Show loading while initializing or refreshing
+  if (isInitializing || isRefreshing) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '4px solid #e5e7eb', 
+            borderTop: '4px solid #1e40af', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }}></div>
+          <p style={{ color: '#6b7280', fontSize: '16px' }}>
+            {isInitializing ? 'Initializing...' : 'Refreshing...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
   
   // Ako nema tokena ili je token nevalidan, prikaži login screen
   if (!isAuthenticated || !isTokenValid()) {
