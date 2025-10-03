@@ -1484,8 +1484,7 @@ export default function ImportPage() {
         const keywordsStr = keywordsArr.join(', ');
         const createdDate = '';
         const country = '';
-        const briefCode = '';
-        const rowVals = [fileName, title, description, keywordsStr, createdDate, country, briefCode].map(toCsvValue);
+        const rowVals = [fileName, title, description, keywordsStr, createdDate, country].map(toCsvValue);
         lines.push(rowVals.join(','));
       }
       const csvContent = lines.join('\n');
