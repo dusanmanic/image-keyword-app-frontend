@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, useNavigate, useLocation, Link } from 'react-router-dom'
 import styled from 'styled-components'
 import { useApi } from './hooks/useApi.js'
-import { StoreProvider, useStore } from './store/index.js'
+import { showSpinner, StoreProvider, useStore } from './store/index.js'
 import { useAuthRedux } from './hooks/useAuthRedux.js'
 import { useFoldersRedux } from './hooks/useFoldersRedux.js'
 import GlobalSpinner from './components/GlobalSpinner.jsx'
@@ -229,11 +229,6 @@ function MainApp() {
       loadFolders();
     }
   }, [isAuthenticated]);
-  
-  // Show loading while initializing
-  if (isInitializing) {
-    return <div>Loading...</div>;
-  }
   
   // Ako nema tokena ili je token nevalidan, prikaži login screen
   if (!isAuthenticated || !isTokenValid()) {

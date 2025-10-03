@@ -1357,6 +1357,7 @@ export default function ImportPage() {
           title: "",
           description: "",
           keywords: [],
+          color: "",
         };
       } catch (error) {
         console.error('Error processing image:', f.name, error);

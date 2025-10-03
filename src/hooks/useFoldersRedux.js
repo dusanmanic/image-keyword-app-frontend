@@ -17,7 +17,7 @@ export function useFoldersRedux() {
     setError
   } = useStore();
   
-  const { getFolders, saveFolder: apiSaveFolder } = useApi();
+  const { getFolders, saveFolder: apiSaveFolder, deleteFolder: apiDeleteFolder } = useApi();
 
   // Load folders function
   const loadFolders = useCallback(async () => {
@@ -65,6 +65,27 @@ export function useFoldersRedux() {
     }
   };
 
+  // Delete folder function
+  const deleteFolder = async (folderId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await apiDeleteFolder(folderId);
+      
+      // Remove folder from array
+      const updatedFolders = folders.filter(f => f.id !== folderId);
+      setFolders(updatedFolders);
+
+      return updatedFolders;
+    } catch (error) {
+      setError(error.message || 'Failed to delete folder');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     // State
     folders: folders || [],
@@ -75,6 +96,7 @@ export function useFoldersRedux() {
     // Functions
     loadFolders,
     saveFolder,
+    deleteFolder,
     removeFolder,
     setSelectedFolder,
     setFolders

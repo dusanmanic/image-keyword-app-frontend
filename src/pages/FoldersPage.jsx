@@ -114,6 +114,20 @@ const Button = styled.button`
   cursor: pointer;
   &:hover { background: #1d4ed8; }
   &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  ${props => props.$danger && `
+    background: #ef4444;
+    border: none;
+    color: white;
+    &:hover { background: #c83e3e; }
+  `}
+
+  &:focus,
+  &:active,
+  &:focus-visible,
+  &:focus-within {
+    outline: none;
+  }
 `;
 
 const CardTitle = styled.div`
@@ -507,7 +521,7 @@ export default function FoldersPage() {
   const navigate = useNavigate();
   
   // Folders are loaded globally in MainApp
-  const { folders, setFolders, saveFolder } = useFoldersRedux();
+  const { folders, setFolders, saveFolder, deleteFolder } = useFoldersRedux();
 
   useEffect(() => {
     (async () => {
@@ -549,6 +563,20 @@ export default function FoldersPage() {
     setIsModalOpen(true);
   };
 
+  const handleDeleteFolder = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this folder? This will also delete all images in the folder.')) {
+      return;
+    }
+    
+    try {
+      await deleteFolder(id);
+      setIsModalOpen(false);
+      alert('Folder deleted successfully!');
+    } catch (error) {
+      alert('Failed to delete folder: ' + error.message);
+    }
+  };
+
   const saveMetadata = async () => {
     const trimmedTitle = (draft.title || '').trim();
     if (!selectedId) {
@@ -573,7 +601,6 @@ export default function FoldersPage() {
       try {
         const savedFolder = await saveFolder(newFolder);
         // Update local folders state
-        setFolders(prev => [...prev, savedFolder]);
         setIsModalOpen(false);
       } catch (error) {
         console.error('Error saving folder:', error);
@@ -640,70 +667,72 @@ export default function FoldersPage() {
         </EmptyState>
       ) : (
         <CardsGrid>
-        {folders?.map(f => (
-          <RowCard 
-            key={f.id} 
-            onClick={() => openFolder(f.id)}
-            $cardBg={f.color ? FOLDER_COLORS.find(c => c.name === f.color)?.color || '#ffffff' : '#ffffff'}
-          >
-            <CardHeader>
-              <CardLeft>
-                <IconBox>
-                  <FolderIcon />
-                  <IconBadge title="Files in folder">{counts[f.id] ?? 0}</IconBadge>
-                </IconBox>
-                <div>
-                  <CardTitle>{f.name}</CardTitle>
-                  <Text>{formatDate(f.shootingDate)}</Text>
-                </div>
-              </CardLeft>
-              <IconButton onClick={(e) => { e.stopPropagation(); openEditModal(f.id); }} title="Edit">
-                <PencilIcon />
-              </IconButton>
-            </CardHeader>
-            <CardBody>
-              {/* Tags Section - Always reserved space */}
-              <TagSection>
-                {f.tags && f.tags.length > 0 ? (
-                  f.tags.map(tagKey => 
-                    FOLDER_TAGS[tagKey] && (
-                      <Tag 
-                        key={tagKey}
-                        $bgColor={FOLDER_TAGS[tagKey].bgColor}
-                        $textColor={FOLDER_TAGS[tagKey].textColor}
-                        $borderColor={FOLDER_TAGS[tagKey].borderColor}
-                      >
-                        {FOLDER_TAGS[tagKey].label}
-                      </Tag>
+        {folders?.map(f => {
+          return (
+            <RowCard 
+              key={f.id} 
+              onClick={() => openFolder(f.id)}
+              $cardBg={f.color ? FOLDER_COLORS.find(c => c.name === f.color)?.color || '#ffffff' : '#ffffff'}
+            >
+              <CardHeader>
+                <CardLeft>
+                  <IconBox>
+                    <FolderIcon />
+                    <IconBadge title="Files in folder">{f.imageCount ?? 0}</IconBadge>
+                  </IconBox>
+                  <div>
+                    <CardTitle>{f.name}</CardTitle>
+                    <Text>{formatDate(f.shootingDate)}</Text>
+                  </div>
+                </CardLeft>
+                <IconButton onClick={(e) => { e.stopPropagation(); openEditModal(f.id); }} title="Edit">
+                  <PencilIcon />
+                </IconButton>
+              </CardHeader>
+              <CardBody>
+                {/* Tags Section - Always reserved space */}
+                <TagSection>
+                  {f.tags && f.tags.length > 0 ? (
+                    f.tags.map(tagKey => 
+                      FOLDER_TAGS[tagKey] && (
+                        <Tag 
+                          key={tagKey}
+                          $bgColor={FOLDER_TAGS[tagKey].bgColor}
+                          $textColor={FOLDER_TAGS[tagKey].textColor}
+                          $borderColor={FOLDER_TAGS[tagKey].borderColor}
+                        >
+                          {FOLDER_TAGS[tagKey].label}
+                        </Tag>
+                      )
                     )
-                  )
-                ) : (
-                  <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No categories</Text>
-                )}
-              </TagSection>
-              
-              {/* Description Section - Always reserved space */}
-              <CardSection>
-                <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Description</Text>
-                {f.description ? (
-                  <Clamp $size="15px" $lines={1}>{f.description}</Clamp>
-                ) : (
-                  <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No description</Text>
-                )}
-              </CardSection>
-              
-              {/* Notes Section - Always reserved space */}
-              <CardSection>
-                <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Notes</Text>
-                {f.notes ? (
-                  <Clamp $size="15px" $lines={1}>{f.notes}</Clamp>
-                ) : (
-                  <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No notes</Text>
-                )}
-              </CardSection>
-            </CardBody>
-          </RowCard>
-        ))}
+                  ) : (
+                    <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No categories</Text>
+                  )}
+                </TagSection>
+                
+                {/* Description Section - Always reserved space */}
+                <CardSection>
+                  <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Description</Text>
+                  {f.description ? (
+                    <Clamp $size="15px" $lines={1}>{f.description}</Clamp>
+                  ) : (
+                    <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No description</Text>
+                  )}
+                </CardSection>
+                
+                {/* Notes Section - Always reserved space */}
+                <CardSection>
+                  <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Notes</Text>
+                  {f.notes ? (
+                    <Clamp $size="15px" $lines={1}>{f.notes}</Clamp>
+                  ) : (
+                    <Text $size="12px" style={{ color: '#9ca3af', fontStyle: 'italic' }}>No notes</Text>
+                  )}
+                </CardSection>
+              </CardBody>
+            </RowCard>
+          )
+        })}
         </CardsGrid>
       )}
 
@@ -769,9 +798,14 @@ export default function FoldersPage() {
                 </ColorPalette>
               </div>
             </ModalRow>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <Button onClick={saveMetadata}>{selectedId ? 'Save' : 'Create'}</Button>
-              <Button onClick={()=> setIsModalOpen(false)} style={{ background: 'white', color: '#1e40af' }}>Cancel</Button>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                {selectedId && (<Button onClick={() => handleDeleteFolder(selectedId)} $danger>🗑️ Delete Folder</Button>)}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button onClick={saveMetadata}>{selectedId ? 'Save' : 'Create'}</Button>
+                <Button onClick={()=> setIsModalOpen(false)} style={{ background: 'white', color: '#1e40af' }}>Cancel</Button>
+              </div>
             </div>
           </ModalCard>
         </ModalOverlay>

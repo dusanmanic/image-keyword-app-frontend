@@ -71,6 +71,13 @@ export function useApi() {
     return data.folder;
   }, [apiCall]);
 
+  const deleteFolder = useCallback(async (folderId) => {
+    const data = await apiCall(`/api/user/folders/${folderId}`, {
+      method: 'DELETE'
+    });
+    return data;
+  }, [apiCall]);
+
   // Images API
   const getFolderImages = useCallback(async (folderId) => {
     const data = await apiCall(`/api/user/folders/${folderId}/images`);
@@ -90,7 +97,7 @@ export function useApi() {
         // Add other fields as JSON
         formData.append(key, typeof imageData[key] === 'object' 
           ? JSON.stringify(imageData[key]) 
-          : imageData[key]
+          : String(imageData[key])
         );
       }
     });
@@ -135,6 +142,7 @@ export function useApi() {
     error,
     getFolders,
     saveFolder,
+    deleteFolder,
     getFolderImages,
     saveImageMetadata,
     login,

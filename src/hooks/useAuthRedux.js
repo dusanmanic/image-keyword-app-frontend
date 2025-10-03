@@ -80,9 +80,20 @@ export function useAuthRedux() {
       const email = localStorage.getItem("auth_email") || "";
       
       if (token && email) {
+        // Check token validity before setting state
+        const isValid = (() => {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const now = Math.floor(Date.now() / 1000);
+            return payload.exp > now;
+          } catch {
+            return false;
+          }
+        })();
+        
         setToken(token);
         setEmail(email);
-        setAuthenticated(isTokenValid());
+        setAuthenticated(isValid);
       }
     } catch (error) {
       console.error('Error initializing auth:', error);
