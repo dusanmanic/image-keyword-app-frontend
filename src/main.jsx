@@ -35,17 +35,10 @@ const HeaderLeft = styled.div`
   gap: 12px;
 `;
 
-const AppIcon = styled.div`
+const AppIcon = styled.img`
   width: 40px;
   height: 40px;
-  background: #1e40af;
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
 `;
 
 const AppTitle = styled.h1`
@@ -182,8 +175,8 @@ function AuthenticatedApp() {
     <div>
       <Header>
         <HeaderLeft>
-          <AppIcon>📸</AppIcon>
-          <AppTitle>Photo Keyword Generator</AppTitle>
+          <AppIcon src="/logo-app.svg" alt="Photo Keyword Generator" />
+          <AppTitle>Pixel Keywords</AppTitle>
         </HeaderLeft>
         <Nav>
           <NavLink to="/home" className={isActive('/home') ? 'active' : ''}>Home</NavLink>

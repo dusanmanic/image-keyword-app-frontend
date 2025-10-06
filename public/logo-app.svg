@@ -1,0 +1,27 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded card -->
+  <rect x="12" y="20" rx="24" ry="24" width="232" height="176" fill="url(#g1)"/>
+  <!-- Camera body -->
+  <rect x="36" y="56" rx="12" ry="12" width="184" height="120" fill="#ffffff"/>
+  <!-- Top bar -->
+  <rect x="36" y="56" rx="12" ry="12" width="184" height="28" fill="#eef2ff"/>
+  <!-- Shutter dot -->
+  <circle cx="56" cy="70" r="6" fill="#0ea5e9"/>
+  <!-- Lens outer -->
+  <circle cx="128" cy="120" r="44" fill="#e2e8f0"/>
+  <!-- Lens inner -->
+  <circle cx="128" cy="120" r="28" fill="#0ea5e9"/>
+  <circle cx="128" cy="120" r="10" fill="#1e40af"/>
+  <!-- Sparkles (wizard vibe) -->
+  <path d="M200 44 l3 6 7 1 -5 4 1 7 -6-3 -6 3 1-7 -5-4 7-1z" fill="#fbbf24"/>
+  <path d="M182 28 l2 4 4 0 -3 3 0 4 -4-2 -4 2 1-4 -3-3 4 0z" fill="#fde68a"/>
+  <!-- Bottom caption bar -->
+  <rect x="52" y="204" rx="10" ry="10" width="152" height="20" fill="#0ea5e9" opacity="0.15"/>
+</svg>
+
