@@ -64,7 +64,7 @@ const SecondaryButton = styled.button`
 `;
 
 const PasswordInput = styled.input`
-  width: 100%;
+  width: 389px;
   padding: 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
