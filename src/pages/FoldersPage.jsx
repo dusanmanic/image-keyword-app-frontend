@@ -681,10 +681,9 @@ export default function FoldersPage() {
               <FilterLabel htmlFor="filter-to">To</FilterLabel>
               <Input id="filter-to" type="date" value={filterDateTo} onChange={(e)=> setFilterDateTo(e.target.value)} />
             </FilterGroup>
-            <FilterGroup>
+            <FilterGroup $clearFilters>
               {hasFilters && (
                 <Button
-                  $clearFilters
                   style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }}
                   onClick={()=>{ setFilterName(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterTagsCsv(''); }}
                   title="Clear filters"
