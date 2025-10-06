@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../hooks/useApi.js";
+import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../config/tags.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 
 
@@ -45,8 +46,35 @@ const EmptyMessage = styled.p`
 const Header = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 12px;
+`;
+
+const FiltersBar = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const FilterGroup = styled.div`
+  ${props => props.$clearFilters && `
+    position: absolute;
+    right: 0;
+    bottom: 0px;
+  `}
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  font-family: 'Nunito Sans';
+  padding-left: 5px;
 `;
 
 const Title = styled.h1`
@@ -448,70 +476,28 @@ const FloatingActionButton = styled.button`
   }
 `;
 
-// Tag definitions with colors
-const FOLDER_TAGS = {
-  nature: {
-    label: 'Nature',
-    bgColor: '#dcfce7',
-    textColor: '#166534',
-    borderColor: '#bbf7d0',
-    cardBg: '#f0fdf4' // Pastel green
-  },
-  medical: {
-    label: 'Medical',
-    bgColor: '#fef2f2',
-    textColor: '#991b1b',
-    borderColor: '#fecaca',
-    cardBg: '#fef7f7' // Pastel red
-  },
-  business: {
-    label: 'Business',
-    bgColor: '#eff6ff',
-    textColor: '#1e40af',
-    borderColor: '#dbeafe',
-    cardBg: '#f8fafc' // Pastel blue
-  },
-  travel: {
-    label: 'Travel',
-    bgColor: '#fef3c7',
-    textColor: '#92400e',
-    borderColor: '#fde68a',
-    cardBg: '#fffbeb' // Pastel yellow
-  },
-  art: {
-    label: 'Art',
-    bgColor: '#f3e8ff',
-    textColor: '#7c3aed',
-    borderColor: '#e9d5ff',
-    cardBg: '#faf5ff' // Pastel purple
-  },
-  food: {
-    label: 'Food',
-    bgColor: '#fef7ed',
-    textColor: '#ea580c',
-    borderColor: '#fed7aa',
-    cardBg: '#fff7ed' // Pastel orange
-  },
-  technology: {
-    label: 'Tech',
-    bgColor: '#f0fdf4',
-    textColor: '#15803d',
-    borderColor: '#dcfce7',
-    cardBg: '#f0fdf4' // Pastel mint
-  }
-};
+const FiltersTop = styled.div`
+  position: relative;
+  width: 1150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const FiltersBottom = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+// Tag definitions with colors (shared)
+export const FOLDER_TAGS = SHARED_TAGS;
 
 // Available folder colors
-const FOLDER_COLORS = [
-  { name: 'white', color: '#ffffff', label: 'White' },
-  { name: 'green', color: '#f0fdf4', label: 'Green' },
-  { name: 'red', color: '#fef7f7', label: 'Red' },
-  { name: 'blue', color: '#f8fafc', label: 'Blue' },
-  { name: 'yellow', color: '#fffbeb', label: 'Yellow' },
-  { name: 'purple', color: '#faf5ff', label: 'Purple' },
-  { name: 'orange', color: '#fff7ed', label: 'Orange' },
-  { name: 'mint', color: '#f0fdf4', label: 'Mint' }
-];
+export const FOLDER_COLORS = SHARED_COLORS;
 
 export default function FoldersPage() {
   const [counts, setCounts] = useState({});
@@ -520,7 +506,14 @@ export default function FoldersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draft, setDraft] = useState({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
   const navigate = useNavigate();
-  
+  const { getFolders } = useApi();
+  // Filters state
+  const [filterName, setFilterName] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterTagsCsv, setFilterTagsCsv] = useState('');
+  const hasFilters = (filterName || filterDateFrom || filterDateTo || filterTagsCsv).length > 0;
+
   // Folders are loaded globally in MainApp
   const { folders, setFolders, saveFolder, deleteFolder } = useFoldersRedux();
 
@@ -537,6 +530,24 @@ export default function FoldersPage() {
       setCounts(out);
     })();
   }, [folders]);
+
+  // Apply filters with light debounce
+  useEffect(() => {
+    const h = setTimeout(async () => {
+      try {
+        const tags = filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean);
+        const data = await getFolders({
+          name: filterName || undefined,
+          dateFrom: filterDateFrom || undefined,
+          dateTo: filterDateTo || undefined,
+          tags: tags.length ? tags : undefined,
+          mode: tags.length ? 'any' : undefined,
+        });
+        setFolders(data);
+      } catch {}
+    }, 250);
+    return () => clearTimeout(h);
+  }, [filterName, filterDateFrom, filterDateTo, filterTagsCsv]);
 
 
   const openFolder = (id) => navigate(`/import/${id}`);
@@ -656,18 +667,77 @@ export default function FoldersPage() {
   return (
     <Container>
       <Header>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {/* Header content can be added here if needed */}
-        </div>
+        <FiltersBar>
+          <FiltersTop>
+            <FilterGroup>
+            <FilterLabel htmlFor="filter-name">Name</FilterLabel>
+              <Input id="filter-name" placeholder="Search by name" value={filterName} onChange={(e)=> setFilterName(e.target.value)} />
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel htmlFor="filter-from">From</FilterLabel>
+              <Input id="filter-from" type="date" value={filterDateFrom} onChange={(e)=> setFilterDateFrom(e.target.value)} />
+            </FilterGroup>
+            <FilterGroup>
+              <FilterLabel htmlFor="filter-to">To</FilterLabel>
+              <Input id="filter-to" type="date" value={filterDateTo} onChange={(e)=> setFilterDateTo(e.target.value)} />
+            </FilterGroup>
+            <FilterGroup>
+              {hasFilters && (
+                <Button
+                  $clearFilters
+                  style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }}
+                  onClick={()=>{ setFilterName(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterTagsCsv(''); }}
+                  title="Clear filters"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </FilterGroup>
+          </FiltersTop>
+          <FiltersBottom>
+          <FilterGroup>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 550 }}>
+              {Object.entries(FOLDER_TAGS).map(([key, tag]) => {
+                const selected = (filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean)).includes(key);
+                return (
+                  <TagOption
+                    key={`filter-${key}`}
+                    $isSelected={selected}
+                    $bgColor={tag.bgColor}
+                    $textColor={tag.textColor}
+                    $borderColor={tag.borderColor}
+                    onClick={()=>{
+                      const arr = filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean);
+                      const next = selected ? arr.filter(t=>t!==key) : [...arr, key];
+                      setFilterTagsCsv(next.join(','));
+                    }}
+                  >
+                    {tag.label}
+                  </TagOption>
+                );
+              })}
+            </div>
+          </FilterGroup>
+          </FiltersBottom>
+        </FiltersBar>
       </Header>
       {folders?.length === 0 ? (
         <EmptyState>
           <EmptyIcon>📁</EmptyIcon>
-          <EmptyTitle>No folders yet</EmptyTitle>
-          <EmptyMessage>Create your first folder to add images</EmptyMessage>
-          <div style={{ marginTop: 16 }}>
-            <Button onClick={openCreateModal}>Create folder</Button>
-          </div>
+          {hasFilters ? (
+            <>
+              <EmptyTitle>No results</EmptyTitle>
+              <EmptyMessage>Try adjusting your filters or clearing them to see folders.</EmptyMessage>
+            </>
+          ) : (
+            <>
+              <EmptyTitle>No folders yet</EmptyTitle>
+              <EmptyMessage>Create your first folder to add images</EmptyMessage>
+              <div style={{ marginTop: 16 }}>
+                <Button onClick={openCreateModal}>Create folder</Button>
+              </div>
+            </>
+          )}
         </EmptyState>
       ) : (
         <CardsGrid>

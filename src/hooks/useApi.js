@@ -58,8 +58,19 @@ export function useApi() {
   }, []);
 
   // Folders API
-  const getFolders = useCallback(async () => {
-    const data = await apiCall('/api/user/folders');
+  const getFolders = useCallback(async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.name) params.set('name', filters.name);
+    if (filters.tags && filters.tags.length) params.set('tags', filters.tags.join(','));
+    if (filters.mode) params.set('mode', filters.mode);
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.set('dateTo', filters.dateTo);
+    if (filters.sort) params.set('sort', filters.sort);
+    if (filters.order) params.set('order', filters.order);
+    if (Number.isFinite(filters.limit)) params.set('limit', String(filters.limit));
+    if (Number.isFinite(filters.offset)) params.set('offset', String(filters.offset));
+    const q = params.toString();
+    const data = await apiCall(`/api/user/folders${q ? `?${q}` : ''}`);
     return data.folders || [];
   }, [apiCall]);
 
