@@ -39,6 +39,7 @@ export function useAuthRedux() {
       // Update localStorage
       localStorage.setItem("auth_token", data.token || "");
       localStorage.setItem("auth_email", emailArg);
+      try { localStorage.setItem("remembered_email", emailArg); } catch {}
       
     } catch (error) {
       throw new Error(error.message || "Login failed. Please check your credentials.");

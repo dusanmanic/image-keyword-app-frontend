@@ -166,9 +166,10 @@ const ModalTitle = styled.h2`
 `;
 
 const ModalRow = styled.div`
+  position: relative;
   display: grid;
   grid-template-columns: 140px 1fr;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: 10px;
 `;
@@ -663,7 +664,10 @@ export default function FoldersPage() {
         <EmptyState>
           <EmptyIcon>📁</EmptyIcon>
           <EmptyTitle>No folders yet</EmptyTitle>
-          <EmptyMessage>Click on the plus button to create a folder and add images</EmptyMessage>
+          <EmptyMessage>Create your first folder to add images</EmptyMessage>
+          <div style={{ marginTop: 16 }}>
+            <Button onClick={openCreateModal}>Create folder</Button>
+          </div>
         </EmptyState>
       ) : (
         <CardsGrid>
@@ -746,7 +750,18 @@ export default function FoldersPage() {
             </ModalRow>
             <ModalRow>
               <Label>Description</Label>
-              <TextArea value={draft.description} onChange={(e)=> setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Description" />
+              <TextArea 
+                value={draft.description}
+                onChange={(e)=> {
+                  const next = (e.target.value || '').slice(0, 400);
+                  setDraft(d => ({ ...d, description: next }))
+                }}
+                placeholder="Brief set summary to improve assistant (no per-photo), e.g. shooting place, number of people, nationality"
+                maxLength={400}
+              />
+            <div style={{ position: 'absolute', bottom: 0, right: 5 }}>
+                <Text style={{ color: '#9ca3af', marginTop: 4 }}>{(draft.description || '').length}/400</Text>
+            </div>
             </ModalRow>
             <ModalRow>
               <Label>Shooting date</Label>
@@ -811,9 +826,11 @@ export default function FoldersPage() {
         </ModalOverlay>
       )}
       
-      <FloatingActionButton onClick={openCreateModal} title="Create new folder">
-        +
-      </FloatingActionButton>
+      {folders?.length > 0 && (
+        <FloatingActionButton onClick={openCreateModal} title="Create new folder">
+          +
+        </FloatingActionButton>
+      )}
     </Container>
   );
 }

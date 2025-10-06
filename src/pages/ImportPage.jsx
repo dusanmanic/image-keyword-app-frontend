@@ -157,6 +157,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalBody = styled.div`
+  ${props => props.$position && `position: ${props.$position};`}
   display: flex;
   gap: 24px;
   overflow: hidden;
@@ -428,7 +429,6 @@ export default function ImportPage() {
   const [pasteLoading, setPasteLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [embedLoading, setEmbedLoading] = useState(false);
-  const [singleAnalyzeLoading, setSingleAnalyzeLoading] = useState(false);
   const [processingImages, setProcessingImages] = useState(false);
   const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -464,7 +464,6 @@ export default function ImportPage() {
 
   const analyzeRow = async (row, extraPrompt = "") => {
     try {
-      setSingleAnalyzeLoading(true);
       setAnalyzingIds(prev => { const s = new Set(prev); s.add(row.id); return s; });
       showToast('Analyzing...');
       // Use thumbnailBlob for analysis
@@ -474,7 +473,15 @@ export default function ImportPage() {
       }
       if (!(blob instanceof Blob)) { showToast('Image unavailable'); return; }
 
-      const data = await analyzeImage(blob, keywordsCount, extraPrompt);
+      const folder = folders.find(f => String(f.id) === String(folderId));
+      const folderDesc = (folder?.description || '').trim();
+      const extra = (extraPrompt || '').trim();
+      const parts = [];
+      if (folderDesc) parts.push(`User set shooting set description: ${folderDesc}`);
+      if (extra) parts.push(`Added extra suggestion: ${extra}`);
+      const combinedPrompt = parts.join(' <br/> ');
+
+      const data = await analyzeImage(blob, keywordsCount, combinedPrompt);
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';
@@ -504,7 +511,6 @@ export default function ImportPage() {
       showToast('Analyze failed', 'error');
     } finally {
       setAnalyzingIds(prev => { const s = new Set(prev); s.delete(row.id); return s; });
-      setSingleAnalyzeLoading(false);
     }
   };
 
@@ -1555,7 +1561,7 @@ export default function ImportPage() {
           <MagicButton onClick={() => { setPromptTargetRow(null); setPromptConfirmOpen(true); }} type="button" disabled={bulkRunning} title="Analyze selected">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <WandIcon />
-              {bulkRunning ? 'Analyzing…' : ' Magic'}
+              {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
             </span>
           </MagicButton>
           <EmbedButton onClick={embedSelected} type="button" title="Embed to folder">
@@ -1674,21 +1680,25 @@ export default function ImportPage() {
 
       {promptConfirmOpen && (
         <PasteOverlay onClick={() => setBulkConfirmOpen(false)}>
-          <ModalCard onClick={(e)=> e.stopPropagation()} $w="420px" $h="150px">
-            <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add suggestion?</h3></ModalHeader>
+          <ModalCard onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
+            <ModalHeader>
+              <h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add extra suggestion?</h3>
+            </ModalHeader>
             <ModalBody>
-              <div style={{ color: '#1f2937', fontSize: 14 }}>Do you want to add an extra prompt suggestion for Magic analyze?</div>
+              <div style={{ color: '#1f2937', fontSize: 14, lineHeight: 1.5 }}>
+                You can optionally add a short hint to steer AI results (e.g., mood, focus, terminology).
+              </div>
             </ModalBody>
-            <ModalActions>
-              <Button type="button" onClick={() => {
+            <ModalActions style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => {
                 setPromptConfirmOpen(false);
                 if (promptTargetRow) {
                   analyzeRow(promptTargetRow, "");
                 } else {
                   analyzeSelected("");
                 }
-              }}>Continue without suggestion</Button>
-              <Button type="button" onClick={() => { setPromptConfirmOpen(false); setPromptText(""); setPromptOpen(true); }}>Yes</Button>
+              }}>Skip for now</Button>
+              <Button type="button" onClick={() => { setPromptConfirmOpen(false); setPromptText(""); setPromptOpen(true); }}>Add suggestion</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
@@ -1698,30 +1708,36 @@ export default function ImportPage() {
         <PasteOverlay onClick={() => setPromptOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="725px" $h="270px">
             <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add details for AI suggestion</h3></ModalHeader>
-            <ModalBody>
+            <ModalBody $position="relative">
               <ModalTextArea
                 value={promptText}
-                onChange={(e)=> setPromptText(e.target.value)}
-                placeholder="e.g., emphasize medical professionalism, focus on calm mood, avoid technical jargon"
+                onChange={(e)=> setPromptText((e.target.value || '').slice(0, 400))}
+                placeholder="Extra suggestion for AI (≤ 400 chars), e.g., emphasize professionalism, calm mood, avoid jargon"
+                maxLength={400}
               />
+              <div style={{ position: 'absolute', bottom: 0, right: 10, color: '#9ca3af', fontSize: 12 }}>
+                {400 - (promptText?.length || 0)} left
+              </div>
             </ModalBody>
             <ModalActions>
-              <Button type="button" onClick={() => {
+              <MagicButton type="button" onClick={() => {
                 setPromptOpen(false);
                 if (promptTargetRow) {
                   analyzeRow(promptTargetRow, promptText);
                 } else {
                   analyzeSelected(promptText);
                 }
-              }}>Run magic</Button>
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <WandIcon />
+                  {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
+                </span>
+              </MagicButton>
               <Button type="button" $variant="secondary" onClick={() => setPromptOpen(false)}>Cancel</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
       )}
-
-      {/* Toast notifications moved to global (main.jsx) */}
-      {/* <ToastComponent toasts={toasts} onRemove={removeToast} /> */}
       
       {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
