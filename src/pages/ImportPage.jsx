@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import { useEmbedToFolder } from "../components/AppHandlers.jsx";
 import { analyzeImage } from "../services/analyzeService.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
+import RadioGroup from '../components/RadioGroup';
 import { useApi } from "../hooks/useApi.js";
 import GlobalSpinner from "../components/GlobalSpinner.jsx";
 import { useStore } from "../store/index.js";
@@ -157,9 +158,11 @@ const ModalHeader = styled.div`
 `;
 
 const ModalBody = styled.div`
+  ${props => props.$h && `height: ${props.$h};`}
   ${props => props.$position && `position: ${props.$position};`}
   display: flex;
-  gap: 24px;
+  ${props => props.$direction && `flex-direction: ${props.$direction};`}
+  ${props => props.$gap ? `gap: ${props.$gap};` : 'gap: 24px;'}
   overflow: hidden;
 `;
 
@@ -450,6 +453,7 @@ export default function ImportPage() {
   const [promptText, setPromptText] = useState("");
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
+  const [keywordsModalOpen, setKeywordsModalOpen] = useState(false);
 
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
@@ -1569,19 +1573,6 @@ export default function ImportPage() {
           </EmbedButton>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
         </div>
-        <KeywordsControls>
-            <KeywordsLabel>Keywords:</KeywordsLabel>
-            <KeywordsSelect
-              value={keywordsCount}
-              onChange={(e) => setKeywordsCount(Number(e.target.value))}
-              aria-label="Keywords count"
-              title="Keywords count"
-            >
-              {Array.from({ length: 5 }, (_, i) => 10 + i * 10).map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </KeywordsSelect>
-          </KeywordsControls>
       </Header>
 
       {rows.length === 0 ? (
@@ -1636,7 +1627,7 @@ export default function ImportPage() {
       {pasteOpen && (
         <PasteOverlay onClick={() => setPasteOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()}>
-            <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Paste options</h3></ModalHeader>
+            <ModalHeader><h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Paste options</h3></ModalHeader>
             <ModalBody>
               <PasteLeft>
                 {lastCopied?.thumbUrl ? (
@@ -1682,21 +1673,17 @@ export default function ImportPage() {
         <PasteOverlay onClick={() => setBulkConfirmOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
             <ModalHeader>
-              <h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add extra suggestion?</h3>
+              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Add extra suggestion?</h3>
             </ModalHeader>
             <ModalBody>
-              <div style={{ color: '#1f2937', fontSize: 14, lineHeight: 1.5 }}>
+              <div style={{ color: '#1f2937', fontSize: 15, lineHeight: 1.5 }}>
                 You can optionally add a short hint to steer AI results (e.g., mood, focus, terminology).
               </div>
             </ModalBody>
             <ModalActions style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => {
                 setPromptConfirmOpen(false);
-                if (promptTargetRow) {
-                  analyzeRow(promptTargetRow, "");
-                } else {
-                  analyzeSelected("");
-                }
+                setKeywordsModalOpen(true);
               }}>Skip for now</Button>
               <Button type="button" onClick={() => { setPromptConfirmOpen(false); setPromptText(""); setPromptOpen(true); }}>Add suggestion</Button>
             </ModalActions>
@@ -1706,17 +1693,26 @@ export default function ImportPage() {
 
       {promptOpen && (
         <PasteOverlay onClick={() => setPromptOpen(false)}>
-          <ModalCard onClick={(e)=> e.stopPropagation()} $w="725px" $h="270px">
-            <ModalHeader><h3 style={{ color: '#1e40af', marginTop: 0, fontSize: 18 }}>Add details for AI suggestion</h3></ModalHeader>
-            <ModalBody $position="relative">
+          <ModalCard onClick={(e)=> e.stopPropagation()} $w="725px" $h="250px">
+            <ModalHeader><h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Add details for AI suggestion</h3></ModalHeader>
+            <ModalBody $position="relative" $direction="column" $gap="5px" $h="200px">
               <ModalTextArea
                 value={promptText}
                 onChange={(e)=> setPromptText((e.target.value || '').slice(0, 400))}
                 placeholder="Extra suggestion for AI (≤ 400 chars), e.g., emphasize professionalism, calm mood, avoid jargon"
                 maxLength={400}
               />
-              <div style={{ position: 'absolute', bottom: 0, right: 10, color: '#9ca3af', fontSize: 12 }}>
+              <div style={{ position: 'absolute', bottom: 60, right: 10, color: '#9ca3af', fontSize: 12 }}>
                 {400 - (promptText?.length || 0)} left
+              </div>
+              <div style={{ position: 'absolute', bottom: 0}}>
+                <RadioGroup
+                  name="kwCount"
+                  options={Array.from({ length: 5 }, (_, i) => ({ value: 10 + i * 10, label: 10 + i * 10 }))}
+                  value={keywordsCount}
+                  onChange={setKeywordsCount}
+                  label="Keywords:"
+                />
               </div>
             </ModalBody>
             <ModalActions>
@@ -1734,6 +1730,44 @@ export default function ImportPage() {
                 </span>
               </MagicButton>
               <Button type="button" $variant="secondary" onClick={() => setPromptOpen(false)}>Cancel</Button>
+            </ModalActions>
+          </ModalCard>
+        </PasteOverlay>
+      )}
+
+      {keywordsModalOpen && (
+        <PasteOverlay onClick={() => setKeywordsModalOpen(false)}>
+          <ModalCard  onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
+            <ModalHeader>
+              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Select keywords count</h3>
+            </ModalHeader>
+            <ModalBody $direction="column" $gap="10px">
+              <div style={{ color: '#1f2937', fontSize: 15, lineHeight: 1.5, marginBottom: 5 }}>
+                How many keywords should the AI generate for each image?
+              </div>
+              <RadioGroup
+                name="kwCount"
+                options={Array.from({ length: 5 }, (_, i) => ({ value: 10 + i * 10, label: 10 + i * 10 }))}
+                value={keywordsCount}
+                onChange={setKeywordsCount}
+                label={null}
+              />
+            </ModalBody>
+            <ModalActions style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => setKeywordsModalOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={() => {
+                setKeywordsModalOpen(false);
+                if (promptTargetRow) {
+                  analyzeRow(promptTargetRow, "");
+                } else {
+                  analyzeSelected("");
+                }
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <WandIcon />
+                  {bulkRunning ? 'Analyzing…' : ' Start Analysis'}
+                </span>
+              </Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>

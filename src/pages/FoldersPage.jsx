@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../hooks/useApi.js";
+import DatePicker from "../components/DatePicker.jsx";
 import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../config/tags.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 
@@ -666,60 +667,62 @@ export default function FoldersPage() {
 
   return (
     <Container>
-      <Header>
-        <FiltersBar>
-          <FiltersTop>
-            <FilterGroup>
-            <FilterLabel htmlFor="filter-name">Name</FilterLabel>
-              <Input id="filter-name" placeholder="Search by name" value={filterName} onChange={(e)=> setFilterName(e.target.value)} />
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel htmlFor="filter-from">From</FilterLabel>
-              <Input id="filter-from" type="date" value={filterDateFrom} onChange={(e)=> setFilterDateFrom(e.target.value)} />
-            </FilterGroup>
-            <FilterGroup>
-              <FilterLabel htmlFor="filter-to">To</FilterLabel>
-              <Input id="filter-to" type="date" value={filterDateTo} onChange={(e)=> setFilterDateTo(e.target.value)} />
-            </FilterGroup>
-            <FilterGroup $clearFilters>
-              {hasFilters && (
-                <Button
-                  style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }}
-                  onClick={()=>{ setFilterName(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterTagsCsv(''); }}
-                  title="Clear filters"
-                >
-                  Clear filters
-                </Button>
-              )}
-            </FilterGroup>
-          </FiltersTop>
-          <FiltersBottom>
-          <FilterGroup>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 550 }}>
-              {Object.entries(FOLDER_TAGS).map(([key, tag]) => {
-                const selected = (filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean)).includes(key);
-                return (
-                  <TagOption
-                    key={`filter-${key}`}
-                    $isSelected={selected}
-                    $bgColor={tag.bgColor}
-                    $textColor={tag.textColor}
-                    $borderColor={tag.borderColor}
-                    onClick={()=>{
-                      const arr = filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean);
-                      const next = selected ? arr.filter(t=>t!==key) : [...arr, key];
-                      setFilterTagsCsv(next.join(','));
-                    }}
+      {folders?.length > 0 && (
+        <Header>
+          <FiltersBar>
+            <FiltersTop>
+              <FilterGroup>
+                <FilterLabel htmlFor="filter-name">Name</FilterLabel>
+                <Input id="filter-name" placeholder="Search by name" value={filterName} onChange={(e)=> setFilterName(e.target.value)} />
+              </FilterGroup>
+              <FilterGroup>
+                <FilterLabel htmlFor="filter-from">From</FilterLabel>
+                <DatePicker id="filter-from" value={filterDateFrom} onChange={(e)=> setFilterDateFrom(e.target.value)} />
+              </FilterGroup>
+              <FilterGroup>
+                <FilterLabel htmlFor="filter-to">To</FilterLabel>
+                <DatePicker id="filter-to" value={filterDateTo} onChange={(e)=> setFilterDateTo(e.target.value)} />
+              </FilterGroup>
+              <FilterGroup $clearFilters>
+                {hasFilters && (
+                  <Button
+                    style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }}
+                    onClick={()=>{ setFilterName(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterTagsCsv(''); }}
+                    title="Clear filters"
                   >
-                    {tag.label}
-                  </TagOption>
-                );
-              })}
-            </div>
-          </FilterGroup>
-          </FiltersBottom>
-        </FiltersBar>
-      </Header>
+                    Clear filters
+                  </Button>
+                )}
+              </FilterGroup>
+            </FiltersTop>
+            <FiltersBottom>
+              <FilterGroup>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 550 }}>
+                  {Object.entries(FOLDER_TAGS).map(([key, tag]) => {
+                    const selected = (filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean)).includes(key);
+                    return (
+                      <TagOption
+                        key={`filter-${key}`}
+                        $isSelected={selected}
+                        $bgColor={tag.bgColor}
+                        $textColor={tag.textColor}
+                        $borderColor={tag.borderColor}
+                        onClick={()=>{
+                          const arr = filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean);
+                          const next = selected ? arr.filter(t=>t!==key) : [...arr, key];
+                          setFilterTagsCsv(next.join(','));
+                        }}
+                      >
+                        {tag.label}
+                      </TagOption>
+                    );
+                  })}
+                </div>
+              </FilterGroup>
+            </FiltersBottom>
+          </FiltersBar>
+        </Header>
+      )}
       {folders?.length === 0 ? (
         <EmptyState>
           <EmptyIcon>📁</EmptyIcon>
@@ -834,7 +837,7 @@ export default function FoldersPage() {
             </ModalRow>
             <ModalRow>
               <Label>Shooting date</Label>
-              <Input type="date" value={draft.shootingDate} onChange={(e)=> setDraft(d => ({ ...d, shootingDate: e.target.value }))} />
+              <DatePicker id="shooting-date" value={draft.shootingDate} onChange={(e)=> setDraft(d => ({ ...d, shootingDate: e.target.value }))} />
             </ModalRow>
             <ModalRow>
               <Label>Additional notes</Label>
