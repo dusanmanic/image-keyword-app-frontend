@@ -484,7 +484,6 @@ export default function StatisticPage() {
                     <TableHeaderCell>Country</TableHeaderCell>
                     <TableHeaderCell>Platform</TableHeaderCell>
                     <TableHeaderCell>Exclusivity</TableHeaderCell>
-                    <TableHeaderCell>Price</TableHeaderCell>
                     <TableHeaderCell>Earnings</TableHeaderCell>
                     <TableHeaderCell>%</TableHeaderCell>
                     <TableHeaderCell>Agent</TableHeaderCell>
@@ -524,7 +523,6 @@ export default function StatisticPage() {
                       <TableCell style={{ color: item.exclusivity === 'Exclusive' ? '#dc2626' : '#6b7280' }}>
                         {item.exclusivity || 'N/A'}
                       </TableCell>
-                      <TableCell style={{ color: '#059669', fontWeight: '600' }}>${item.price}</TableCell>
                       <TableCell style={{ color: '#16a34a', fontWeight: '700' }}>${item.earnings}</TableCell>
                       <TableCell style={{ color: '#7c2d12' }}>{item.percentage}%</TableCell>
                       <TableCell style={{ color: '#6b7280' }}>{item.agent || 'N/A'}</TableCell>

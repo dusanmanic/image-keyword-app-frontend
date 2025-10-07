@@ -891,15 +891,6 @@ export default function StatisticPage() {
       )
     },
     {
-      key: 'price',
-      name: 'Price',
-      width: columnWidths.price || '6%',
-      minWidth: 60,
-      renderCell: ({ row }) => (
-        <TableCell color="#059669" fontWeight="600" fontSize="14px">${row.price}</TableCell>
-      )
-    },
-    {
       key: 'earnings',
       name: 'Earnings',
       width: columnWidths.earnings || '8%',
@@ -946,7 +937,7 @@ export default function StatisticPage() {
     const value = row[key];
     if (value === undefined || value === null) return '';
     // Numeric fields
-    if (["price", "earnings", "percentage"].includes(key)) return Number(value) || 0;
+    if (["earnings", "percentage"].includes(key)) return Number(value) || 0;
     // Dates
     if (key === "date") return new Date(value).getTime() || 0;
     // Image ID numeric-like
@@ -962,12 +953,12 @@ export default function StatisticPage() {
     return 0;
   };
 
-  // Custom sort handler that defaults to DESC for price columns
+  // Custom sort handler that defaults to DESC for money/percent columns
   const handleSortColumnsChange = (newSortColumns) => {
     if (newSortColumns.length > 0) {
       const lastColumn = newSortColumns[newSortColumns.length - 1];
-      // If it's a price-related column and direction is ASC, change to DESC
-      if (['price', 'earnings', 'percentage'].includes(lastColumn.columnKey) && lastColumn.direction === 'ASC') {
+      // If it's a money/percent column and direction is ASC, change to DESC
+      if (['earnings', 'percentage'].includes(lastColumn.columnKey) && lastColumn.direction === 'ASC') {
         lastColumn.direction = 'DESC';
       }
     }
@@ -1035,7 +1026,7 @@ export default function StatisticPage() {
   const exportToCSV = () => {
     if (parsedData.length === 0) return;
     
-    const headers = ['ID', 'Date', 'Type', 'Content Type', 'Description', 'Country', 'Platform', 'Exclusivity', 'Price', 'Earnings', 'Percentage', 'Agent', 'Credit Line', 'Notes', 'Image ID', 'Filename'];
+    const headers = ['ID', 'Date', 'Type', 'Content Type', 'Description', 'Country', 'Platform', 'Exclusivity', 'Earnings', 'Percentage', 'Agent', 'Credit Line', 'Notes', 'Image ID', 'Filename'];
     const csvContent = [
       headers.join(','),
       ...parsedData.map(item => [
@@ -1047,7 +1038,6 @@ export default function StatisticPage() {
         `"${item.country}"`,
         `"${item.platform}"`,
         `"${item.exclusivity || ''}"`,
-        item.price,
         item.earnings,
         item.percentage,
         `"${item.agent || ''}"`,
