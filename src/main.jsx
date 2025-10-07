@@ -128,7 +128,7 @@ function AuthenticatedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { logout, email } = useAuthRedux();
+  const { logout, email, openAiApiKey } = useAuthRedux();
   const { uiLoading, toast, clearToast } = useStore();
 
   // Auto-dismiss toast after 3s
@@ -159,15 +159,18 @@ function AuthenticatedApp() {
       case '/home':
         return <WelcomePage />;
       case '/folders':
+        if (!openAiApiKey) return <WelcomePage />;
         return <FoldersPage />;
       case '/statistics':
+        if (!openAiApiKey) return <WelcomePage />;
         return <StatisticPage />;
       default:
         if (location.pathname.startsWith('/import/')) {
+          if (!openAiApiKey) return <WelcomePage />;
           return <ImportPage />;
         }
         // Default na folders
-        return <FoldersPage />;
+        return openAiApiKey ? <FoldersPage /> : <WelcomePage />;
     }
   };
   
@@ -180,8 +183,12 @@ function AuthenticatedApp() {
         </HeaderLeft>
         <Nav>
           <NavLink to="/home" className={isActive('/home') ? 'active' : ''}>Home</NavLink>
-          <NavLink to="/folders" className={isActive('/folders') ? 'active' : ''}>Folders</NavLink>
-          <NavLink to="/statistics" className={isActive('/statistics') ? 'active' : ''}>Statistics</NavLink>
+          {openAiApiKey ? (
+            <>
+              <NavLink to="/folders" className={isActive('/folders') ? 'active' : ''}>Folders</NavLink>
+              <NavLink to="/statistics" className={isActive('/statistics') ? 'active' : ''}>Statistics</NavLink>
+            </>
+          ) : null}
           <LogoutButton 
             onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
             title={`Logout${email?` (${email})`:''}`} 

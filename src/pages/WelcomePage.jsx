@@ -130,9 +130,9 @@ export default function WelcomePage() {
         </FeatureList>
 
         <CTA>
-          <CTATitle>Ready to get started?</CTATitle>
+          <CTATitle>Need an API key?</CTATitle>
           <CTAText>
-            Navigate to "FirstTest" to begin analyzing your images, or explore "Folders" to organize your collection.
+            To access the full app features and image analysis, you need an OpenAI API key. Please email <a href="mailto:dulemanic@gmail.com">dulemanic@gmail.com</a> to request your key.
           </CTAText>
         </CTA>
       </WelcomeCard>
