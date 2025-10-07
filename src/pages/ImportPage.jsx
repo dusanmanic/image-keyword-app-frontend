@@ -95,40 +95,6 @@ const ExportButton = styled(Button)`
   &:hover { background: #0284c7; }
 `;
 
-const InlineCheckbox = styled.label`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #1e40af;
-  font-weight: 600;
-`;
-
-const KeywordsControls = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: 8px;
-`;
-
-const KeywordsLabel = styled.span`
-  color: #1e40af;
-  font-weight: 600;
-  font-size: 14px;
-`;
-
-const KeywordsSelect = styled.select`
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid #93c5fd;
-  color: #1e40af;
-  background: white;
-  padding: 0 10px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:focus, &:active, &:focus-visible, &:focus-within { outline: none; }
-`;
-
 const PasteOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -347,7 +313,7 @@ const StyledDataGrid = styled(DataGrid)`
 
   /* Selected row outline without changing backgrounds */
   .rdg-row[aria-selected="true"] .rdg-cell {
-    background: #93c5fd;
+    background: #eef6ff;
   }
 
   /* Busy row cells: block interaction and dim */
@@ -371,6 +337,24 @@ const ActionCell = styled.div`
   align-items: center;
   justify-content: center;
   width: 100%;
+`;
+
+const EmbeddedBadge = styled.div`
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: #059669;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 10;
 `;
 
 const CheckboxWrap = styled.div`
@@ -802,28 +786,7 @@ export default function ImportPage() {
             </div>
           )}
           {row.embedded && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 8,
-                left: 8,
-                background: '#059669',
-                color: 'white',
-                borderRadius: '50%',
-                width: 24,
-                height: 24,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 14,
-                fontWeight: 'bold',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                zIndex: 10
-              }}
-              title="Embedded to folder"
-            >
-              ✓
-            </div>
+            <EmbeddedBadge title="Embedded to folder">✓</EmbeddedBadge>
           )}
         </div>
       )

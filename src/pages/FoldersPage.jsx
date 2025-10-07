@@ -664,22 +664,13 @@ export default function FoldersPage() {
   return (
     <Container>
         <Header>
-
-          
-            <FiltersBar>
-            <div style={{  }}>
-            <Button 
-              onClick={() => setShowFilters(!showFilters)}
-              style={{ 
-                background: showFilters ? '#1e40af' : 'white', 
-                color: showFilters ? 'white' : '#1e40af',
-                border: '1px solid #1e40af'
-              }}
-            >
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
-          </div>
-            {showFilters && (<div style={{     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <FiltersBar>
+            <div>
+              <Button onClick={() => setShowFilters(!showFilters)} style={{ background: showFilters ? '#1e40af' : 'white', color: showFilters ? 'white' : '#1e40af', border: '1px solid #1e40af' }}>
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+            </div>
+          {showFilters && (<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <FiltersTop>
               <FilterGroup>
                 <FilterLabel htmlFor="filter-name">Name</FilterLabel>
@@ -731,8 +722,7 @@ export default function FoldersPage() {
               </FilterGroup>
             </FiltersBottom>
             </div>)}
-            </FiltersBar>
-          
+          </FiltersBar>
         </Header>
       {folders?.length === 0 ? (
         <EmptyState>
