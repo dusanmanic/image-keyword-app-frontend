@@ -45,25 +45,20 @@ const EmptyMessage = styled.p`
 `;
 
 const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 12px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 `;
 
 const FiltersBar = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  padding: 0 20px 20px 20px;
 `;
 
 const FilterGroup = styled.div`
   ${props => props.$clearFilters && `
     position: absolute;
     right: 0;
-    bottom: 0px;
   `}
   display: flex;
   flex-direction: column;
@@ -479,7 +474,7 @@ const FloatingActionButton = styled.button`
 
 const FiltersTop = styled.div`
   position: relative;
-  width: 1150px;
+  width: 1000px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -506,6 +501,7 @@ export default function FoldersPage() {
  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draft, setDraft] = useState({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
+  const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
   const { getFolders } = useApi();
   // Filters state
@@ -667,9 +663,23 @@ export default function FoldersPage() {
 
   return (
     <Container>
-      {folders?.length > 0 && (
         <Header>
-          <FiltersBar>
+
+          
+            <FiltersBar>
+            <div style={{  }}>
+            <Button 
+              onClick={() => setShowFilters(!showFilters)}
+              style={{ 
+                background: showFilters ? '#1e40af' : 'white', 
+                color: showFilters ? 'white' : '#1e40af',
+                border: '1px solid #1e40af'
+              }}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+          </div>
+            {showFilters && (<div style={{     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <FiltersTop>
               <FilterGroup>
                 <FilterLabel htmlFor="filter-name">Name</FilterLabel>
@@ -720,9 +730,10 @@ export default function FoldersPage() {
                 </div>
               </FilterGroup>
             </FiltersBottom>
-          </FiltersBar>
+            </div>)}
+            </FiltersBar>
+          
         </Header>
-      )}
       {folders?.length === 0 ? (
         <EmptyState>
           <EmptyIcon>📁</EmptyIcon>
