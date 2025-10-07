@@ -670,7 +670,7 @@ export default function ImportPage() {
   useEffect(() => {
     const handleGlobalClick = (e) => {
       try {
-        if (open || pasteOpen || promptOpen || promptConfirmOpen) return; // keep selection when modals are open
+        if (open || pasteOpen || promptOpen || promptConfirmOpen || keywordsModalOpen) return; // keep selection when modals are open
         const gridEl = gridRef.current;
         const controlsEl = controlsRef.current;
         if (!gridEl) return;
@@ -684,7 +684,7 @@ export default function ImportPage() {
     };
     window.addEventListener('mousedown', handleGlobalClick);
     return () => window.removeEventListener('mousedown', handleGlobalClick);
-  }, [open, pasteOpen, promptOpen, promptConfirmOpen]);
+  }, [open, pasteOpen, promptOpen, promptConfirmOpen, keywordsModalOpen]);
 
   const cols = [
     {
