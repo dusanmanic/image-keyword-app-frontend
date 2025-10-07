@@ -12,7 +12,9 @@ export function useAuthRedux() {
     setAuthenticated, 
     clearAuth,
     openAiApiKey,
-    setOpenAiApiKey
+    setOpenAiApiKey,
+    isActive,
+    setIsActive
   } = useStore();
   
   const { login: apiLogin, register: apiRegister, logout: apiLogout } = useApi();
@@ -107,6 +109,13 @@ export function useAuthRedux() {
             const me = await fetchCurrentUser();
             const apiKey = (me?.user?.openAiApiKey || '').trim();
             if (apiKey) setOpenAiApiKey(apiKey);
+            
+            // Set isActive status
+            if (typeof me?.user?.isActive === 'boolean') {
+              setIsActive(me.user.isActive);
+            } else if (typeof me?.user?.isActive === 'number') {
+              setIsActive(me.user.isActive === 1);
+            }
           } catch (e) {
             // ignore
           }
@@ -121,6 +130,7 @@ export function useAuthRedux() {
     token,
     email,
     openAiApiKey,
+    isActive,
     isAuthenticated: isAuthenticated && isTokenValid(),
     isTokenValid,
     login,

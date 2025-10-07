@@ -12,6 +12,7 @@ import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
 import StatisticPage from './pages/StatisticPage.jsx'
+import AccountDeactivatedPage from './pages/AccountDeactivatedPage.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -128,7 +129,7 @@ function AuthenticatedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { logout, email, openAiApiKey } = useAuthRedux();
+  const { logout, email, openAiApiKey, isActive } = useAuthRedux();
   const { uiLoading, toast, clearToast } = useStore();
 
   // Auto-dismiss toast after 3s
@@ -140,7 +141,7 @@ function AuthenticatedApp() {
     return () => clearTimeout(timer);
   }, [toast, clearToast]);
   
-  const isActive = (path) => {
+  const isActiveRoute = (path) => {
     if (path === '/folders') {
       return location.pathname === '/' || location.pathname === '/folders';
     }
@@ -182,11 +183,11 @@ function AuthenticatedApp() {
           <AppTitle>Pixel Keywords</AppTitle>
         </HeaderLeft>
         <Nav>
-          <NavLink to="/home" className={isActive('/home') ? 'active' : ''}>Home</NavLink>
+          <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           {openAiApiKey ? (
             <>
-              <NavLink to="/folders" className={isActive('/folders') ? 'active' : ''}>Folders</NavLink>
-              <NavLink to="/statistics" className={isActive('/statistics') ? 'active' : ''}>Statistics</NavLink>
+              <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
+              <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
             </>
           ) : null}
           <LogoutButton 
@@ -198,7 +199,7 @@ function AuthenticatedApp() {
           </LogoutButton>
         </Nav>
       </Header>
-      {renderCurrent()}
+      {isActive === false ? <AccountDeactivatedPage /> : renderCurrent()}
       <GlobalSpinner show={!!uiLoading} text={typeof uiLoading === 'string' ? uiLoading : 'Loading...'} />
       {toast ? (
         <ToastBox role="status" aria-live="polite" $type={toast.type}>

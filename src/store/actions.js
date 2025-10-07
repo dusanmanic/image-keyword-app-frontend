@@ -24,6 +24,12 @@ export const setOpenAiApiKey = (apiKey) => ({
   payload: apiKey
 });
 
+// Is Active
+export const setIsActive = (isActive) => ({
+  type: 'SET_IS_ACTIVE',
+  payload: isActive
+});
+
 // Folders actions
 export const setFolders = (folders) => ({
   type: 'SET_FOLDERS',
