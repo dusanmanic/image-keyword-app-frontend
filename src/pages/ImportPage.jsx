@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
 // import ToastComponent from "../components/Toast";
@@ -155,6 +155,124 @@ const ModalActions = styled.div`
   position: absolute;
   bottom: 20px;
   right: 20px;
+`;
+
+// Bulk overlay styled components
+const scanX = keyframes`
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0%); }
+  100% { transform: translateX(100%); }
+`;
+
+const BulkOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(17,24,39,0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const BulkCardOutline = styled.div`
+  background: linear-gradient(135deg,#0ea5e9 0%, #1e40af 100%);
+  padding: 2px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+`;
+
+const BulkCard = styled.div`
+  background: #0b1220;
+  border-radius: 14px;
+  padding: 16px;
+  width: 420px;
+  max-width: 90vw;
+`;
+
+const BulkRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const BulkPreviewBox = styled.div`
+  position: relative;
+  width: 120px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111827;
+  flex: 0 0 auto;
+`;
+
+const BulkImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const BulkNoPreview = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+`;
+
+const BulkScanBar = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  top: 0;
+  background: linear-gradient(90deg, transparent, rgba(59,130,246,0.6), transparent);
+  filter: blur(2px);
+  animation: ${scanX} 1.4s linear infinite;
+`;
+
+const BulkDetails = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const BulkTitle = styled.div`
+  color: #e5e7eb;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 20px;
+  margin-bottom: 6px;
+`;
+
+const BulkSubtitle = styled.div`
+  color: #9ca3af;
+  font-size: 13px;
+  margin-bottom: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const BulkProgress = styled.div`
+  height: 8px;
+  border-radius: 999px;
+  background: #1f2937;
+  overflow: hidden;
+`;
+
+const BulkProgressFill = styled.div`
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 300ms ease;
+`;
+
+const BulkMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: #9ca3af;
+  font-size: 12px;
 `;
 
 const ModalTextArea = styled.textarea`
@@ -413,6 +531,8 @@ export default function ImportPage() {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkTotal, setBulkTotal] = useState(0);
   const [bulkDone, setBulkDone] = useState(0);
+  const [bulkPreview, setBulkPreview] = useState({ url: '', title: '' });
+  const [bulkObjectUrl, setBulkObjectUrl] = useState('');
   const [pasteLoading, setPasteLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [embedLoading, setEmbedLoading] = useState(false);
@@ -524,21 +644,40 @@ export default function ImportPage() {
       setBulkRunning(true);
       setBulkTotal(ids.length);
       setBulkDone(0);
-      showToast(`Analyzing ${ids.length}...`);
       for (const id of ids) {
         const r = rows.find(x => String(x.id) === String(id));
         if (!r) continue;
+        // set preview image for current item
+        try {
+          let previewUrl = '';
+          if (r.thumbUrl) previewUrl = r.thumbUrl;
+          else if (r.thumbnailBlob instanceof Blob) {
+            // revoke previous to avoid leaks
+            if (bulkObjectUrl) {
+              try { URL.revokeObjectURL(bulkObjectUrl); } catch {}
+            }
+            const objUrl = URL.createObjectURL(r.thumbnailBlob);
+            setBulkObjectUrl(objUrl);
+            previewUrl = objUrl;
+          }
+          setBulkPreview({ url: previewUrl, title: r.name || r.description || r.id });
+        } catch {}
         try { // eslint-disable-next-line no-await-in-loop
           await analyzeRow(r, extraPrompt);
         } catch {}
         setBulkDone(prev => prev + 1);
       }
-      showToast('Bulk analysis done');
     } catch {
       showToast('Bulk analysis failed', 'error');
     } finally {
       setBulkRunning(false);
       setAnalyzeLoading(false);
+      // cleanup preview/object url
+      try { setBulkPreview({ url: '', title: '' }); } catch {}
+      if (bulkObjectUrl) {
+        try { URL.revokeObjectURL(bulkObjectUrl); } catch {}
+        setBulkObjectUrl('');
+      }
       // clear analyzing marks for the batch
       setAnalyzingIds(prev => {
         const s = new Set(prev);
@@ -1567,9 +1706,33 @@ export default function ImportPage() {
         </div>
       )}
       {bulkRunning && (
-        <div style={{ position: 'fixed', right: 16, bottom: 16, background: '#111827', color: '#fff', padding: '8px 12px', borderRadius: 8, boxShadow: '0 6px 20px rgba(0,0,0,0.25)', fontSize: 13 }}>
-          Analyzing {bulkDone}/{bulkTotal}
-        </div>
+        <BulkOverlay>
+          <BulkCardOutline>
+            <BulkCard>
+              <BulkRow>
+                <BulkPreviewBox>
+                  {bulkPreview.url ? (
+                    <BulkImg src={bulkPreview.url} alt="Analyzing preview" />
+                  ) : (
+                    <BulkNoPreview>No preview</BulkNoPreview>
+                  )}
+                  <BulkScanBar />
+                </BulkPreviewBox>
+                <BulkDetails>
+                  <BulkTitle>Analyzing images…</BulkTitle>
+                  <BulkSubtitle title={bulkPreview.title || ''}>{bulkPreview.title || 'Preparing image'}</BulkSubtitle>
+                  <BulkProgress>
+                    <BulkProgressFill style={{ width: `${Math.max(0, Math.min(100, (bulkDone / Math.max(1, bulkTotal)) * 100))}%` }} />
+                  </BulkProgress>
+                  <BulkMeta>
+                    <span>{bulkDone} / {bulkTotal}</span>
+                    <span>Working…</span>
+                  </BulkMeta>
+                </BulkDetails>
+              </BulkRow>
+            </BulkCard>
+          </BulkCardOutline>
+        </BulkOverlay>
       )}
   
       {open && (
@@ -1742,11 +1905,9 @@ export default function ImportPage() {
       
       {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
-        show={pageLoading || pasteLoading || analyzeLoading || embedLoading || processingImages || uploadingImages} 
+        show={ pasteLoading || embedLoading || processingImages || uploadingImages} 
         text={
-          pageLoading ? "Loading..." :
           pasteLoading ? "Applying paste..." :
-          analyzeLoading ? "Analyzing images..." :
           embedLoading ? "Embedding metadata..." :
           processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
           uploadingImages ? `Saving to Firestore... ${uploadProgress.current}/${uploadProgress.total}` :
