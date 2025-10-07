@@ -8,6 +8,7 @@ export function useStore() {
   const token = useSelector(state => state.token);
   const email = useSelector(state => state.email);
   const isAuthenticated = useSelector(state => state.isAuthenticated);
+  const openAiApiKey = useSelector(state => state.openAiApiKey);
   const folders = useSelector(state => state.folders);
   const selectedFolder = useSelector(state => state.selectedFolder);
   const loading = useSelector(state => state.loading);
@@ -20,6 +21,7 @@ export function useStore() {
     token,
     email,
     isAuthenticated,
+    openAiApiKey,
     folders,
     selectedFolder,
     loading,
@@ -32,6 +34,7 @@ export function useStore() {
     setEmail: (email) => dispatch(actions.setEmail(email)),
     setAuthenticated: (isAuthenticated) => dispatch(actions.setAuthenticated(isAuthenticated)),
     clearAuth: () => dispatch(actions.clearAuth()),
+    setOpenAiApiKey: (apiKey) => dispatch(actions.setOpenAiApiKey(apiKey)),
     setFolders: (folders) => dispatch(actions.setFolders(folders)),
     addFolder: (folder) => dispatch(actions.addFolder(folder)),
     updateFolder: (folder) => dispatch(actions.updateFolder(folder)),

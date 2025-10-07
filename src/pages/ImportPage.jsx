@@ -440,7 +440,7 @@ export default function ImportPage() {
   const [keywordsModalOpen, setKeywordsModalOpen] = useState(false);
 
   const { embedOneToFolder } = useEmbedToFolder();
-  const { showToast: showGlobalToast } = useStore();
+  const { showToast: showGlobalToast, openAiApiKey } = useStore();
   
   React.useEffect(() => {
     console.log('[ImportPage] rows', rows);
@@ -454,6 +454,10 @@ export default function ImportPage() {
     try {
       setAnalyzingIds(prev => { const s = new Set(prev); s.add(row.id); return s; });
       showToast('Analyzing...');
+      if (!(openAiApiKey || '').trim()) {
+        showToast('OpenAI API key is required', 'error');
+        return;
+      }
       // Use thumbnailBlob for analysis
       let blob = row?.thumbnailBlob;
       if (!blob && row?.thumbUrl) {
@@ -469,7 +473,7 @@ export default function ImportPage() {
       if (extra) parts.push(`Added extra suggestion: ${extra}`);
       const combinedPrompt = parts.join(' <br/> ');
 
-      const data = await analyzeImage(blob, keywordsCount, combinedPrompt);
+      const data = await analyzeImage(blob, keywordsCount, combinedPrompt, (openAiApiKey || '').trim());
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';

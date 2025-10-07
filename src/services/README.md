@@ -6,8 +6,6 @@ Ovaj folder sadrži sve API pozive organizovane po domenima.
 
 ### `authService.js`
 Servisi za autentifikaciju korisnika:
-- `loginUser(email, password)` - Login korisnika
-- `registerUser(email, password)` - Registracija novog korisnika
 - `getAuthToken()` - Dobijanje auth tokena iz localStorage
 - `getAuthHeaders()` - Dobijanje headers sa auth tokenom
 

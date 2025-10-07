@@ -209,11 +209,15 @@ function MainApp() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  //get user openai api key
+  const { openAiApiKey } = useAuthRedux();
+
   // Initialize auth from localStorage on mount
   useEffect(() => {
     const init = async () => {
       setIsRefreshing(true);
-      initializeAuth();
+      await initializeAuth();
+      // openAiApiKey is kept only in the store; do not persist to localStorage
       setIsInitializing(false);
       setIsRefreshing(false);
     };

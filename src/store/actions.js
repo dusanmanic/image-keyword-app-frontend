@@ -18,6 +18,12 @@ export const clearAuth = () => ({
   type: 'CLEAR_AUTH'
 });
 
+// OpenAI API Key
+export const setOpenAiApiKey = (apiKey) => ({
+  type: 'SET_OPENAI_API_KEY',
+  payload: apiKey
+});
+
 // Folders actions
 export const setFolders = (folders) => ({
   type: 'SET_FOLDERS',

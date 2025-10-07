@@ -6,6 +6,7 @@ const initialState = {
   token: '',
   email: '',
   isAuthenticated: false,
+  openAiApiKey: '',
   
   // Folders
   folders: [],
@@ -29,7 +30,9 @@ const reducer = (state = initialState, action) => {
     case 'SET_AUTHENTICATED':
       return { ...state, isAuthenticated: action.payload };
     case 'CLEAR_AUTH':
-      return { ...state, token: '', email: '', isAuthenticated: false };
+      return { ...state, token: '', email: '', isAuthenticated: false, openAiApiKey: '' };
+    case 'SET_OPENAI_API_KEY':
+      return { ...state, openAiApiKey: action.payload };
     
     // Folders actions
     case 'SET_FOLDERS':

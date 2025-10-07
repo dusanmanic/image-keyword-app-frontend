@@ -4,23 +4,13 @@
 
 import { getApiBaseUrl } from "../config/api.js";
 
-/**
- * Login user
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<{token: string}>} - Auth token
- */
-export async function loginUser(email, password) {
-  const res = await fetch(`${getApiBaseUrl()}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+export async function fetchCurrentUser() {
+  const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() };
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+    method: 'GET',
+    headers
   });
-
-  if (!res.ok) {
-    throw new Error("Login failed");
-  }
-
+  if (!res.ok) throw new Error('Failed to fetch user');
   return await res.json();
 }
 
@@ -30,19 +20,7 @@ export async function loginUser(email, password) {
  * @param {string} password - User password
  * @returns {Promise<void>}
  */
-export async function registerUser(email, password) {
-  const res = await fetch(`${getApiBaseUrl()}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    throw new Error("Registration failed");
-  }
-
-  return await res.json();
-}
+// registerUser removed (no UI flow uses registration)
 
 /**
  * Get auth token from localStorage

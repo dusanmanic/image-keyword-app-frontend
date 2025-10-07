@@ -1,5 +1,6 @@
 import { useStore } from '../store/index.js';
 import { useApi } from './useApi.js';
+import { fetchCurrentUser } from '../services/authService.js';
 
 export function useAuthRedux() {
   const { 
@@ -9,7 +10,9 @@ export function useAuthRedux() {
     setToken, 
     setEmail, 
     setAuthenticated, 
-    clearAuth 
+    clearAuth,
+    openAiApiKey,
+    setOpenAiApiKey
   } = useStore();
   
   const { login: apiLogin, register: apiRegister, logout: apiLogout } = useApi();
@@ -35,6 +38,10 @@ export function useAuthRedux() {
       setToken(data.token || "");
       setEmail(emailArg);
       setAuthenticated(true);
+      try {
+        const apiKey = (data?.user?.openAiApiKey || '').trim();
+        if (apiKey) setOpenAiApiKey(apiKey);
+      } catch {}
       
       // Update localStorage
       localStorage.setItem("auth_token", data.token || "");
@@ -75,7 +82,7 @@ export function useAuthRedux() {
   };
 
   // Initialize auth from localStorage
-  const initializeAuth = () => {
+  const initializeAuth = async () => {
     try {
       const token = localStorage.getItem("auth_token") || "";
       const email = localStorage.getItem("auth_email") || "";
@@ -95,6 +102,15 @@ export function useAuthRedux() {
         setToken(token);
         setEmail(email);
         setAuthenticated(isValid);
+        if (isValid) {
+          try {
+            const me = await fetchCurrentUser();
+            const apiKey = (me?.user?.openAiApiKey || '').trim();
+            if (apiKey) setOpenAiApiKey(apiKey);
+          } catch (e) {
+            // ignore
+          }
+        }
       }
     } catch (error) {
       console.error('Error initializing auth:', error);
@@ -104,6 +120,7 @@ export function useAuthRedux() {
   return {
     token,
     email,
+    openAiApiKey,
     isAuthenticated: isAuthenticated && isTokenValid(),
     isTokenValid,
     login,
