@@ -676,14 +676,20 @@ export default function StatisticPage() {
       setError("");
       
       try {
+        const nextPage = (pagination.currentPage || 1) + 1;
         const result = await getSalesData({
           limit: pagination.limit,
+          page: nextPage,
           includeStats: false // Don't fetch stats when loading more
         });
         
         if (result.success && result.data) {
-          // Append new data (even if empty array)
-          setParsedData(prev => [...prev, ...(result.data.sales || [])]);
+          // Append new data with de-duplication by id
+          setParsedData(prev => {
+            const map = new Map(prev.map(x => [x.id, x]));
+            for (const s of (result.data.sales || [])) map.set(s.id, s);
+            return Array.from(map.values());
+          });
           
           // Update pagination info
           if (result.data.pagination) {
