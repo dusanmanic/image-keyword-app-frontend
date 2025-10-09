@@ -129,7 +129,7 @@ function AuthenticatedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { logout, email, openAiApiKey, isActive } = useAuthRedux();
+  const { logout, email, isActive } = useAuthRedux();
   const { uiLoading, toast, clearToast } = useStore();
 
   // Auto-dismiss toast after 3s
@@ -160,18 +160,15 @@ function AuthenticatedApp() {
       case '/home':
         return <WelcomePage />;
       case '/folders':
-        if (!openAiApiKey) return <WelcomePage />;
         return <FoldersPage />;
       case '/statistics':
-        if (!openAiApiKey) return <WelcomePage />;
         return <StatisticPage />;
       default:
         if (location.pathname.startsWith('/import/')) {
-          if (!openAiApiKey) return <WelcomePage />;
           return <ImportPage />;
         }
         // Default na folders
-        return openAiApiKey ? <FoldersPage /> : <WelcomePage />;
+        return <FoldersPage />;
     }
   };
   
@@ -184,12 +181,8 @@ function AuthenticatedApp() {
         </HeaderLeft>
         <Nav>
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
-          {openAiApiKey ? (
-            <>
-              <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
-              <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
-            </>
-          ) : null}
+          <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
+          <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
           <LogoutButton 
             onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
             title={`Logout${email?` (${email})`:''}`} 
@@ -217,15 +210,12 @@ function MainApp() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  //get user openai api key
-  const { openAiApiKey } = useAuthRedux();
 
   // Initialize auth from localStorage on mount
   useEffect(() => {
     const init = async () => {
       setIsRefreshing(true);
       await initializeAuth();
-      // openAiApiKey is kept only in the store; do not persist to localStorage
       setIsInitializing(false);
       setIsRefreshing(false);
     };

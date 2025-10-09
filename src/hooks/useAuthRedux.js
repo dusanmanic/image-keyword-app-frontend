@@ -11,8 +11,6 @@ export function useAuthRedux() {
     setEmail, 
     setAuthenticated, 
     clearAuth,
-    openAiApiKey,
-    setOpenAiApiKey,
     isActive,
     setIsActive
   } = useStore();
@@ -40,10 +38,6 @@ export function useAuthRedux() {
       setToken(data.token || "");
       setEmail(emailArg);
       setAuthenticated(true);
-      try {
-        const apiKey = (data?.user?.openAiApiKey || '').trim();
-        if (apiKey) setOpenAiApiKey(apiKey);
-      } catch {}
       
       // Update localStorage
       localStorage.setItem("auth_token", data.token || "");
@@ -107,9 +101,6 @@ export function useAuthRedux() {
         if (isValid) {
           try {
             const me = await fetchCurrentUser();
-            const apiKey = (me?.user?.openAiApiKey || '').trim();
-            if (apiKey) setOpenAiApiKey(apiKey);
-            
             // Set isActive status
             if (typeof me?.user?.isActive === 'boolean') {
               setIsActive(me.user.isActive);
@@ -129,7 +120,6 @@ export function useAuthRedux() {
   return {
     token,
     email,
-    openAiApiKey,
     isActive,
     isAuthenticated: isAuthenticated && isTokenValid(),
     isTokenValid,

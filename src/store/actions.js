@@ -18,12 +18,6 @@ export const clearAuth = () => ({
   type: 'CLEAR_AUTH'
 });
 
-// OpenAI API Key
-export const setOpenAiApiKey = (apiKey) => ({
-  type: 'SET_OPENAI_API_KEY',
-  payload: apiKey
-});
-
 // Is Active
 export const setIsActive = (isActive) => ({
   type: 'SET_IS_ACTIVE',
