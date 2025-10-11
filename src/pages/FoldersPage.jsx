@@ -822,7 +822,7 @@ export default function FoldersPage() {
               <Input value={draft.title} onChange={(e)=> setDraft(d => ({ ...d, title: e.target.value }))} placeholder="Folder title" />
             </ModalRow>
             <ModalRow>
-              <Label>Description</Label>
+              <Label>Details for AI analysis</Label>
               <TextArea 
                 value={draft.description}
                 onChange={(e)=> {

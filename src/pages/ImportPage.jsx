@@ -525,7 +525,7 @@ export default function ImportPage() {
   const [lastCopied, setLastCopied] = useState(null);
   
   // API integration
-  const { folders } = useFoldersRedux();
+  const { folders, saveFolder } = useFoldersRedux();
   const { getFolderImages, saveImageMetadata } = useApi();
   const [analyzingIds, setAnalyzingIds] = useState(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -604,6 +604,21 @@ export default function ImportPage() {
           if (typeof payload.description === 'string') nextDescription = payload.description;
           if (Array.isArray(payload.keywords)) nextKeywords = payload.keywords;
           if (typeof payload.keywords === 'string') nextKeywords = payload.keywords.split(',').map(s=>s.trim()).filter(Boolean);
+          
+          // Auto-add suggested tags to folder if folder has no tags yet
+          if (folder && (!folder.tags || folder.tags.length === 0) && Array.isArray(payload.suggestedTags) && payload.suggestedTags.length > 0) {
+            try {
+              const updatedFolder = {
+                ...folder,
+                tags: payload.suggestedTags.slice(0, 2), // Max 2 auto tags
+                updatedAt: Date.now()
+              };
+              await saveFolder(updatedFolder, true);
+              showToast(`Auto-tagged folder: ${payload.suggestedTags.join(', ')}`);
+            } catch (err) {
+              console.error('Failed to auto-tag folder:', err);
+            }
+          }
         } catch {
           if (typeof data.description === 'string') nextDescription = data.description;
         }
@@ -1132,6 +1147,7 @@ export default function ImportPage() {
         );
       }
     },
+/*     
     // trailing SVG action column (visual only for now)
     {
       key: "actions",
@@ -1157,7 +1173,7 @@ export default function ImportPage() {
           </ActionButton>
         </div>
       )
-    },
+    }, */
   ];
 
   // Copy/Paste metadata with Cmd/Ctrl+C / Cmd/Ctrl+V when a single row is selected (copy) or any selection (paste shows modal)
