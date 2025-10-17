@@ -10,6 +10,16 @@ export async function fetchCurrentUser() {
     method: 'GET',
     headers
   });
+  
+  // Check if user was deleted
+  if (res.status === 404) {
+    // User was deleted, clear auth and redirect to login
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_email");
+    window.location.href = '/login';
+    throw new Error('User not found - please login again');
+  }
+  
   if (!res.ok) throw new Error('Failed to fetch user');
   return await res.json();
 }

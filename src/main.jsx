@@ -12,6 +12,7 @@ import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
 import StatisticPage from './pages/StatisticPage.jsx'
+import PaymentPage from './pages/PaymentPage.jsx'
 import AccountDeactivatedPage from './pages/AccountDeactivatedPage.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -151,6 +152,9 @@ function AuthenticatedApp() {
     if (path === '/statistics') {
       return location.pathname === '/statistics';
     }
+    if (path === '/payment') {
+      return location.pathname === '/payment';
+    }
     return location.pathname.startsWith(path);
   };
   
@@ -163,6 +167,8 @@ function AuthenticatedApp() {
         return <FoldersPage />;
       case '/statistics':
         return <StatisticPage />;
+      case '/payment':
+        return <PaymentPage />;
       default:
         if (location.pathname.startsWith('/import/')) {
           return <ImportPage />;
@@ -183,6 +189,7 @@ function AuthenticatedApp() {
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
           <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
+          <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Credits</NavLink>
           <LogoutButton 
             onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
             title={`Logout${email?` (${email})`:''}`} 
@@ -192,7 +199,7 @@ function AuthenticatedApp() {
           </LogoutButton>
         </Nav>
       </Header>
-      {isActive === false ? <AccountDeactivatedPage /> : renderCurrent()}
+      {isActive === false && location.pathname !== '/payment' ? <AccountDeactivatedPage /> : renderCurrent()}
       <GlobalSpinner show={!!uiLoading} text={typeof uiLoading === 'string' ? uiLoading : 'Loading...'} />
       {toast ? (
         <ToastBox role="status" aria-live="polite" $type={toast.type}>

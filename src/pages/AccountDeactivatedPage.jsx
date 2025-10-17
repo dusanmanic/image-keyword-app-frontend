@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   display: flex;
@@ -53,15 +54,15 @@ const InfoText = styled.p`
   line-height: 1.7;
 `;
 
-const ContactButton = styled.a`
-  display: inline-block;
+const BuyCreditsButton = styled.button`
   background: #1e40af;
   color: white;
-  text-decoration: none;
+  border: none;
   padding: 14px 32px;
   border-radius: 12px;
   font-weight: 600;
   font-size: 16px;
+  cursor: pointer;
   transition: all 0.2s ease;
   
   &:hover {
@@ -72,30 +73,36 @@ const ContactButton = styled.a`
 `;
 
 export default function AccountDeactivatedPage() {
+  const navigate = useNavigate();
+
+  const handleBuyCredits = () => {
+    navigate('/payment');
+  };
+
   return (
     <Container>
       <Card>
-        <Icon>☕</Icon>
-        <Title>Taking a Little Break</Title>
+        <Icon>💳</Icon>
+        <Title>Account Needs Activation</Title>
         <Message>
-          Hey there! We've temporarily paused your image analysis to make sure everything stays balanced. 
-          Don't worry—it's nothing serious! 🙂
+          Your account is currently inactive. To start using AI-powered image analysis, 
+          you need to purchase 10,000 credits for just $25 and activate your account.
         </Message>
         
         <InfoBox>
           <InfoText>
-            <strong>What's happening?</strong>
+            <strong>How to get started?</strong>
             <br /><br />
-            You might have reached your usage limit for now, or we just need to check in with you about your account. 
+            Simply buy 10,000 credits for just $25 using our secure payment system. Once your payment is processed, 
+            your account will be automatically activated and you'll be able to use all features.
             <br /><br />
-            No stress though! Just drop us a quick message and we'll get you back up and running in no time. 
-            We're here to help! 💙
+            Start analyzing your images right away! 🚀
           </InfoText>
         </InfoBox>
         
-        <ContactButton href="mailto:support@pixelkeywords.com">
-          Get in Touch 👋
-        </ContactButton>
+        <BuyCreditsButton onClick={handleBuyCredits}>
+          Buy Credits & Activate Account 💳
+        </BuyCreditsButton>
       </Card>
     </Container>
   );

@@ -1,5 +1,6 @@
 import React from "react";
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -82,10 +83,32 @@ const CTATitle = styled.h3`
 const CTAText = styled.p`
   color: #6b7280;
   font-size: 14px;
-  margin-bottom: 0;
+  margin-bottom: 16px;
+`;
+
+const BuyCreditsButton = styled.button`
+  background: #1e40af;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
 `;
 
 export default function WelcomePage() {
+  const navigate = useNavigate();
+
+  const handleBuyCredits = () => {
+    navigate('/payment');
+  };
+
   return (
     <Container>
       <WelcomeCard>
@@ -132,8 +155,11 @@ export default function WelcomePage() {
         <CTA>
           <CTATitle>Ready to get started?</CTATitle>
           <CTAText>
-            Head over to Folders to organize your images and start analyzing them with AI-powered keyword generation!
+            Get 10,000 credits for just $25 and start analyzing your images with AI-powered keyword generation!
           </CTAText>
+          <BuyCreditsButton onClick={handleBuyCredits}>
+            Buy Credits
+          </BuyCreditsButton>
         </CTA>
       </WelcomeCard>
     </Container>

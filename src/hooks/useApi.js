@@ -148,9 +148,42 @@ export function useApi() {
     }
   }, [apiCall]);
 
+  // Payment API
+  const getCreditPackages = useCallback(async () => {
+    const data = await apiCall('/api/payment/packages');
+    return data.packages || [];
+  }, [apiCall]);
+
+  const createPaymentIntent = useCallback(async (amount) => {
+    const data = await apiCall('/api/payment/create-payment-intent', {
+      method: 'POST',
+      body: JSON.stringify({ amount })
+    });
+    return data;
+  }, [apiCall]);
+
+  const confirmPaymentSuccess = useCallback(async (paymentIntentId) => {
+    const data = await apiCall('/api/payment/payment-success', {
+      method: 'POST',
+      body: JSON.stringify({ paymentIntentId })
+    });
+    return data;
+  }, [apiCall]);
+
+  const getUserCredits = useCallback(async () => {
+    const data = await apiCall('/api/payment/credits');
+    return data;
+  }, [apiCall]);
+
+  const getCreditTransactions = useCallback(async () => {
+    const data = await apiCall('/api/payment/transactions');
+    return data.transactions || [];
+  }, [apiCall]);
+
   return {
     isLoading,
     error,
+    apiCall,
     getFolders,
     saveFolder,
     deleteFolder,
@@ -158,6 +191,11 @@ export function useApi() {
     saveImageMetadata,
     login,
     register,
-    logout
+    logout,
+    getCreditPackages,
+    createPaymentIntent,
+    confirmPaymentSuccess,
+    getUserCredits,
+    getCreditTransactions
   };
 }

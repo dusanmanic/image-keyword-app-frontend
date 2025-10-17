@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.9.0",
+    "@stripe/react-stripe-js": "^5.2.0",
+    "@stripe/stripe-js": "^8.1.0",
     "localforage": "^1.10.0",
     "piexifjs": "^1.0.6",
     "react": "^19.1.1",

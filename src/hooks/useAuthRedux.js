@@ -39,6 +39,13 @@ export function useAuthRedux() {
       setEmail(emailArg);
       setAuthenticated(true);
       
+      // Set isActive status from login response
+      if (typeof data.user?.isActive === 'boolean') {
+        setIsActive(data.user.isActive);
+      } else if (typeof data.user?.isActive === 'number') {
+        setIsActive(data.user.isActive === 1);
+      }
+      
       // Update localStorage
       localStorage.setItem("auth_token", data.token || "");
       localStorage.setItem("auth_email", emailArg);
@@ -108,7 +115,12 @@ export function useAuthRedux() {
               setIsActive(me.user.isActive === 1);
             }
           } catch (e) {
-            // ignore
+            // If user was deleted, clear auth state
+            if (e.message && e.message.includes('User not found')) {
+              clearAuth();
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("auth_email");
+            }
           }
         }
       }
@@ -123,6 +135,7 @@ export function useAuthRedux() {
     isActive,
     isAuthenticated: isAuthenticated && isTokenValid(),
     isTokenValid,
+    setIsActive,
     login,
     register,
     logout,

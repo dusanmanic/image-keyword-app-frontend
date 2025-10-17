@@ -32,6 +32,7 @@ const reducer = (state = initialState, action) => {
     case 'CLEAR_AUTH':
       return { ...state, token: '', email: '', isAuthenticated: false, isActive: true };
     case 'SET_IS_ACTIVE':
+      console.log('Reducer: SET_IS_ACTIVE called with:', action.payload);
       return { ...state, isActive: action.payload };
     
     // Folders actions
