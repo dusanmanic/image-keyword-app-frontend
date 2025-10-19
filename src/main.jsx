@@ -199,7 +199,7 @@ function AuthenticatedApp() {
           </LogoutButton>
         </Nav>
       </Header>
-      {isActive === false && location.pathname !== '/payment' ? <AccountDeactivatedPage /> : renderCurrent()}
+      {isActive === false && location.pathname !== '/payment' && location.pathname !== '/home' ? <AccountDeactivatedPage /> : renderCurrent()}
       <GlobalSpinner show={!!uiLoading} text={typeof uiLoading === 'string' ? uiLoading : 'Loading...'} />
       {toast ? (
         <ToastBox role="status" aria-live="polite" $type={toast.type}>

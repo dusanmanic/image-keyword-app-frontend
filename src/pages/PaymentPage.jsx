@@ -107,12 +107,71 @@ const FormTitle = styled.h3`
   margin-bottom: 16px;
 `;
 
+const SecurityBadge = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  color: #059669;
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const StripeIcon = styled.div`
+  width: 20px;
+  height: 20px;
+  background: #635bff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+`;
+
+const StripeVerifiedLogo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #059669;
+`;
+
+const VerifiedCheckmark = styled.div`
+  width: 16px;
+  height: 16px;
+  background: #059669;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+`;
+
 const StripeCardElement = styled.div`
   padding: 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   background: white;
   margin-bottom: 16px;
+  position: relative;
+  
+  /* Hide autofill suggestions */
+  &::-webkit-autofill,
+  &::-webkit-autofill:hover,
+  &::-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #424770 !important;
+  }
 `;
 
 const PayButton = styled.button`
@@ -170,15 +229,102 @@ const SuccessMessage = styled.div`
   margin-bottom: 16px;
 `;
 
+const HistorySection = styled.div`
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid #e5e7eb;
+`;
+
+const HistoryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const HistoryTitle = styled.h3`
+  color: #1e40af;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const ToggleButton = styled.button`
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 16px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+`;
+
+const TransactionList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const TransactionItem = styled.div`
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TransactionInfo = styled.div`
+  flex: 1;
+`;
+
+const TransactionDescription = styled.div`
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 4px;
+`;
+
+const TransactionDate = styled.div`
+  font-size: 12px;
+  color: #6b7280;
+`;
+
+const TransactionActions = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const DownloadButton = styled.a`
+  background: #1e40af;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+`;
+
 // Stripe Elements configuration
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }) => {
+const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent, isLoading }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -187,7 +333,6 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }
       return;
     }
 
-    setLoading(true);
     setError(null);
 
     try {
@@ -205,13 +350,12 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }
       if (stripeError) {
         setError(stripeError.message);
       } else if (paymentIntent.status === 'succeeded') {
+        setPaymentIntentId(paymentIntent.id);
         setSuccess(true);
         onPaymentSuccess(paymentIntent);
       }
     } catch (err) {
       setError('Payment failed. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -225,10 +369,20 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} autocomplete="off">
       {error && <ErrorMessage>{error}</ErrorMessage>}
       
       <FormTitle>Payment Details</FormTitle>
+      
+      <SecurityBadge>
+        <StripeVerifiedLogo>
+          <VerifiedCheckmark>✓</VerifiedCheckmark>
+          <span>Stripe Verified</span>
+        </StripeVerifiedLogo>
+        <div style={{ fontSize: '12px' }}>
+          Secured by Stripe • Your card details are never stored
+        </div>
+      </SecurityBadge>
       
       <StripeCardElement>
         <CardElement
@@ -242,14 +396,15 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }
                 },
               },
             },
-            hidePostalCode: true
+            hidePostalCode: true,
+            disableLink: true
           }}
         />
       </StripeCardElement>
 
-      <PayButton type="submit" disabled={!stripe || loading}>
-        {loading && <LoadingSpinner />}
-        {loading ? 'Processing...' : `Pay $${selectedPackage.price}`}
+      <PayButton type="submit" disabled={!stripe || isLoading}>
+        {isLoading && <LoadingSpinner />}
+        {isLoading ? 'Processing...' : `Pay $${selectedPackage.price}`}
       </PayButton>
     </form>
   );
@@ -258,8 +413,10 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent }
 export default function PaymentPage() {
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { getCreditPackages, createPaymentIntent, confirmPaymentSuccess } = useApi();
+  const [loading, setLoading] = useState(true); // Keep for initial packages loading
+  const [transactions, setTransactions] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const { getCreditPackages, createPaymentIntent, confirmPaymentSuccess, getCreditTransactions, downloadInvoice, isLoading } = useApi();
   const { setIsActive } = useAuthRedux();
 
   useEffect(() => {
@@ -280,6 +437,30 @@ export default function PaymentPage() {
     fetchPackages();
   }, [getCreditPackages]);
 
+  const fetchTransactions = async () => {
+    try {
+      const transactionsData = await getCreditTransactions();
+      setTransactions(transactionsData);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
+  const toggleHistory = () => {
+    if (!showHistory) {
+      fetchTransactions();
+    }
+    setShowHistory(!showHistory);
+  };
+
+  const handleDownloadInvoice = async (paymentIntentId) => {
+    try {
+      await downloadInvoice(paymentIntentId);
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+    }
+  };
+
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
       // Notify backend about successful payment
@@ -291,6 +472,11 @@ export default function PaymentPage() {
       console.log('Setting isActive to true...');
       setIsActive(true);
       console.log('isActive set to true');
+      
+      // Refresh payment history if it's currently shown
+      if (showHistory) {
+        fetchTransactions();
+      }
       
       console.log('Payment successful - user activated:', paymentIntent);
       // The success message will be shown by the CheckoutForm component
@@ -333,16 +519,57 @@ export default function PaymentPage() {
         </PackageContainer>
 
         {selectedPackage && (
-          <Elements stripe={stripePromise}>
+          <Elements stripe={stripePromise} options={{ disableLink: true }}>
             <PaymentForm>
               <CheckoutForm 
                 selectedPackage={selectedPackage} 
                 onPaymentSuccess={handlePaymentSuccess}
                 createPaymentIntent={createPaymentIntent}
+                isLoading={isLoading}
               />
             </PaymentForm>
           </Elements>
         )}
+
+        <HistorySection>
+          <HistoryHeader>
+            <HistoryTitle>Payment History</HistoryTitle>
+            <ToggleButton onClick={toggleHistory}>
+              {showHistory ? 'Hide History' : 'Show History'}
+            </ToggleButton>
+          </HistoryHeader>
+          
+          {showHistory && (
+            <TransactionList>
+              {transactions.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>
+                  No payment history found
+                </div>
+              ) : (
+                transactions.map((transaction) => (
+                  <TransactionItem key={transaction.id}>
+                    <TransactionInfo>
+                      <TransactionDescription>
+                        {transaction.description}
+                      </TransactionDescription>
+                      <TransactionDate>
+                        {new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString()}
+                      </TransactionDate>
+                    </TransactionInfo>
+                    <TransactionActions>
+                      <DownloadButton
+                        onClick={() => handleDownloadInvoice(transaction.paymentIntentId)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        Download Invoice
+                      </DownloadButton>
+                    </TransactionActions>
+                  </TransactionItem>
+                ))
+              )}
+            </TransactionList>
+          )}
+        </HistorySection>
       </PaymentCard>
     </Container>
   );

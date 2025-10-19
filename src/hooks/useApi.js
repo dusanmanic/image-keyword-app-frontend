@@ -180,6 +180,35 @@ export function useApi() {
     return data.transactions || [];
   }, [apiCall]);
 
+  const downloadInvoice = useCallback(async (paymentIntentId) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/payment/invoice/${paymentIntentId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${paymentIntentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -196,6 +225,7 @@ export function useApi() {
     createPaymentIntent,
     confirmPaymentSuccess,
     getUserCredits,
-    getCreditTransactions
+    getCreditTransactions,
+    downloadInvoice
   };
 }

@@ -1,6 +1,7 @@
 import { useStore } from '../store/index.js';
 import { useApi } from './useApi.js';
 import { fetchCurrentUser } from '../services/authService.js';
+import { useNavigate } from 'react-router-dom';
 
 export function useAuthRedux() {
   const { 
@@ -16,6 +17,7 @@ export function useAuthRedux() {
   } = useStore();
   
   const { login: apiLogin, register: apiRegister, logout: apiLogout } = useApi();
+  const navigate = useNavigate();
 
   // Helper function to check if token is valid
   const isTokenValid = () => {
@@ -44,6 +46,11 @@ export function useAuthRedux() {
         setIsActive(data.user.isActive);
       } else if (typeof data.user?.isActive === 'number') {
         setIsActive(data.user.isActive === 1);
+      }
+      
+      // Redirect new users to welcome page
+      if (data.user?.isActive === false || data.user?.isActive === 0) {
+        navigate('/home');
       }
       
       // Update localStorage

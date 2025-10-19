@@ -11,7 +11,7 @@ const Container = styled.div`
 `;
 
 const WelcomeCard = styled.div`
-  height: 600px;
+  height: 650px;
   max-width: 1000px;
   background: white;
   border-radius: 16px;
