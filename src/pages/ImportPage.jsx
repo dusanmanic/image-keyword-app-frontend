@@ -12,6 +12,8 @@ import RadioGroup from '../components/RadioGroup';
 import { useApi } from "../hooks/useApi.js";
 import GlobalSpinner from "../components/GlobalSpinner.jsx";
 import { useStore } from "../store/index.js";
+import ImportIntroModal from "../components/ImportIntroModal.jsx";
+import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -519,6 +521,8 @@ export default function ImportPage() {
   const folderId = location.pathname.startsWith('/import/') ? location.pathname.split('/import/')[1] : null;
 
   const [open, setOpen] = useState(false);
+  const [showImportIntroModal, setShowImportIntroModal] = useState(false);
+  const [showKeywordWizardIntro, setShowKeywordWizardIntro] = useState(false);
   const [rows, setRows] = useState([]);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
@@ -565,6 +569,46 @@ export default function ImportPage() {
   React.useEffect(() => {
     console.log('[ImportPage] rows', rows);
   }, [rows]);
+
+  // Check if user should see import intro modal on page load
+  useEffect(() => {
+    const hideImportIntro = localStorage.getItem('hideImportIntroModal');
+    console.log('🖼️ ImportPage loaded - hideImportIntroModal:', hideImportIntro);
+    if (!hideImportIntro && rows.length === 0) {
+      console.log('🔔 Showing import introduction modal');
+      setShowImportIntroModal(true);
+    } else if (hideImportIntro) {
+      console.log('✅ Import introduction modal hidden (user already saw it)');
+    }
+  }, []); // Only run on mount
+
+  const handleImportIntroModalProceed = () => {
+    setShowImportIntroModal(false);
+    // Don't open upload modal - user can use drag & drop or Upload button
+  };
+
+  const handleKeywordWizardClick = () => {
+    const hideWizardIntro = localStorage.getItem('hideKeywordWizardIntro');
+    console.log('🪄 Keyword Wizard clicked - hideKeywordWizardIntro:', hideWizardIntro);
+    
+    if (!hideWizardIntro) {
+      console.log('🔔 Showing Keyword Wizard intro modal');
+      setShowKeywordWizardIntro(true);
+    } else {
+      console.log('✅ Opening Keyword Wizard directly');
+      openKeywordWizard();
+    }
+  };
+
+  const handleKeywordWizardIntroComplete = () => {
+    setShowKeywordWizardIntro(false);
+    openKeywordWizard();
+  };
+
+  const openKeywordWizard = () => {
+    setPromptTargetRow(null);
+    setPromptConfirmOpen(true);
+  };
 
   const showToast = (msg, type = 'success') => {
     showGlobalToast({ type, message: msg });
@@ -1680,7 +1724,7 @@ export default function ImportPage() {
       <Header>
         <div ref={controlsRef} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Button onClick={() => setOpen(true)} type="button">Upload</Button>
-          <MagicButton onClick={() => { setPromptTargetRow(null); setPromptConfirmOpen(true); }} type="button" disabled={bulkRunning} title="Analyze selected">
+          <MagicButton onClick={handleKeywordWizardClick} type="button" disabled={bulkRunning} title="Analyze selected">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <WandIcon />
               {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
@@ -1913,6 +1957,22 @@ export default function ImportPage() {
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
+      )}
+      
+      {/* Import Introduction Modal */}
+      {showImportIntroModal && (
+        <ImportIntroModal 
+          onClose={() => setShowImportIntroModal(false)}
+          onProceed={handleImportIntroModalProceed}
+        />
+      )}
+      
+      {/* Keyword Wizard Introduction Modal */}
+      {showKeywordWizardIntro && (
+        <KeywordWizardIntroModal 
+          onClose={() => setShowKeywordWizardIntro(false)}
+          onProceed={handleKeywordWizardIntroComplete}
+        />
       )}
       
       {/* Single global spinner with dynamic message */}

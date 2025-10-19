@@ -5,6 +5,7 @@ import { useApi } from "../hooks/useApi.js";
 import DatePicker from "../components/DatePicker.jsx";
 import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../config/tags.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
+import IntroductionModal from "../components/IntroductionModal.jsx";
 
 
 const Container = styled.div`
@@ -500,6 +501,7 @@ export default function FoldersPage() {
   const [selectedId, setSelectedId] = useState(null);
  
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(false);
   const [draft, setDraft] = useState({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
@@ -513,6 +515,18 @@ export default function FoldersPage() {
 
   // Folders are loaded globally in MainApp
   const { folders, setFolders, saveFolder, deleteFolder } = useFoldersRedux();
+
+  // Check if user should see intro modal on page load
+  useEffect(() => {
+    const hideIntro = localStorage.getItem('hideIntroModal');
+    console.log('📂 FoldersPage loaded - hideIntroModal:', hideIntro);
+    if (!hideIntro) {
+      console.log('🔔 Showing introduction modal');
+      setShowIntroModal(true);
+    } else {
+      console.log('✅ Introduction modal hidden (user already saw it)');
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -553,6 +567,16 @@ export default function FoldersPage() {
     setSelectedId(null);
     setDraft({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
     setIsModalOpen(true);
+  };
+
+  const handleIntroModalProceed = () => {
+    setShowIntroModal(false);
+    // Only open create modal if no folders exist (first time user)
+    if (!folders || folders.length === 0) {
+      setSelectedId(null);
+      setDraft({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
+      setIsModalOpen(true);
+    }
   };
 
   const openEditModal = (id) => {
@@ -897,6 +921,14 @@ export default function FoldersPage() {
             </div>
           </ModalCard>
         </ModalOverlay>
+      )}
+      
+      {showIntroModal && (
+        <IntroductionModal 
+          onClose={() => setShowIntroModal(false)}
+          onProceed={handleIntroModalProceed}
+          hasExistingFolders={folders && folders.length > 0}
+        />
       )}
       
       {folders?.length > 0 && (
