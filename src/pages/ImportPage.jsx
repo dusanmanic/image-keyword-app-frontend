@@ -97,6 +97,98 @@ const ExportButton = styled(Button)`
   &:hover { background: #0284c7; }
 `;
 
+const KeywordsCountContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #374151;
+`;
+
+const KeywordsCountLabel = styled.span`
+  font-weight: 500;
+  color: #6b7280;
+`;
+
+const KeywordsCountSelect = styled.div`
+  position: relative;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  min-width: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #1e40af;
+  }
+  
+  &:focus {
+    outline: none;
+  }
+`;
+
+const DropdownArrow = styled.div`
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #6b7280;
+  transition: transform 0.2s ease;
+  
+  ${KeywordsCountSelect}:hover & {
+    transform: rotate(180deg);
+  }
+`;
+
+const DropdownOptions = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+  overflow: hidden;
+  display: ${props => props.isOpen ? 'block' : 'none'};
+`;
+
+const DropdownOption = styled.div`
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: #f3f4f6;
+  }
+  
+  &:active {
+    background-color: #e5e7eb;
+  }
+  
+  ${props => props.isSelected && `
+    background-color: #eff6ff;
+    color: #1e40af;
+    font-weight: 600;
+  `}
+`;
+
 const PasteOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -546,6 +638,7 @@ export default function ImportPage() {
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [pageLoading, setPageLoading] = useState(true);
   const [keywordsCount, setKeywordsCount] = useState(30);
+  const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -561,7 +654,6 @@ export default function ImportPage() {
   const [promptText, setPromptText] = useState("");
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
-  const [keywordsModalOpen, setKeywordsModalOpen] = useState(false);
 
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
@@ -588,6 +680,16 @@ export default function ImportPage() {
   };
 
   const handleKeywordWizardClick = () => {
+    // Directly start analysis with current keywords count
+    console.log('🪄 Keyword Wizard clicked - starting analysis directly');
+    if (promptTargetRow) {
+      analyzeRow(promptTargetRow, "");
+    } else {
+      analyzeSelected("");
+    }
+    
+    /* 
+    // Original modal logic - commented out for future use
     const hideWizardIntro = localStorage.getItem('hideKeywordWizardIntro');
     console.log('🪄 Keyword Wizard clicked - hideKeywordWizardIntro:', hideWizardIntro);
     
@@ -598,6 +700,7 @@ export default function ImportPage() {
       console.log('✅ Opening Keyword Wizard directly');
       openKeywordWizard();
     }
+    */
   };
 
   const handleKeywordWizardIntroComplete = () => {
@@ -864,11 +967,12 @@ export default function ImportPage() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+/*  
   // Deselect when clicking outside the grid
   useEffect(() => {
     const handleGlobalClick = (e) => {
       try {
-        if (open || pasteOpen || promptOpen || promptConfirmOpen || keywordsModalOpen) return; // keep selection when modals are open
+        if (open || pasteOpen || promptOpen || promptConfirmOpen || showKeywordWizardIntro) return; // keep selection when modals are open
         const gridEl = gridRef.current;
         const controlsEl = controlsRef.current;
         if (!gridEl) return;
@@ -882,8 +986,8 @@ export default function ImportPage() {
     };
     window.addEventListener('mousedown', handleGlobalClick);
     return () => window.removeEventListener('mousedown', handleGlobalClick);
-  }, [open, pasteOpen, promptOpen, promptConfirmOpen, keywordsModalOpen]);
-
+  }, [open, pasteOpen, promptOpen, promptConfirmOpen, showKeywordWizardIntro]);
+ */
   const cols = [
     {
       key: "checkbox",
@@ -965,7 +1069,14 @@ export default function ImportPage() {
                 setSelectedRows(next);
                 setLastSelectedIndex(idx);
               } else {
-                setSelectedRows(new Set([row.id]));
+                // Regular click - toggle selection of this image
+                const next = new Set(selectedRows);
+                if (next.has(row.id)) {
+                  next.delete(row.id);
+                } else {
+                  next.add(row.id);
+                }
+                setSelectedRows(next);
                 setLastSelectedIndex(idx);
               }
             } catch {}
@@ -1735,6 +1846,36 @@ export default function ImportPage() {
           </EmbedButton>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
         </div>
+        
+        <KeywordsCountContainer ref={controlsRef}>
+          <KeywordsCountLabel>Keywords:</KeywordsCountLabel>
+          <KeywordsCountSelect
+            onClick={() => setIsKeywordsDropdownOpen(!isKeywordsDropdownOpen)}
+            onBlur={() => setTimeout(() => setIsKeywordsDropdownOpen(false), 150)}
+            tabIndex={0}
+          >
+            <span>{keywordsCount}</span>
+            <DropdownArrow />
+            <DropdownOptions isOpen={isKeywordsDropdownOpen}>
+              {Array.from({ length: 5 }, (_, i) => {
+                const value = 10 + i * 10;
+                return (
+                  <DropdownOption
+                    key={value}
+                    isSelected={value === keywordsCount}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setKeywordsCount(value);
+                      setIsKeywordsDropdownOpen(false);
+                    }}
+                  >
+                    {value}
+                  </DropdownOption>
+                );
+              })}
+            </DropdownOptions>
+          </KeywordsCountSelect>
+        </KeywordsCountContainer>
       </Header>
 
       {rows.length === 0 ? (
@@ -1869,7 +2010,11 @@ export default function ImportPage() {
             <ModalActions style={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => {
                 setPromptConfirmOpen(false);
-                setKeywordsModalOpen(true);
+                if (promptTargetRow) {
+                  analyzeRow(promptTargetRow, "");
+                } else {
+                  analyzeSelected("");
+                }
               }}>Skip for now</Button>
               <Button type="button" onClick={() => { setPromptConfirmOpen(false); setPromptText(""); setPromptOpen(true); }}>Add suggestion</Button>
             </ModalActions>
@@ -1921,43 +2066,6 @@ export default function ImportPage() {
         </PasteOverlay>
       )}
 
-      {keywordsModalOpen && (
-        <PasteOverlay onClick={() => setKeywordsModalOpen(false)}>
-          <ModalCard  onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
-            <ModalHeader>
-              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Select keywords count</h3>
-            </ModalHeader>
-            <ModalBody $direction="column" $gap="10px">
-              <div style={{ color: '#1f2937', fontSize: 15, lineHeight: 1.5, marginBottom: 5 }}>
-                How many keywords should the AI generate for each image?
-              </div>
-              <RadioGroup
-                name="kwCount"
-                options={Array.from({ length: 5 }, (_, i) => ({ value: 10 + i * 10, label: 10 + i * 10 }))}
-                value={keywordsCount}
-                onChange={setKeywordsCount}
-                label={null}
-              />
-            </ModalBody>
-            <ModalActions style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => setKeywordsModalOpen(false)}>Cancel</Button>
-              <Button type="button" onClick={() => {
-                setKeywordsModalOpen(false);
-                if (promptTargetRow) {
-                  analyzeRow(promptTargetRow, "");
-                } else {
-                  analyzeSelected("");
-                }
-              }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <WandIcon />
-                  {bulkRunning ? 'Analyzing…' : ' Start Analysis'}
-                </span>
-              </Button>
-            </ModalActions>
-          </ModalCard>
-        </PasteOverlay>
-      )}
       
       {/* Import Introduction Modal */}
       {showImportIntroModal && (
