@@ -23,7 +23,7 @@ export async function analyzeImage(imageBlob, maxKeywords = 30, prompt = "") {
 
   const headers = getAuthHeaders();
 
-  const res = await fetch(`${getApiBaseUrl()}/analyze`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/analyze/analyze`, {
     method: "POST",
     headers,
     body: formData,
