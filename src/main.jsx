@@ -235,6 +235,7 @@ function MainApp() {
     }
   }, [isAuthenticated]);
   
+  
   // Show loading while initializing or refreshing
   if (isInitializing || isRefreshing) {
     return (
