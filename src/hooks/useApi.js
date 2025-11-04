@@ -89,6 +89,11 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  const getFolderStats = useCallback(async (folderId) => {
+    const data = await apiCall(`/api/user/folders/${folderId}/stats`);
+    return data.stats;
+  }, [apiCall]);
+
   // Images API
   const getFolderImages = useCallback(async (folderId) => {
     const data = await apiCall(`/api/user/folders/${folderId}/images`);
@@ -216,6 +221,7 @@ export function useApi() {
     getFolders,
     saveFolder,
     deleteFolder,
+    getFolderStats,
     getFolderImages,
     saveImageMetadata,
     login,

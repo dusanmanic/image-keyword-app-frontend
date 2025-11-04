@@ -622,7 +622,10 @@ export default function ImportPage() {
   
   // API integration
   const { folders, saveFolder } = useFoldersRedux();
-  const { getFolderImages, saveImageMetadata } = useApi();
+  const { getFolderImages, saveImageMetadata, getFolderStats } = useApi();
+  const currentFolder = folders?.find(f => String(f.id) === String(folderId));
+  const [folderStats, setFolderStats] = useState(null);
+  const [folderStatsLoading, setFolderStatsLoading] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState(new Set());
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkTotal, setBulkTotal] = useState(0);
@@ -1492,6 +1495,24 @@ export default function ImportPage() {
     };
   }, [folderId]); // Remove getFolderImages from dependencies
 
+  // Load folder stats
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      if (!folderId) return;
+      try {
+        setFolderStatsLoading(true);
+        const stats = await getFolderStats(folderId);
+        if (isMounted) setFolderStats(stats);
+      } catch (e) {
+        if (isMounted) setFolderStats(null);
+      } finally {
+        if (isMounted) setFolderStatsLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, [folderId, getFolderStats]);
+
   // Save new images to API in batch (only when new images are added)
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
@@ -1891,6 +1912,13 @@ export default function ImportPage() {
             Embed to folder
           </EmbedButton>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
+          <span>{currentFolder?.name || 'Folder'}</span>
+          <span style={{ color: '#9ca3af' }}>—</span>
+          <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 12 }}>
+            {folderStatsLoading ? 'Loading…' : folderStats ? `${folderStats.imageCount} images · ${folderStats.storage.formatted}` : ''}
+          </span>
         </div>
         
         <KeywordsCountContainer ref={controlsRef}>
