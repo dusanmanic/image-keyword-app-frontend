@@ -703,7 +703,15 @@ export default function ImportPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [pageLoading, setPageLoading] = useState(true);
-  const [keywordsCount, setKeywordsCount] = useState(50);
+  // Load keywordsCount from localStorage or default to 50
+  const [keywordsCount, setKeywordsCount] = useState(() => {
+    try {
+      const saved = localStorage.getItem('keywordsCount');
+      return saved ? parseInt(saved, 10) : 50;
+    } catch {
+      return 50;
+    }
+  });
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
@@ -727,6 +735,15 @@ export default function ImportPage() {
   React.useEffect(() => {
     console.log('[ImportPage] rows', rows);
   }, [rows]);
+
+  // Save keywordsCount to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('keywordsCount', String(keywordsCount));
+    } catch (error) {
+      console.error('Failed to save keywordsCount to localStorage:', error);
+    }
+  }, [keywordsCount]);
 
   // Check if user should see import intro modal on page load
   useEffect(() => {
