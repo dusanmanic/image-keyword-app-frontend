@@ -703,7 +703,7 @@ export default function ImportPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [pageLoading, setPageLoading] = useState(true);
-  const [keywordsCount, setKeywordsCount] = useState(30);
+  const [keywordsCount, setKeywordsCount] = useState(50);
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
@@ -1534,7 +1534,12 @@ export default function ImportPage() {
             const processedImages = images.map(img => ({
               ...img,
               thumbUrl: img.thumbUrl // Use Firestore thumbUrl (base64 data URL)
-            }));
+            })).sort((a, b) => {
+              // Sort by file name (case-insensitive)
+              const nameA = (a.name || '').toLowerCase();
+              const nameB = (b.name || '').toLowerCase();
+              return nameA.localeCompare(nameB);
+            });
             setRows(processedImages);
             setPageLoading(false);
           }
@@ -1836,8 +1841,15 @@ export default function ImportPage() {
       const batchResults = await Promise.all(batch.map((f, idx) => processImage(f, i + idx)));
       added.push(...batchResults);
       
-      // Update UI with processed images
-      setRows(prev => [...prev, ...batchResults]);
+      // Update UI with processed images, sorted by name
+      setRows(prev => {
+        const combined = [...prev, ...batchResults];
+        return combined.sort((a, b) => {
+          const nameA = (a.name || '').toLowerCase();
+          const nameB = (b.name || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+      });
       
       // Update progress
       setProcessingProgress({ current: Math.min(i + concurrency, list.length), total: list.length });
