@@ -1501,6 +1501,30 @@ export default function ImportPage() {
           const unsavedImages = rows.filter(row => !row.thumbUrl && row.thumbnailBlob);
           
           if (unsavedImages.length > 0) {
+            // Check storage limit before saving
+            try {
+              const token = localStorage.getItem('auth_token');
+              const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+              const storageResponse = await fetch(`${API_BASE_URL}/api/user/storage-info`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (storageResponse.ok) {
+                const storageData = await storageResponse.json();
+                if (storageData.success && storageData.storage.isOverLimit) {
+                  showToast(`Storage limit reached. Cannot save images. Please delete files first.`, 'error');
+                  // Remove unsaved images from rows to prevent retry
+                  setRows(prev => prev.filter(row => row.thumbUrl || !row.thumbnailBlob));
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error('Error checking storage limit:', error);
+              // Continue anyway if storage check fails
+            }
+            
             console.log('Saving new images to API in batch:', unsavedImages.length, 'images');
             setUploadingImages(true);
             setUploadProgress({ current: 0, total: unsavedImages.length });
@@ -1656,6 +1680,28 @@ export default function ImportPage() {
   const onFiles = async (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
+    
+    // Check storage limit before processing
+    try {
+      const token = localStorage.getItem('auth_token');
+      const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+      const storageResponse = await fetch(`${API_BASE_URL}/api/user/storage-info`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (storageResponse.ok) {
+        const storageData = await storageResponse.json();
+        if (storageData.success && storageData.storage.isOverLimit) {
+          showToast(`Storage limit reached (${storageData.storage.total.formatted} / ${storageData.storage.limit.formatted}). Please delete files to continue uploading.`, 'error');
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking storage limit:', error);
+      // Continue anyway if storage check fails
+    }
     
     setProcessingImages(true);
     setProcessingProgress({ current: 0, total: list.length });

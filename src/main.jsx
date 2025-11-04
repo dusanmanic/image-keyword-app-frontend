@@ -126,12 +126,48 @@ const ToastClose = styled.button`
   font-weight: 700;
 `;
 
+const StorageIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: ${props => props.$isOverLimit ? 'rgba(239,68,68,0.15)' : props.$isWarning ? 'rgba(245,158,11,0.15)' : 'rgba(37,99,235,0.1)'};
+  border: 1px solid ${props => props.$isOverLimit ? 'rgba(239,68,68,0.3)' : props.$isWarning ? 'rgba(245,158,11,0.3)' : 'rgba(37,99,235,0.2)'};
+  color: ${props => props.$isOverLimit ? '#dc2626' : props.$isWarning ? '#d97706' : '#1e40af'};
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+`;
+
+const StorageText = styled.span`
+  white-space: nowrap;
+`;
+
+const StorageProgress = styled.div`
+  width: 60px;
+  height: 4px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+`;
+
+const StorageProgressBar = styled.div`
+  height: 100%;
+  background: ${props => props.$isOverLimit ? '#dc2626' : props.$isWarning ? '#d97706' : '#1e40af'};
+  width: ${props => Math.min(100, props.$percentage)}%;
+  transition: width 0.3s ease;
+`;
+
 function AuthenticatedApp() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { logout, email, isActive } = useAuthRedux();
   const { uiLoading, toast, clearToast } = useStore();
+  const [storageInfo, setStorageInfo] = useState(null);
+  // Storage indicator is always visible
+  const [loadingStorage, setLoadingStorage] = useState(false);
 
   // Auto-dismiss toast after 3s
   useEffect(() => {
@@ -141,6 +177,38 @@ function AuthenticatedApp() {
     }, 3000);
     return () => clearTimeout(timer);
   }, [toast, clearToast]);
+
+  // Load storage info
+  useEffect(() => {
+    const loadStorage = async () => {
+      try {
+        setLoadingStorage(true);
+        const token = localStorage.getItem('auth_token');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${API_BASE_URL}/api/user/storage-info`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setStorageInfo(data.storage);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading storage info:', error);
+      } finally {
+        setLoadingStorage(false);
+      }
+    };
+    
+    loadStorage();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadStorage, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   const isActiveRoute = (path) => {
     if (path === '/folders') {
@@ -186,6 +254,24 @@ function AuthenticatedApp() {
           <AppTitle>Pixel Keywords</AppTitle>
         </HeaderLeft>
         <Nav>
+          {storageInfo && !loadingStorage && (
+            <StorageIndicator 
+              $isOverLimit={storageInfo.isOverLimit} 
+              $isWarning={storageInfo.percentage >= 80}
+              title={`Storage: ${storageInfo.total.formatted} / ${storageInfo.limit.formatted} (${storageInfo.remaining.formatted} remaining)`}
+            >
+              <StorageText>
+                📦 {storageInfo.total.formatted} / {storageInfo.limit.formatted}
+              </StorageText>
+              <StorageProgress>
+                <StorageProgressBar 
+                  $percentage={Math.min(100, storageInfo.percentage)}
+                  $isOverLimit={storageInfo.isOverLimit}
+                  $isWarning={storageInfo.percentage >= 80}
+                />
+              </StorageProgress>
+            </StorageIndicator>
+          )}
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
           <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
