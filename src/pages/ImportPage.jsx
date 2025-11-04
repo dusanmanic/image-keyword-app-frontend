@@ -226,6 +226,66 @@ const ModalBody = styled.div`
   overflow: hidden;
 `;
 
+// Move modal dropdown styles
+const MoveSelect = styled.div`
+  position: relative;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.2s ease;
+  min-width: 280px;
+  &:hover { border-color: #1e40af; }
+  &:focus { outline: none; }
+`;
+
+const MoveOptions = styled.div`
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.15);
+  z-index: 1000;
+  overflow: hidden;
+`;
+
+const MoveSearch = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  outline: none;
+  font-size: 14px;
+`;
+
+const MoveList = styled.div`
+  max-height: 260px;
+  overflow: auto;
+`;
+
+const MoveOption = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  &:hover { background: #f9fafb; }
+`;
+
 const PasteLeft = styled.div`
   width: 60%;
   overflow: auto;
@@ -622,7 +682,7 @@ export default function ImportPage() {
   
   // API integration
   const { folders, saveFolder } = useFoldersRedux();
-  const { getFolderImages, saveImageMetadata, getFolderStats } = useApi();
+  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
   const [folderStats, setFolderStats] = useState(null);
   const [folderStatsLoading, setFolderStatsLoading] = useState(false);
@@ -635,6 +695,9 @@ export default function ImportPage() {
   const [pasteLoading, setPasteLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [embedLoading, setEmbedLoading] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveTargetFolderId, setMoveTargetFolderId] = useState('');
+  const [moveDropdownOpen, setMoveDropdownOpen] = useState(false);
   const [processingImages, setProcessingImages] = useState(false);
   const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -1911,6 +1974,18 @@ export default function ImportPage() {
           <EmbedButton onClick={embedSelected} type="button" title="Embed to folder">
             Embed to folder
           </EmbedButton>
+          <Button
+            onClick={() => {
+              const hasSelection = (selectedRows instanceof Set ? selectedRows.size : 0) > 0;
+              if (!hasSelection) { showToast('No rows selected'); return; }
+              setMoveTargetFolderId('');
+              setMoveOpen(true);
+            }}
+            type="button"
+            title="Move selected to another folder"
+          >
+            Move to folder
+          </Button>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
@@ -1951,6 +2026,67 @@ export default function ImportPage() {
           </KeywordsCountSelect>
         </KeywordsCountContainer>
       </Header>
+
+      {moveOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setMoveOpen(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 16, minWidth: 360 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Move selected images</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              <label style={{ fontSize: 13, color: '#6b7280' }}>Target folder</label>
+              <MoveSelect
+                tabIndex={0}
+                onClick={() => setMoveDropdownOpen(!moveDropdownOpen)}
+                title={moveTargetFolderId ? (folders?.find(f=> String(f.id)===String(moveTargetFolderId))?.name || '') : 'Select folder…'}
+              >
+                <span style={{ color: moveTargetFolderId ? '#111827' : '#9ca3af' }}>
+                  {moveTargetFolderId ? (folders?.find(f=> String(f.id)===String(moveTargetFolderId))?.name || '') : 'Select folder…'}
+                </span>
+                <span style={{ color: '#9ca3af' }}>▾</span>
+                {moveDropdownOpen && (
+                  <MoveOptions>
+                    <MoveList>
+                      {(folders || []).filter(f => String(f.id) !== String(folderId)).map(f => (
+                        <MoveOption key={f.id} onClick={()=>{ setMoveTargetFolderId(f.id); setMoveDropdownOpen(false); }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 999, background: '#cbd5e1' }} />
+                            <span style={{ color: '#111827', fontWeight: 600 }}>{f.name}</span>
+                          </div>
+                          <span style={{ color: '#6b7280', fontSize: 12 }}>{typeof f.imageCount === 'number' ? `${f.imageCount}` : ''}</span>
+                        </MoveOption>
+                      ))}
+                      {((folders||[]).filter(f => String(f.id) !== String(folderId)).length === 0) && (
+                        <div style={{ padding: '10px 12px', color: '#6b7280', fontSize: 13 }}>No folders</div>
+                      )}
+                    </MoveList>
+                  </MoveOptions>
+                )}
+              </MoveSelect>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button onClick={() => setMoveOpen(false)} type="button">Cancel</Button>
+              <Button
+                onClick={async () => {
+                  try {
+                    const ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
+                    if (!ids.length) { showToast('No rows selected'); return; }
+                    if (!moveTargetFolderId) { showToast('Choose a target folder'); return; }
+                    const res = await moveImages(ids, moveTargetFolderId);
+                    setRows(prev => prev.filter(r => !ids.includes(r.id)));
+                    setSelectedRows(new Set());
+                    setMoveOpen(false);
+                    showToast(`Moved ${res?.movedCount ?? ids.length} images`);
+                  } catch (e) {
+                    showToast('Move failed', 'error');
+                  }
+                }}
+                type="button"
+              >
+                Move
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rows.length === 0 ? (
             <DropZone

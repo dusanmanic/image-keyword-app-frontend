@@ -125,6 +125,14 @@ export function useApi() {
     return data.image;
   }, [apiCall]);
 
+  const moveImages = useCallback(async (imageIds, targetFolderId) => {
+    const data = await apiCall(`/api/user/images/move`, {
+      method: 'POST',
+      body: JSON.stringify({ imageIds, targetFolderId })
+    });
+    return data;
+  }, [apiCall]);
+
   // Auth API
   const login = useCallback(async (email, password) => {
     const data = await apiCall('/api/auth/login', {
@@ -224,6 +232,7 @@ export function useApi() {
     getFolderStats,
     getFolderImages,
     saveImageMetadata,
+    moveImages,
     login,
     register,
     logout,
