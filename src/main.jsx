@@ -250,8 +250,8 @@ function AuthenticatedApp() {
     <div>
       <Header>
         <HeaderLeft>
-          <AppIcon src="/logo-app.svg" alt="Photo Keyword Generator" />
-          <AppTitle>Pixel Keywords</AppTitle>
+          <AppIcon src="/logo-app.svg" alt="KeyWorld" />
+          <AppTitle>KeyWorld</AppTitle>
         </HeaderLeft>
         <Nav>
           {storageInfo && !loadingStorage && (
