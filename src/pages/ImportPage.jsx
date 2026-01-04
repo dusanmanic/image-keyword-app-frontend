@@ -804,8 +804,10 @@ export default function ImportPage() {
     try {
       setAnalyzingIds(prev => { const s = new Set(prev); s.add(row.id); return s; });
       showToast('Analyzing...');
-      // Use thumbnailBlob for analysis
-      let blob = row?.thumbnailBlob;
+      // Prefer original image for analysis (thumbnail can be too small and harm accuracy)
+      let blob = row?.originalBlob;
+      if (!(blob instanceof Blob)) blob = row?.fileBlob;
+      if (!(blob instanceof Blob)) blob = row?.thumbnailBlob;
       if (!blob && row?.thumbUrl) {
         try { const res = await fetch(row.thumbUrl); blob = await res.blob(); } catch {}
       }
@@ -1821,7 +1823,7 @@ export default function ImportPage() {
       try {
         const newId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         
-        // Create thumbnail (300x300px) - only thumbnail, no original
+        // Create thumbnail (300x300px) for UI + keep original for analysis accuracy
         const { blob: thumbnailBlob, url: thumbnailUrl } = await createThumbnail(f, 300);
         
         return {
@@ -1831,6 +1833,7 @@ export default function ImportPage() {
           type: f.type,
           thumbUrl: null, // Will be set after Firebase upload
           thumbnailBlob: thumbnailBlob, // Store thumbnail blob for Firebase upload
+          originalBlob: f, // Keep original file/blob in-memory for better AI analysis
           title: "",
           description: "",
           keywords: [],
