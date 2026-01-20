@@ -47,6 +47,15 @@ export function useAuthRedux() {
       } else if (typeof data.user?.isActive === 'number') {
         setIsActive(data.user.isActive === 1);
       }
+
+      // Identify user in widget (only on login)
+      if (typeof window !== 'undefined' && window.SupportChatWidget?.identify) {
+        window.SupportChatWidget.identify({
+          email: data.email || emailArg || undefined,
+          name: data.username || data.user?.name || undefined,
+          // additionalData: {}
+        });
+      }
       
       // Redirect new users to welcome page
       if (data.user?.isActive === false || data.user?.isActive === 0) {
@@ -81,6 +90,11 @@ export function useAuthRedux() {
       await apiLogout();
     } catch (error) {
       console.log('Logout error (ignored):', error);
+    }
+    
+    // Notify widget about logout
+    if (typeof window !== 'undefined' && window.SupportChatWidget?.logout) {
+      window.SupportChatWidget.logout({ resetCustomerId: false });
     }
     
     // Clear Redux state
