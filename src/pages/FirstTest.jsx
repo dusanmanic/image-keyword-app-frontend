@@ -1,3 +1,9 @@
+/**
+ * INACTIVE PAGE
+ * This page is not currently used in the main application routes (main.jsx).
+ * It was an early test page for single image analysis.
+ * Kept for potential future use or reference.
+ */
 import React, { useState, useRef, useEffect } from "react";
 import localforage from "localforage";
 import toastBus from "../utils/toastEventBus.js";

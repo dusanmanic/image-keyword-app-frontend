@@ -1,3 +1,9 @@
+/**
+ * INACTIVE PAGE
+ * This page is not currently used in the main application routes (main.jsx).
+ * It provides batch image processing functionality.
+ * Kept for potential future use or reference.
+ */
 import React, { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import MetadataEditor from "../components/MetadataEditor.jsx";

@@ -1,3 +1,9 @@
+/**
+ * INACTIVE COMPONENT
+ * This component is not currently used in the main application routes.
+ * It was used in FirstTest page which is not in the router.
+ * Kept for potential future use or reference.
+ */
 import React from "react";
 import styled from "styled-components";
 import MetadataEditor from "./MetadataEditor.jsx";

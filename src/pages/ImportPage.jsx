@@ -470,6 +470,12 @@ const Toast = styled.div`
   z-index: 50;
 `;
 
+const MetaChipsWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+`;
+
 const MetaChips = styled.div`
   width: 100%;
   height: 100%;
@@ -477,10 +483,30 @@ const MetaChips = styled.div`
   flex-wrap: wrap;
   align-items: start;
   padding: 6px 8px;
+  padding-right: 36px;
   border-radius: 8px;
   cursor: text;
   max-height: 100%;
   overflow: auto;
+`;
+
+const KeywordCountBadge = styled.span`
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #1e40af;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  pointer-events: none;
+  z-index: 1;
 `;
 
 const MetaChip = styled.span`
@@ -638,10 +664,37 @@ const CheckboxWrap = styled.div`
   gap: 6px;
 `;
 
-const RowCheckbox = styled.input`
+const Checkbox = styled.input`
   width: 16px;
   height: 16px;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  
+  &:checked {
+    background: #2563eb;
+    border-color: #2563eb;
+    background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  
+  span {
+    color: #1e40af;
+    font-size: 14px;
+    font-weight: 500;
+  }
 `;
 
 const WandIcon = () => (
@@ -713,6 +766,16 @@ export default function ImportPage() {
     }
   });
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
+  
+  // Load useGettyKeywords from localStorage
+  const [useGettyKeywords, setUseGettyKeywords] = useState(() => {
+    try {
+      const saved = localStorage.getItem('useGettyKeywords');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -744,6 +807,15 @@ export default function ImportPage() {
       console.error('Failed to save keywordsCount to localStorage:', error);
     }
   }, [keywordsCount]);
+
+  // Save useGettyKeywords to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('useGettyKeywords', String(useGettyKeywords));
+    } catch (error) {
+      console.error('Failed to save useGettyKeywords to localStorage:', error);
+    }
+  }, [useGettyKeywords]);
 
   // Check if user should see import intro modal on page load
   useEffect(() => {
@@ -821,7 +893,7 @@ export default function ImportPage() {
       if (extra) parts.push(`Added extra suggestion: ${extra}`);
       const combinedPrompt = parts.join(' <br/> ');
 
-      const data = await analyzeImage(blob, keywordsCount, combinedPrompt);
+      const data = await analyzeImage(blob, keywordsCount, combinedPrompt, useGettyKeywords);
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';
@@ -1087,7 +1159,7 @@ export default function ImportPage() {
           <CheckboxWrap
             onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
           >
-            <RowCheckbox
+            <Checkbox
               type="checkbox"
               aria-label="Select all rows"
               checked={rows.length > 0 && (selectedRows instanceof Set ? selectedRows.size === rows.length : false)}
@@ -1107,7 +1179,7 @@ export default function ImportPage() {
       ),
       renderCell: ({ row }) => (
         <CheckboxWrap>
-          <RowCheckbox
+          <Checkbox
             style={{ marginTop: 12 }}
             type="checkbox"
             checked={selectedRows instanceof Set ? selectedRows.has(row.id) : false}
@@ -1359,31 +1431,34 @@ export default function ImportPage() {
           }
         };
         return (
-          <MetaChips
-            onClick={() => chipsRef.current && chipsRef.current.focus()}
-            onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
-          >
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {list.map((kw, idx) => (
-                <MetaChip key={idx} title="Click to remove" onClick={() => removeAt(idx)}>{kw}</MetaChip>
-              ))}
-              <MetaEditableKeywords
-                ref={chipsRef}
-                contentEditable
-                suppressContentEditableWarning
-                style={{ minWidth: 8 }}
-                onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
-                onKeyDown={handleKeyDown}
-                onInput={() => {
-                  const txt = (chipsRef.current?.textContent || '').trim();
-                  setHasDraft(!!txt);
-                }}
-              />
-            </div>
-            {!list.length && !hasDraft && (
-              <MetaPlaceholder>Type keyword and press Enter</MetaPlaceholder>
-            )}
-          </MetaChips>
+          <MetaChipsWrapper>
+            <MetaChips
+              onClick={() => chipsRef.current && chipsRef.current.focus()}
+              onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {list.map((kw, idx) => (
+                  <MetaChip key={idx} title="Click to remove" onClick={() => removeAt(idx)}>{kw}</MetaChip>
+                ))}
+                <MetaEditableKeywords
+                  ref={chipsRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  style={{ minWidth: 8 }}
+                  onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
+                  onKeyDown={handleKeyDown}
+                  onInput={() => {
+                    const txt = (chipsRef.current?.textContent || '').trim();
+                    setHasDraft(!!txt);
+                  }}
+                />
+              </div>
+              {!list.length && !hasDraft && (
+                <MetaPlaceholder>Type keyword and press Enter</MetaPlaceholder>
+              )}
+            </MetaChips>
+            <KeywordCountBadge>{list.length}</KeywordCountBadge>
+          </MetaChipsWrapper>
         );
       }
     },
@@ -1552,7 +1627,7 @@ export default function ImportPage() {
             // Process images to use Firebase URLs when available
             const processedImages = images.map(img => ({
               ...img,
-              thumbUrl: img.thumbUrl // Use Firestore thumbUrl (base64 data URL)
+              thumbUrl: img.thumbUrl // Use stored thumbUrl (base64 data URL)
             })).sort((a, b) => {
               // Sort by file name (case-insensitive)
               const nameA = (a.name || '').toLowerCase();
@@ -1651,7 +1726,7 @@ export default function ImportPage() {
                     const savedImage = await saveImageMetadata(folderId, row);
                     console.log('New image saved successfully:', row.name);
                     
-                    // Update with Firestore thumbUrl
+                    // Update with stored thumbUrl
                     setRows(prev => prev.map(r => 
                       r.id === row.id ? { 
                         ...r, 
@@ -2056,6 +2131,15 @@ export default function ImportPage() {
               })}
             </DropdownOptions>
           </KeywordsCountSelect>
+          
+          <CheckboxLabel style={{ marginLeft: 12 }}>
+            <Checkbox
+              type="checkbox"
+              checked={useGettyKeywords}
+              onChange={(e) => setUseGettyKeywords(e.target.checked)}
+            />
+            <span>iStock/Getty</span>
+          </CheckboxLabel>
         </KeywordsCountContainer>
       </Header>
 
@@ -2332,7 +2416,7 @@ export default function ImportPage() {
           pasteLoading ? "Applying paste..." :
           embedLoading ? "Embedding metadata..." :
           processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
-          uploadingImages ? `Saving to Firestore... ${uploadProgress.current}/${uploadProgress.total}` :
+          uploadingImages ? `Saving to database... ${uploadProgress.current}/${uploadProgress.total}` :
           "Loading..."
         } 
       />

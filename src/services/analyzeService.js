@@ -10,12 +10,14 @@ import { getApiBaseUrl } from "../config/api.js";
  * @param {Blob} imageBlob - Image blob to analyze
  * @param {number} maxKeywords - Maximum number of keywords to generate
  * @param {string} [prompt] - Optional additional prompt
+ * @param {boolean} [useGettyKeywords] - Use Getty/iStock approved keywords only
  * @returns {Promise<{title: string, description: string, keywords: string[]}>}
  */
-export async function analyzeImage(imageBlob, maxKeywords = 30, prompt = "") {
+export async function analyzeImage(imageBlob, maxKeywords = 30, prompt = "", useGettyKeywords = false) {
   const formData = new FormData();
   formData.append("image", imageBlob);
   formData.append("maxKeywords", String(maxKeywords));
+  formData.append("useGettyKeywords", String(useGettyKeywords));
   
   if (prompt && prompt.trim()) {
     formData.append("prompt", prompt.trim());

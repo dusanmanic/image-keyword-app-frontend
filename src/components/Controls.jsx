@@ -37,7 +37,38 @@ const Button = styled.button`
   &:focus, &:active, &:focus-visible, &:focus-within { border-color: transparent; outline: none; }
 `;
 
-export default function Controls({ maxKeywords, onChangeMaxKeywords, fileInputRef, onFileChange, onOpenFileDialog, loading }) {
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1e40af;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.85;
+  }
+  
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+    cursor: pointer;
+  }
+`;
+
+export default function Controls({ 
+  maxKeywords, 
+  onChangeMaxKeywords, 
+  fileInputRef, 
+  onFileChange, 
+  onOpenFileDialog, 
+  loading,
+  useGettyKeywords,
+  onChangeUseGettyKeywords
+}) {
   return (
     <>
       <Select value={maxKeywords} onChange={(e) => onChangeMaxKeywords(Number(e.target.value))}>
@@ -47,6 +78,15 @@ export default function Controls({ maxKeywords, onChangeMaxKeywords, fileInputRe
         <option value={40}>40 keywords</option>
         <option value={50}>50 keywords</option>
       </Select>
+
+      <CheckboxLabel>
+        <input 
+          type="checkbox" 
+          checked={useGettyKeywords || false} 
+          onChange={(e) => onChangeUseGettyKeywords && onChangeUseGettyKeywords(e.target.checked)}
+        />
+        iStock/Getty Keywords
+      </CheckboxLabel>
 
       <HiddenFileInput
         ref={fileInputRef}

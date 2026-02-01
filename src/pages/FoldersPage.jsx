@@ -47,13 +47,13 @@ const EmptyMessage = styled.p`
 
 const Header = styled.div`
     width: 100%;
-    max-width: 1200px;
+    padding: 0 20px;
     margin: 0 auto;
 `;
 
 const FiltersBar = styled.div`
   display: flex;
-  padding: 0 20px 20px 20px;
+  padding: 0 20px 10px 20px;
 `;
 
 const FilterGroup = styled.div`
@@ -286,7 +286,6 @@ const CardsGrid = styled.div`
   grid-template-columns: repeat(auto-fill, 380px);
   gap: 12px;
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   justify-content: center;
 `;
@@ -482,6 +481,7 @@ const FiltersTop = styled.div`
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 `;
 
 const FiltersBottom = styled.div`
@@ -489,6 +489,7 @@ const FiltersBottom = styled.div`
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 `;
 
 // Tag definitions with colors (shared)
@@ -690,11 +691,29 @@ export default function FoldersPage() {
     <Container>
         <Header>
           <FiltersBar>
-            <div>
+            <Button 
+              onClick={openCreateModal} 
+              title="Create new folder"
+              style={{
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: 6,
+                marginRight: 10,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create folder
+            </Button>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <Button onClick={() => setShowFilters(!showFilters)} style={{ background: showFilters ? '#1e40af' : 'white', color: showFilters ? 'white' : '#1e40af', border: '1px solid #1e40af' }}>
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
               </Button>
             </div>
+          </FiltersBar>
           {showFilters && (<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <FiltersTop>
               <FilterGroup>
@@ -723,7 +742,7 @@ export default function FoldersPage() {
             </FiltersTop>
             <FiltersBottom>
               <FilterGroup>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 550 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {Object.entries(FOLDER_TAGS).map(([key, tag]) => {
                     const selected = (filterTagsCsv.split(',').map(s=>s.trim()).filter(Boolean)).includes(key);
                     return (
@@ -747,7 +766,6 @@ export default function FoldersPage() {
               </FilterGroup>
             </FiltersBottom>
             </div>)}
-          </FiltersBar>
         </Header>
       {folders?.length === 0 ? (
         <EmptyState>
@@ -932,11 +950,6 @@ export default function FoldersPage() {
         />
       )}
       
-      {folders?.length > 0 && (
-        <FloatingActionButton onClick={openCreateModal} title="Create new folder">
-          +
-        </FloatingActionButton>
-      )}
     </Container>
   );
 }

@@ -1,3 +1,9 @@
+/**
+ * INACTIVE COMPONENT
+ * This component is not currently used in the main application routes.
+ * It was used in BatchPage and ImageModal which are also inactive.
+ * Kept for potential future use or reference.
+ */
 import React from "react";
 import styled from "styled-components";
 
