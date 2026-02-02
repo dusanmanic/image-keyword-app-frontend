@@ -884,6 +884,16 @@ export default function ImportPage() {
         try { const res = await fetch(row.thumbUrl); blob = await res.blob(); } catch {}
       }
       if (!(blob instanceof Blob)) { showToast('Image unavailable'); return; }
+      
+      // Resize image to max 1600px to avoid "File too large" errors (max 10MB on server)
+      try {
+        const { blob: resizedBlob } = await resizeImage(blob, 1600, "image/jpeg", 0.85);
+        blob = resizedBlob;
+      } catch (resizeErr) {
+        console.error('Failed to resize image:', resizeErr);
+        showToast('Failed to process image. Please try a different image.');
+        return;
+      }
 
       const folder = folders.find(f => String(f.id) === String(folderId));
       const folderDesc = (folder?.description || '').trim();
@@ -935,7 +945,21 @@ export default function ImportPage() {
       
       showToast('Metadata updated');
     } catch (e) {
-      showToast('Analyze failed', 'error');
+      console.error('Analysis error:', e);
+      // Show user-friendly error messages
+      let errorMsg = 'Analysis failed. Please try again.';
+      if (e?.message?.includes('File too large') || e?.response?.status === 413) {
+        errorMsg = 'Image is too large. Please use a smaller image (max 10MB).';
+      } else if (e?.message?.includes('limit') || e?.message?.includes('spending')) {
+        errorMsg = 'Spending limit reached. Please contact support.';
+      } else if (e?.response?.status === 403) {
+        errorMsg = e?.response?.data?.message || 'Access denied. Check your account status.';
+      } else if (e?.response?.status === 500) {
+        errorMsg = 'Server error. Please try again later.';
+      } else if (e?.message) {
+        errorMsg = e.message;
+      }
+      showToast(errorMsg, 'error');
     } finally {
       setAnalyzingIds(prev => { const s = new Set(prev); s.delete(row.id); return s; });
     }
