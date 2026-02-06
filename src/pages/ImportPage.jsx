@@ -1004,9 +1004,9 @@ export default function ImportPage() {
         try { // eslint-disable-next-line no-await-in-loop
           await analyzeRow(r, extraPrompt);
         } catch {}
-        // Small delay between requests to avoid hitting OpenAI TPM limits
+        // Small delay between requests to avoid hitting OpenAI TPM limits (TPM 200k)
         // eslint-disable-next-line no-await-in-loop
-        await new Promise(resolve => setTimeout(resolve, 250));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         setBulkDone(prev => prev + 1);
       }
     } catch {
