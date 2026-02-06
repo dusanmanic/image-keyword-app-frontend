@@ -1920,7 +1920,8 @@ export default function ImportPage() {
     
     const processImage = async (f, index) => {
       try {
-        const newId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
+        const rawId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
+        const newId = rawId.replace(/\s+/g, "_").replace(/[?#%&]/g, "_");
         
         // Resize to 1600px for S3: one image for both grid display and (later) AI analysis
         const { blob: imageBlob } = await resizeImage(f, 1600, "image/jpeg", 0.85);
@@ -1941,8 +1942,9 @@ export default function ImportPage() {
       } catch (error) {
         console.error('Error processing image:', f.name, error);
         // Add fallback if processing fails
+        const rawId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         return {
-          id: `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`,
+          id: rawId.replace(/\s+/g, "_").replace(/[?#%&]/g, "_"),
           name: f.name,
           size: Math.round(f.size / 1024),
           type: f.type,
