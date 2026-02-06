@@ -1004,9 +1004,6 @@ export default function ImportPage() {
         try { // eslint-disable-next-line no-await-in-loop
           await analyzeRow(r, extraPrompt);
         } catch {}
-        // Small delay between requests to avoid hitting OpenAI TPM limits (TPM 200k)
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise(resolve => setTimeout(resolve, 1000));
         setBulkDone(prev => prev + 1);
       }
     } catch {
@@ -1925,17 +1922,17 @@ export default function ImportPage() {
       try {
         const newId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         
-        // Create thumbnail (300x300px) for UI + keep original for analysis accuracy
-        const { blob: thumbnailBlob, url: thumbnailUrl } = await createThumbnail(f, 300);
+        // Resize to 1600px for S3: one image for both grid display and (later) AI analysis
+        const { blob: imageBlob } = await resizeImage(f, 1600, "image/jpeg", 0.85);
         
         return {
           id: newId,
           name: f.name,
           size: Math.round(f.size / 1024), // Original file size for reference
           type: f.type,
-          thumbUrl: null, // Will be set after Firebase upload
-          thumbnailBlob: thumbnailBlob, // Store thumbnail blob for Firebase upload
-          originalBlob: f, // Keep original file/blob in-memory for better AI analysis
+          thumbUrl: null, // Will be set after S3 upload
+          thumbnailBlob: imageBlob, // 1600px blob → uploaded to S3, used for display + AI
+          originalBlob: f, // Keep original for analyzeRow (resized before send until we have queue)
           title: "",
           description: "",
           keywords: [],
