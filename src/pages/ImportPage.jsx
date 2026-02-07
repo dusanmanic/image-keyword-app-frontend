@@ -735,7 +735,7 @@ export default function ImportPage() {
   
   // API integration
   const { folders, saveFolder } = useFoldersRedux();
-  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages } = useApi();
+  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages, startAnalyzeBatch, getAnalyzeBatchStatus, getAnalyzeStatusByImageIds } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
   const [folderStats, setFolderStats] = useState(null);
   const [folderStatsLoading, setFolderStatsLoading] = useState(false);
@@ -791,6 +791,35 @@ export default function ImportPage() {
   const [promptText, setPromptText] = useState("");
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
+  const [pollingQueueStatus, setPollingQueueStatus] = useState(false); // kada su sve izabrane u redu, pollujemo status
+
+  // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
+  const isImageInQueueOrProcessing = (row) => {
+    if (!row?.id) return false;
+    if (analyzingIds.has(row.id)) return true;
+    const status = row.analysis_status ?? row.analysisStatus ?? '';
+    return status === 'pending' || status === 'processing';
+  };
+
+  const allSelectedInQueueOrProcessing = React.useMemo(() => {
+    const sel = selectedRows instanceof Set ? selectedRows : new Set();
+    if (sel.size === 0) return false;
+    const selectedRowsList = rows.filter(r => sel.has(r.id));
+    return selectedRowsList.length > 0 && selectedRowsList.every(isImageInQueueOrProcessing);
+  }, [rows, selectedRows, analyzingIds]);
+
+  // ID-evi za polling: izabrane u redu ILI bilo koja slika u folderu sa pending/processing (npr. posle refresh-a)
+  const idsToPollForStatus = React.useMemo(() => {
+    if (allSelectedInQueueOrProcessing) {
+      const sel = selectedRows instanceof Set ? selectedRows : new Set();
+      return rows.filter(r => sel.has(r.id)).map(r => r.id).filter(Boolean);
+    }
+    const inQueue = rows.filter(r => {
+      const s = r?.analysis_status ?? r?.analysisStatus ?? '';
+      return s === 'pending' || s === 'processing';
+    }).map(r => r.id).filter(Boolean);
+    return inQueue;
+  }, [allSelectedInQueueOrProcessing, rows, selectedRows]);
 
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
@@ -865,7 +894,7 @@ export default function ImportPage() {
 
   const openKeywordWizard = () => {
     setPromptTargetRow(null);
-    setPromptConfirmOpen(true);
+    analyzeSelected("");
   };
 
   const showToast = (msg, type = 'success') => {
@@ -873,6 +902,10 @@ export default function ImportPage() {
   };
 
   const analyzeRow = async (row, extraPrompt = "") => {
+    if (isImageInQueueOrProcessing(row)) {
+      showToast('Image is already being processed or in queue.', 'error');
+      return;
+    }
     try {
       setAnalyzingIds(prev => { const s = new Set(prev); s.add(row.id); return s; });
       showToast('Analyzing...');
@@ -885,9 +918,9 @@ export default function ImportPage() {
       }
       if (!(blob instanceof Blob)) { showToast('Image unavailable'); return; }
       
-      // Resize image to max 1600px to avoid "File too large" errors (max 10MB on server)
+      // Resize image to max 1024px for analysis (and to stay under 10MB server limit)
       try {
-        const { blob: resizedBlob } = await resizeImage(blob, 1600, "image/jpeg", 0.85);
+        const { blob: resizedBlob } = await resizeImage(blob, 1024, "image/jpeg", 0.85);
         blob = resizedBlob;
       } catch (resizeErr) {
         console.error('Failed to resize image:', resizeErr);
@@ -968,64 +1001,96 @@ export default function ImportPage() {
   const analyzeSelected = async (extraPrompt = "") => {
     try {
       setAnalyzeLoading(true);
-      showToast('Bulk analyze start');
-      let ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
+      const selectedSet = new Set((selectedRows instanceof Set ? [...selectedRows] : selectedRows || []).map(String));
+      let ids = [...selectedSet];
       if (!ids.length && lastSelectedIndex !== null && rows[lastSelectedIndex]) {
-        ids = [rows[lastSelectedIndex].id];
+        ids = [String(rows[lastSelectedIndex].id)];
       }
       if (!ids.length) { showToast('No rows selected'); return; }
-      // mark all selected as analyzing (disabled)
-      setAnalyzingIds(prev => {
-        const s = new Set(prev);
-        for (const id of ids) s.add(id);
-        return s;
-      });
+      // Use table order (rows); only images with thumbUrl and not already in queue/processing
+      const withUrl = rows
+        .filter(r => selectedSet.has(String(r.id)) && r.thumbUrl && !isImageInQueueOrProcessing(r))
+        .map(r => r.id);
+      const inQueueCount = rows.filter(r => selectedSet.has(String(r.id)) && isImageInQueueOrProcessing(r)).length;
+      const skipped = ids.length - withUrl.length;
+      if (withUrl.length === 0) {
+        showToast(inQueueCount > 0 ? 'All selected images are already being processed or in queue.' : 'Selected images must be saved (thumbnail URL). Save folder and try again.', 'error');
+        return;
+      }
+      if (inQueueCount > 0) {
+        showToast(`${inQueueCount} images are already being processed, the rest are in queue.`);
+      } else if (skipped > 0) {
+        showToast(`${skipped} images skipped (no URL). ${withUrl.length} in queue for analysis.`);
+      } else {
+        showToast('Analysis started in background. You can close the page.');
+      }
+      setSelectedRows(new Set());
+      setLastSelectedIndex(null);
+      setAnalyzingIds(prev => { const s = new Set(prev); withUrl.forEach(id => s.add(id)); return s; });
       setBulkRunning(true);
-      setBulkTotal(ids.length);
+      setBulkTotal(withUrl.length);
       setBulkDone(0);
-      for (const id of ids) {
-        const r = rows.find(x => String(x.id) === String(id));
-        if (!r) continue;
-        // set preview image for current item
+      const { batchId, total } = await startAnalyzeBatch(folderId, withUrl, {
+        prompt: extraPrompt,
+        maxKeywords: keywordsCount,
+        useGettyKeywords: useGettyKeywords ?? false
+      });
+      setBulkTotal(total);
+      const poll = async () => {
         try {
-          let previewUrl = '';
-          if (r.thumbUrl) previewUrl = r.thumbUrl;
-          else if (r.thumbnailBlob instanceof Blob) {
-            // revoke previous to avoid leaks
-            if (bulkObjectUrl) {
-              try { URL.revokeObjectURL(bulkObjectUrl); } catch {}
-            }
-            const objUrl = URL.createObjectURL(r.thumbnailBlob);
-            setBulkObjectUrl(objUrl);
-            previewUrl = objUrl;
+          const status = await getAnalyzeBatchStatus(batchId);
+          setBulkDone(status.done + status.failed);
+          const hasCompleted = (status?.results || []).some(r => (r.status || '').toLowerCase() === 'completed');
+          if (hasCompleted || (status?.status || '').toLowerCase() === 'completed') {
+            const apiImages = await getFolderImages(folderId);
+            setRows(prev => {
+              const byId = new Map((apiImages || []).map(i => [String(i.id), i]));
+              return prev.map(r => {
+                const fresh = byId.get(String(r.id));
+                if (!fresh) return r;
+                return {
+                  ...r,
+                  title: fresh.title ?? r.title,
+                  description: fresh.description ?? r.description,
+                  keywords: Array.isArray(fresh.keywords) ? fresh.keywords : (r.keywords || []),
+                  analysis_status: fresh.analysis_status ?? fresh.analysisStatus ?? r.analysis_status,
+                  analyzedAt: fresh.analyzedAt ?? fresh.analyzedat ?? r.analyzedAt,
+                };
+              });
+            });
+            setAnalyzingIds(prev => {
+              const next = new Set(prev);
+              (status?.results || []).filter(r => (r.status || '').toLowerCase() === 'completed').forEach(r => next.delete(r.id));
+              return next;
+            });
           }
-          setBulkPreview({ url: previewUrl, title: r.name || r.description || r.id });
-        } catch {}
-        try { // eslint-disable-next-line no-await-in-loop
-          await analyzeRow(r, extraPrompt);
-        } catch {}
-        setBulkDone(prev => prev + 1);
-      }
-    } catch {
-      showToast('Bulk analysis failed', 'error');
-    } finally {
-      setBulkRunning(false);
-      setAnalyzeLoading(false);
-      // cleanup preview/object url
-      try { setBulkPreview({ url: '', title: '' }); } catch {}
-      if (bulkObjectUrl) {
-        try { URL.revokeObjectURL(bulkObjectUrl); } catch {}
-        setBulkObjectUrl('');
-      }
-      // clear analyzing marks for the batch
+          if ((status?.status || '').toLowerCase() === 'completed') {
+            setAnalyzingIds(prev => { const s = new Set(prev); withUrl.forEach(id => s.delete(id)); return s; });
+            setBulkRunning(false);
+            setBulkTotal(0);
+            setBulkDone(0);
+            showToast(`Analysis complete. ${status.done} done, ${status.failed} failed.`);
+            return;
+          }
+          setTimeout(poll, 2500);
+        } catch {
+          setBulkRunning(false);
+          setAnalyzingIds(prev => { const s = new Set(prev); withUrl.forEach(id => s.delete(id)); return s; });
+          showToast('Could not fetch batch status.', 'error');
+        }
+      };
+      setTimeout(poll, 2000);
+    } catch (e) {
+      console.error(e);
+      showToast(e?.message || 'Failed to start batch analysis', 'error');
       setAnalyzingIds(prev => {
         const s = new Set(prev);
-        for (const id of (selectedRows instanceof Set ? selectedRows : new Set())) {
-          s.delete(id);
-        }
+        for (const id of (selectedRows instanceof Set ? selectedRows.values() : [])) s.delete(id);
         return s;
       });
-      setTimeout(() => { setBulkTotal(0); setBulkDone(0); }, 500);
+      setBulkRunning(false);
+    } finally {
+      setAnalyzeLoading(false);
     }
   };
 
@@ -1176,7 +1241,7 @@ export default function ImportPage() {
       width: 44,
       frozen: true,
       cellClass: (row) => {
-        return `flex-start-cell${analyzingIds.has(row.id) ? ' row-busy' : ''}`;
+        return `flex-start-cell${isImageInQueueOrProcessing(row) ? ' row-busy' : ''}`;
       },
       renderHeaderCell: () => (
         <div className="hdr" style={{ pointerEvents: 'auto' }}>
@@ -1186,11 +1251,16 @@ export default function ImportPage() {
             <Checkbox
               type="checkbox"
               aria-label="Select all rows"
-              checked={rows.length > 0 && (selectedRows instanceof Set ? selectedRows.size === rows.length : false)}
+              checked={(() => {
+                const selectable = rows.filter(r => !isImageInQueueOrProcessing(r));
+                if (selectable.length === 0) return false;
+                const sel = selectedRows instanceof Set ? selectedRows : new Set();
+                return selectable.every(r => sel.has(r.id));
+              })()}
               onChange={(e) => {
                 e.stopPropagation();
                 if (e.target.checked) {
-                  setSelectedRows(new Set(rows.map(r => r.id)));
+                  setSelectedRows(new Set(rows.filter(r => !isImageInQueueOrProcessing(r)).map(r => r.id)));
                 } else {
                   setSelectedRows(new Set());
                 }
@@ -1206,9 +1276,11 @@ export default function ImportPage() {
           <Checkbox
             style={{ marginTop: 12 }}
             type="checkbox"
+            disabled={isImageInQueueOrProcessing(row)}
             checked={selectedRows instanceof Set ? selectedRows.has(row.id) : false}
             onChange={(e) => {
               e.stopPropagation();
+              if (isImageInQueueOrProcessing(row)) return;
               setSelectedRows(prev => {
                 const next = prev instanceof Set ? new Set(prev) : new Set();
                 if (e.target.checked) next.add(row.id); else next.delete(row.id);
@@ -1227,7 +1299,7 @@ export default function ImportPage() {
       frozen: true,
       width: 250,
       renderHeaderCell: () => <div className="hdr">Image</div>,
-      cellClass: (row) => analyzingIds.has(row.id) ? 'row-busy' : '',
+      cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row }) => (
         <div
           style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
@@ -1287,7 +1359,7 @@ export default function ImportPage() {
       frozen: true,
       width: '25%',
       renderHeaderCell: () => <div className="hdr">Title</div>,
-      cellClass: (row) => analyzingIds.has(row.id) ? 'row-busy' : '',
+      cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
         const ref = React.useRef(null);
         const [draft, setDraft] = useState((row.title ?? ''));
@@ -1350,7 +1422,7 @@ export default function ImportPage() {
       width: '25%',
       frozen: true,
       renderHeaderCell: () => <div className="hdr">Description</div>,
-      cellClass: (row) => analyzingIds.has(row.id) ? 'row-busy' : '',
+      cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
         const ref = React.useRef(null);
         const [draft, setDraft] = useState((row.description ?? ''));
@@ -1494,7 +1566,7 @@ export default function ImportPage() {
       width: 44,
       frozen: true,
       cellClass: (row) => {
-        return `flex-start-cell${analyzingIds.has(row.id) ? ' row-busy' : ''}`;
+        return `flex-start-cell${isImageInQueueOrProcessing(row) ? ' row-busy' : ''}`;
       },
       renderHeaderCell: () => <div className="hdr"></div>,
       renderCell: ({ row }) => (
@@ -1503,10 +1575,9 @@ export default function ImportPage() {
             title="Analyze"
             onClick={(e)=> {
               e.stopPropagation();
-              setPromptTargetRow(row);
-              setPromptConfirmOpen(true);
+              analyzeRow(row, "");
             }}
-            disabled={analyzingIds.has(row.id)}
+            disabled={isImageInQueueOrProcessing(row)}
           >
             <WandIcon />
           </ActionButton>
@@ -1698,6 +1769,52 @@ export default function ImportPage() {
     })();
     return () => { isMounted = false; };
   }, [folderId, getFolderStats]);
+
+  // Poll status every 3 seconds when there are images in queue (all selected in queue OR any in folder pending/processing, after refresh)
+  useEffect(() => {
+    if (idsToPollForStatus.length === 0 || bulkRunning || !folderId) {
+      setPollingQueueStatus(false);
+      return;
+    }
+    const ids = [...idsToPollForStatus];
+    setPollingQueueStatus(true);
+    const POLL_MS = 3000;
+    let cancelled = false;
+    const t = setInterval(async () => {
+      if (cancelled) return;
+      try {
+        const status = await getAnalyzeStatusByImageIds(ids);
+        if (cancelled) return;
+        const hasCompleted = (status?.results || []).some(r => (r.status || '').toLowerCase() === 'completed');
+        if (hasCompleted || (status?.status || '').toLowerCase() === 'completed') {
+          const apiImages = await getFolderImages(folderId);
+          if (cancelled) return;
+          setRows(prev => {
+            const byId = new Map((apiImages || []).map(i => [String(i.id), i]));
+            return prev.map(r => {
+              const fresh = byId.get(String(r.id));
+              if (!fresh) return r;
+              return {
+                ...r,
+                title: fresh.title ?? r.title,
+                description: fresh.description ?? r.description,
+                keywords: Array.isArray(fresh.keywords) ? fresh.keywords : (r.keywords || []),
+                analysis_status: fresh.analysis_status ?? fresh.analysisStatus ?? r.analysis_status,
+              };
+            });
+          });
+        }
+        if (status?.status === 'completed') {
+          setPollingQueueStatus(false);
+        }
+      } catch (_) {}
+    }, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+      setPollingQueueStatus(false);
+    };
+  }, [idsToPollForStatus, bulkRunning, folderId, getAnalyzeStatusByImageIds, getFolderImages]);
 
   // Save new images to API in batch (only when new images are added)
   useEffect(() => {
@@ -1923,8 +2040,8 @@ export default function ImportPage() {
         const rawId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         const newId = rawId.replace(/\s+/g, "_").replace(/[?#%&]/g, "_");
         
-        // Resize to 1600px for S3: one image for both grid display and (later) AI analysis
-        const { blob: imageBlob } = await resizeImage(f, 1600, "image/jpeg", 0.85);
+        // Resize to 1024px for S3: one image for grid display and AI analysis
+        const { blob: imageBlob } = await resizeImage(f, 1024, "image/jpeg", 0.85);
         
         return {
           id: newId,
@@ -1932,7 +2049,7 @@ export default function ImportPage() {
           size: Math.round(f.size / 1024), // Original file size for reference
           type: f.type,
           thumbUrl: null, // Will be set after S3 upload
-          thumbnailBlob: imageBlob, // 1600px blob → uploaded to S3, used for display + AI
+          thumbnailBlob: imageBlob, // 1024px blob → uploaded to S3, used for display + AI
           originalBlob: f, // Keep original for analyzeRow (resized before send until we have queue)
           title: "",
           description: "",
@@ -2098,7 +2215,16 @@ export default function ImportPage() {
       <Header>
         <div ref={controlsRef} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Button onClick={() => setOpen(true)} type="button">Upload</Button>
-          <MagicButton onClick={handleKeywordWizardClick} type="button" disabled={bulkRunning} title="Analyze selected">
+          <MagicButton
+            onClick={handleKeywordWizardClick}
+            type="button"
+            disabled={bulkRunning || allSelectedInQueueOrProcessing}
+            title={
+              bulkRunning ? 'Analiza u toku…' :
+              allSelectedInQueueOrProcessing ? 'Sve izabrane slike su već u obradi' :
+              'Analiziraj izabrane'
+            }
+          >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <WandIcon />
               {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
@@ -2254,7 +2380,7 @@ export default function ImportPage() {
         />
         </div>
       )}
-      {bulkRunning && (
+{/*       {bulkRunning && (
         <BulkOverlay>
           <BulkCardOutline>
             <BulkCard>
@@ -2282,7 +2408,7 @@ export default function ImportPage() {
             </BulkCard>
           </BulkCardOutline>
         </BulkOverlay>
-      )}
+      )} */}
   
       {open && (
         <PasteOverlay onClick={() => setOpen(false)}>
@@ -2446,6 +2572,29 @@ export default function ImportPage() {
           "Loading..."
         } 
       />
+
+      {/* Line in bottom when polling status of selected in queue */}
+      {pollingQueueStatus && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: '10px 16px',
+          background: 'linear-gradient(to top, #1e40af18, transparent)',
+          color: '#1e40af',
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          zIndex: 900,
+        }}>
+          <span style={{ width: 16, height: 16, border: '2px solid #93c5fd', borderTopColor: '#1e40af', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+          Proveravam status batch-a… osvežiće se kada završe
+        </div>
+      )}
     </Container>
   );
 }

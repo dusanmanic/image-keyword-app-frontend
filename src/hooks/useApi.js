@@ -133,6 +133,32 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  const startAnalyzeBatch = useCallback(async (folderId, imageIds, options = {}) => {
+    const data = await apiCall('/api/analyze/batch', {
+      method: 'POST',
+      body: JSON.stringify({
+        folderId,
+        imageIds,
+        maxKeywords: options.maxKeywords,
+        prompt: options.prompt,
+        useGettyKeywords: options.useGettyKeywords
+      })
+    });
+    return data;
+  }, [apiCall]);
+
+  const getAnalyzeBatchStatus = useCallback(async (batchId) => {
+    const data = await apiCall(`/api/analyze/batch/${batchId}`);
+    return data;
+  }, [apiCall]);
+
+  const getAnalyzeStatusByImageIds = useCallback(async (imageIds) => {
+    const ids = Array.isArray(imageIds) ? imageIds : [imageIds];
+    const q = ids.map(String).join(',');
+    const data = await apiCall(`/api/analyze/batch/status?imageIds=${encodeURIComponent(q)}`);
+    return data;
+  }, [apiCall]);
+
   // Auth API
   const login = useCallback(async (email, password) => {
     const data = await apiCall('/api/auth/login', {
@@ -233,6 +259,9 @@ export function useApi() {
     getFolderImages,
     saveImageMetadata,
     moveImages,
+    startAnalyzeBatch,
+    getAnalyzeBatchStatus,
+    getAnalyzeStatusByImageIds,
     login,
     register,
     logout,
