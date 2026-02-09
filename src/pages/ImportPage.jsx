@@ -14,6 +14,7 @@ import GlobalSpinner from "../components/GlobalSpinner.jsx";
 import { useStore } from "../store/index.js";
 import ImportIntroModal from "../components/ImportIntroModal.jsx";
 import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
+import COUNTRIES from "../config/countries.json";
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -880,6 +881,44 @@ export default function ImportPage() {
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
   const [pollingQueueStatus, setPollingQueueStatus] = useState(false); // kada su sve izabrane u redu, pollujemo status
+  const [istockExportOpen, setIstockExportOpen] = useState(false);
+  const [istockShootDate, setIstockShootDate] = useState(() => {
+    try {
+      return localStorage.getItem('istock_shoot_date') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [istockCountry, setIstockCountry] = useState(() => {
+    try {
+      return localStorage.getItem('istock_country') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [istockCountryQuery, setIstockCountryQuery] = useState(() => {
+    try {
+      return localStorage.getItem('istock_country') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [istockCountryOpen, setIstockCountryOpen] = useState(false);
+
+  const istockCountryLabels = React.useMemo(() => {
+    try {
+      return Object.values(COUNTRIES || {})
+        .filter(Boolean)
+        .map((s) => String(s))
+        .sort((a, b) => a.localeCompare(b));
+    } catch {
+      return [];
+    }
+  }, []);
+  const istockCountryLabelSet = React.useMemo(
+    () => new Set(istockCountryLabels.map((s) => s.toLowerCase())),
+    [istockCountryLabels]
+  );
 
   // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
   const isImageInQueueOrProcessing = (row) => {
@@ -2245,8 +2284,8 @@ export default function ImportPage() {
     }
   };
 
-  // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 BOM + required columns/order
-  const exportWindowsCsv = () => {
+  // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
+  const exportWindowsCsv = (shootDateOverride = '', countryOverride = '') => {
     try {
       const headers = [
         'file name',
@@ -2281,6 +2320,8 @@ export default function ImportPage() {
         return `${yyyy}-${mm}-${dd}`;
       };
 
+      const override = String(shootDateOverride || '').trim();
+      const overrideCountry = String(countryOverride || '').trim();
       const lines = [headers.join(',')];
       for (const r of rows) {
         const rawName = r.name || r.originalName || '';
@@ -2294,14 +2335,14 @@ export default function ImportPage() {
           : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
         const keywordsStr = keywordsArr.join(', ');
 
-        const createdDate = formatDate(
+        const createdDate = override || formatDate(
           r.createdAt ||
           r.created_date ||
           r.createdDate ||
           r.originalBlob?.lastModified ||
           null
         );
-        const country = r.country || '';
+        const country = overrideCountry || r.country || '';
         const briefCode = r.briefCode || r.brief_code || '';
 
         const rowVals = [fileName, createdDate, description, country, briefCode, title, keywordsStr].map(toCsvValue);
@@ -2406,7 +2447,23 @@ export default function ImportPage() {
             Move to folder
           </Button>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
-          <ExportButton onClick={exportWindowsCsv} type="button" title="Export iStock/Getty CSV (ESP)">iStock/Getty CSV</ExportButton>
+          <ExportButton
+            onClick={() => {
+              // Default to folder shootingDate if available
+              try {
+                const raw = String(currentFolder?.shootingDate || '').trim();
+                if (raw) {
+                  const normalized = /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '';
+                  if (normalized) setIstockShootDate(normalized);
+                }
+              } catch {}
+              setIstockExportOpen(true);
+            }}
+            type="button"
+            title="Export iStock/Getty CSV (Excel)"
+          >
+            iStock/Getty CSV
+          </ExportButton>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
           <span>{currentFolder?.name || 'Folder'}</span>
@@ -2712,6 +2769,151 @@ export default function ImportPage() {
                 </span>
               </MagicButton>
               <Button type="button" $variant="secondary" onClick={() => setPromptOpen(false)}>Cancel</Button>
+            </ModalActions>
+          </ModalCard>
+        </PasteOverlay>
+      )}
+
+      {istockExportOpen && (
+        <PasteOverlay onClick={() => setIstockExportOpen(false)}>
+          <ModalCard onClick={(e)=> e.stopPropagation()} $w="540px" $h="210px">
+            <ModalHeader>
+              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>iStock/Getty CSV export</h3>
+            </ModalHeader>
+            <ModalBody $direction="column" $gap="12px">
+              <div style={{ color: '#374151', fontSize: 14, lineHeight: 1.45 }}>
+                Pick a <strong>shoot date</strong>. It will be written into the CSV <code>created date</code> column for all images (format: YYYY-MM-DD).
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ minWidth: 90, color: '#6b7280', fontSize: 13, fontWeight: 800 }}>Shoot date</div>
+                <input
+                  type="date"
+                  value={istockShootDate || ''}
+                  onChange={(e) => setIstockShootDate(e.target.value)}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid #d1d5db',
+                    fontSize: 14,
+                    minWidth: 180
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ minWidth: 90, color: '#6b7280', fontSize: 13, fontWeight: 800 }}>Country</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      value={istockCountryQuery || ''}
+                      onChange={(e) => {
+                        setIstockCountryQuery(e.target.value);
+                        setIstockCountryOpen(true);
+                      }}
+                      onFocus={() => setIstockCountryOpen(true)}
+                      onBlur={() => setTimeout(() => setIstockCountryOpen(false), 120)}
+                      placeholder="Start typing… (e.g. Serbia)"
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #d1d5db',
+                        fontSize: 14,
+                        width: '100%'
+                      }}
+                    />
+                    {istockCountryOpen && istockCountryLabels.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 6px)',
+                          left: 0,
+                          right: 0,
+                          background: 'white',
+                          border: '1px solid #d1d5db',
+                          borderRadius: 10,
+                          boxShadow: '0 8px 22px rgba(0,0,0,0.15)',
+                          maxHeight: 180,
+                          overflow: 'auto',
+                          zIndex: 2000
+                        }}
+                      >
+                        {istockCountryLabels
+                          .filter((label) => label.toLowerCase().includes(String(istockCountryQuery || '').toLowerCase()))
+                          .slice(0, 80)
+                          .map((label) => (
+                            <div
+                              key={label}
+                              onMouseDown={(e) => {
+                                // onMouseDown fires before blur; safe selection
+                                e.preventDefault();
+                                setIstockCountry(label);
+                                setIstockCountryQuery(label);
+                                setIstockCountryOpen(false);
+                              }}
+                              style={{
+                                padding: '10px 12px',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                color: '#374151',
+                                background: label === istockCountry ? '#eff6ff' : 'white'
+                              }}
+                            >
+                              {label}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ color: '#9ca3af', fontSize: 12 }}>
+                      Optional. Choose from the list (valid ESP values).
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIstockCountry('');
+                        setIstockCountryQuery('');
+                        setIstockCountryOpen(false);
+                      }}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        background: 'white',
+                        color: '#6b7280',
+                        borderRadius: 10,
+                        padding: '6px 10px',
+                        fontSize: 12,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </ModalBody>
+            <ModalActions>
+              <Button
+                type="button"
+                onClick={() => {
+                  const val = String(istockShootDate || '').trim();
+                  if (!val) {
+                    showToast('Shoot date is required for iStock/Getty export', 'error');
+                    return;
+                  }
+                  const c = String(istockCountryQuery || '').trim();
+                  if (c && !istockCountryLabelSet.has(c.toLowerCase())) {
+                    showToast('Please choose a valid country from the list (or clear it).', 'error');
+                    return;
+                  }
+                  setIstockCountry(c);
+                  try { localStorage.setItem('istock_shoot_date', val); } catch {}
+                  try { localStorage.setItem('istock_country', c); } catch {}
+                  setIstockExportOpen(false);
+                  exportWindowsCsv(val, c);
+                }}
+              >
+                Export
+              </Button>
+              <Button type="button" $variant="secondary" onClick={() => setIstockExportOpen(false)}>Cancel</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
