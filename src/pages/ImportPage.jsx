@@ -2208,9 +2208,17 @@ export default function ImportPage() {
         }
         return s;
       };
+      const ensureFileName = (fileName) => {
+        const base = String(fileName || '').trim();
+        if (!base) return '';
+        if (/\.[a-z0-9]{2,5}$/i.test(base)) return base;
+        return `${base}.jpg`;
+      };
       const lines = [headers.join(',')];
       for (const r of rows) {
-        const fileName = r.name || r.originalName || '';
+        const rawName = r.name || r.originalName || '';
+        const fileName = ensureFileName(rawName);
+        if (!fileName) continue; // never output blank file names
         const title = r.title || '';
         const description = r.description || '';
         const keywordsArr = Array.isArray(r.keywords) ? r.keywords : String(r.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -2256,12 +2264,11 @@ export default function ImportPage() {
         }
         return s;
       };
-      const ensureExt = (fileName, kind) => {
+      const ensureExt = (fileName) => {
         const base = String(fileName || '').trim();
         if (!base) return '';
         // If it already has an extension, keep it
         if (/\.[a-z0-9]{2,5}$/i.test(base)) return base;
-        if (kind === 'video') return `${base}.mov`;
         return `${base}.jpg`;
       };
       const formatDate = (d) => {
@@ -2277,9 +2284,7 @@ export default function ImportPage() {
       const lines = [headers.join(',')];
       for (const r of rows) {
         const rawName = r.name || r.originalName || '';
-        const mime = r.type || r.originalBlob?.type || '';
-        const kind = String(mime).toLowerCase().startsWith('video/') ? 'video' : 'image';
-        const fileName = ensureExt(rawName, kind);
+        const fileName = ensureExt(rawName);
         if (!fileName) continue; // spec: file name column can't be empty; ignore row
 
         const title = r.title || '';
@@ -2303,8 +2308,8 @@ export default function ImportPage() {
         lines.push(rowVals.join(','));
       }
 
-      // Windows CSV: CRLF line endings + BOM for Excel
-      const csvContent = '\ufeff' + lines.join('\r\n');
+      // Windows CSV: CRLF line endings (avoid BOM; some importers treat it as part of "file name" header)
+      const csvContent = lines.join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
