@@ -2502,7 +2502,7 @@ export default function ImportPage() {
 
       {pasteOpen && (
         <PasteOverlay onClick={() => setPasteOpen(false)}>
-          <ModalCard onClick={(e)=> e.stopPropagation()}>
+          <ModalCard onClick={(e)=> e.stopPropagation()} height="auto">
             <ModalHeader><h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Paste options</h3></ModalHeader>
             <ModalBody>
               <PasteLeft>
