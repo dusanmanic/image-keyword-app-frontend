@@ -1052,16 +1052,22 @@ export default function ImportPage() {
           if (Array.isArray(payload.keywords)) nextKeywords = payload.keywords;
           if (typeof payload.keywords === 'string') nextKeywords = payload.keywords.split(',').map(s=>s.trim()).filter(Boolean);
           
-          // Auto-add suggested tags to folder if folder has no tags yet
-          if (folder && (!folder.tags || folder.tags.length === 0) && Array.isArray(payload.suggestedTags) && payload.suggestedTags.length > 0) {
+          // Auto-add suggested tags to folder if folder has no tags yet (ignore blank tags)
+          const existingFolderTags = Array.isArray(folder?.tags)
+            ? folder.tags.map(t => String(t ?? '').trim()).filter(Boolean)
+            : [];
+          const suggestedFolderTags = Array.isArray(payload?.suggestedTags)
+            ? payload.suggestedTags.map(t => String(t ?? '').trim()).filter(Boolean)
+            : [];
+          if (folder && existingFolderTags.length === 0 && suggestedFolderTags.length > 0) {
             try {
               const updatedFolder = {
                 ...folder,
-                tags: payload.suggestedTags.slice(0, 2), // Max 2 auto tags
+                tags: suggestedFolderTags.slice(0, 2), // Max 2 auto tags
                 updatedAt: Date.now()
               };
               await saveFolder(updatedFolder, true);
-              showToast(`Auto-tagged folder: ${payload.suggestedTags.join(', ')}`);
+              showToast(`Auto-tagged folder: ${suggestedFolderTags.slice(0, 2).join(', ')}`);
             } catch (err) {
               console.error('Failed to auto-tag folder:', err);
             }
