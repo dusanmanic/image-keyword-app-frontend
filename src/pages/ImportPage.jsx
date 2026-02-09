@@ -16,32 +16,17 @@ import ImportIntroModal from "../components/ImportIntroModal.jsx";
 import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 
 // Reusable checkbox pair for paste options
-function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear, help }) {
-  const helpText = help || (label === 'Keywords'
-    ? {
-        include: 'Include: apply pasted keywords to the selected image(s).',
-        clear: 'Clear first: replace existing keywords (otherwise they will be merged and deduplicated).',
-      }
-    : {
-        include: `Include: apply pasted ${String(label || '').toLowerCase()} to the selected image(s).`,
-        clear: 'Clear first: overwrite the existing value (otherwise the pasted value will be appended).',
-      });
+function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
   return (
-    <div style={{ width: '100%', padding: '8px 0' }}>
-      <div style={{ width: '100%', minHeight: '44px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <input type="checkbox" checked={includeChecked} onChange={onChangeInclude} style={{ width: 18, height: 18 }} />
-          <span style={{ color: '#1e40af', fontSize: 14, fontWeight: 600 }}>{label}</span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <input type="checkbox" checked={clearChecked} onChange={onChangeClear} style={{ width: 18, height: 18 }} />
-          <span style={{ color: '#1e40af', fontSize: 14 }}>Clear first</span>
-        </label>
-      </div>
-      <div style={{ marginTop: 4, fontSize: 12, lineHeight: '16px', color: '#6b7280' }}>
-        <div><strong>Include</strong>: {helpText.include}</div>
-        <div><strong>Clear first</strong>: {helpText.clear}</div>
-      </div>
+    <div style={{ width: '100%', minHeight: '44px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input type="checkbox" checked={includeChecked} onChange={onChangeInclude} style={{ width: 18, height: 18 }} />
+        <span style={{ color: '#1e40af', fontSize: 14, fontWeight: 600 }}>{label}</span>
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input type="checkbox" checked={clearChecked} onChange={onChangeClear} style={{ width: 18, height: 18 }} />
+        <span style={{ color: '#1e40af', fontSize: 14 }}>Clear first</span>
+      </label>
     </div>
   );
 }
@@ -2528,6 +2513,11 @@ export default function ImportPage() {
                 )}
               </PasteLeft>
               <PasteOptions>
+                <div style={{ marginBottom: 10, fontSize: 12, lineHeight: '16px', color: '#6b7280' }}>
+                  <div><strong>Include</strong>: apply the pasted value to the selected image(s).</div>
+                  <div><strong>Clear first</strong>: overwrite existing value first.</div>
+                  <div style={{ marginTop: 4 }}>Notes: Title/Description will be appended if “Clear first” is off; Keywords will be merged and deduplicated if “Clear first” is off.</div>
+                </div>
                 <PasteOption
                   label="Title"
                   includeChecked={pasteOptions.title.include}
