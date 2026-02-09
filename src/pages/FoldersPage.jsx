@@ -6,6 +6,7 @@ import DatePicker from "../components/DatePicker.jsx";
 import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../config/tags.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 import IntroductionModal from "../components/IntroductionModal.jsx";
+import { useStore } from "../store/useStore.js";
 
 
 const Container = styled.div`
@@ -506,8 +507,12 @@ export default function FoldersPage() {
   const [showIntroModal, setShowIntroModal] = useState(false);
   const [draft, setDraft] = useState({ title: '', description: '', shootingDate: '', notes: '', tags: [], color: 'white' });
   const [showFilters, setShowFilters] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const navigate = useNavigate();
   const { getFolders } = useApi();
+  const { showToast } = useStore();
   // Filters state
   const [filterName, setFilterName] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
@@ -598,17 +603,31 @@ export default function FoldersPage() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteFolder = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this folder? This will also delete all images in the folder.')) {
-      return;
-    }
-    
+  const openDeleteConfirm = (id) => {
+    if (!id) return;
+    setDeleteTargetId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const closeDeleteConfirm = () => {
+    if (deleteBusy) return;
+    setDeleteConfirmOpen(false);
+    setDeleteTargetId(null);
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!deleteTargetId || deleteBusy) return;
+    setDeleteBusy(true);
     try {
-      await deleteFolder(id);
+      await deleteFolder(deleteTargetId);
       setIsModalOpen(false);
-      alert('Folder deleted successfully!');
+      setDeleteConfirmOpen(false);
+      setDeleteTargetId(null);
+      showToast({ type: 'success', message: 'Folder deleted.' });
     } catch (error) {
-      alert('Failed to delete folder: ' + error.message);
+      showToast({ type: 'error', message: `Failed to delete folder: ${error?.message || 'Unknown error'}` });
+    } finally {
+      setDeleteBusy(false);
     }
   };
 
@@ -931,12 +950,39 @@ export default function FoldersPage() {
             </ModalRow>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                {selectedId && (<Button onClick={() => handleDeleteFolder(selectedId)} $danger>🗑️ Delete Folder</Button>)}
+                {selectedId && (<Button onClick={() => openDeleteConfirm(selectedId)} $danger>🗑️ Delete Folder</Button>)}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button onClick={saveMetadata}>{selectedId ? 'Save' : 'Create'}</Button>
                 <Button onClick={()=> setIsModalOpen(false)} style={{ background: 'white', color: '#1e40af' }}>Cancel</Button>
               </div>
+            </div>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+
+      {deleteConfirmOpen && (
+        <ModalOverlay onClick={closeDeleteConfirm} style={{ zIndex: 60 }}>
+          <ModalCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <ModalTitle style={{ color: '#b91c1c' }}>Delete folder?</ModalTitle>
+            <Text $size="14px" style={{ color: '#374151', marginBottom: 12 }}>
+              Are you sure you want to delete{' '}
+              <span style={{ fontWeight: 700 }}>
+                {(folders || []).find(f => f.id === deleteTargetId)?.name || 'this folder'}
+              </span>
+              ? This will also delete all images in the folder.
+            </Text>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                onClick={closeDeleteConfirm}
+                disabled={deleteBusy}
+                style={{ background: 'white', color: '#1e40af', borderColor: '#e5e7eb' }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={confirmDeleteFolder} $danger disabled={deleteBusy}>
+                {deleteBusy ? 'Deleting...' : 'Delete'}
+              </Button>
             </div>
           </ModalCard>
         </ModalOverlay>
