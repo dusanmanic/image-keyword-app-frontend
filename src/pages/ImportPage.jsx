@@ -750,6 +750,9 @@ export default function ImportPage() {
   const fileRef = useRef(null);
   const gridRef = useRef(null);
   const controlsRef = useRef(null);
+  const pendingPasteRef = useRef(false);
+  const uploadBatchSummaryRef = useRef({ total: 0, success: 0, failed: 0 });
+  const prevUploadingRef = useRef(false);
   const location = useLocation();
 
   const folderId = location.pathname.startsWith('/import/') ? location.pathname.split('/import/')[1] : null;
@@ -815,6 +818,62 @@ export default function ImportPage() {
     keywords: { include: true, clear: false },
   });
 
+  const getDefaultPasteOptions = useCallback(() => ({
+    title: { include: true, clear: false },
+    description: { include: true, clear: false },
+    keywords: { include: true, clear: false },
+  }), []);
+
+  const parseClipboardMetadata = useCallback((txt) => {
+    if (!txt) return { title: '', description: '', keywords: [] };
+    let nextTitle = '';
+    let nextDescription = '';
+    let nextKeywords = [];
+    let parsedOk = false;
+    try {
+      const parsed = JSON.parse(txt);
+      if (parsed && typeof parsed === 'object') {
+        if (typeof parsed.title === 'string') nextTitle = parsed.title;
+        if (typeof parsed.description === 'string') nextDescription = parsed.description;
+        if (Array.isArray(parsed.keywords)) nextKeywords = parsed.keywords;
+        if (typeof parsed.keywords === 'string') nextKeywords = parsed.keywords.split(',').map(s=>s.trim()).filter(Boolean);
+        parsedOk = true;
+      }
+    } catch {}
+    if (!parsedOk) {
+      const lines = txt.split(/\r?\n/);
+      if (lines.length >= 1) nextTitle = (lines[0] || '').trim();
+      if (lines.length >= 2) nextDescription = (lines[1] || '').trim();
+      if (lines.length >= 3) nextKeywords = (lines[2] || '').split(',').map(s=>s.trim()).filter(Boolean);
+    }
+    return { title: nextTitle, description: nextDescription, keywords: nextKeywords };
+  }, []);
+
+  const copyTextToClipboard = useCallback(async (text) => {
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    // Fallback (no permissions prompt; still needs user gesture)
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand && document.execCommand('copy');
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch {}
+    return false;
+  }, []);
+
   // Unified AI prompt modal state (used for bulk and single analyze)
   const [promptOpen, setPromptOpen] = useState(false);
   const [promptText, setPromptText] = useState("");
@@ -853,9 +912,21 @@ export default function ImportPage() {
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
   
-  React.useEffect(() => {
-    console.log('[ImportPage] rows', rows);
-  }, [rows]);
+  // (Avoid noisy logs on every rows change)
+
+  // Log upload summary once per batch (like analysis status), not per image
+  useEffect(() => {
+    try {
+      if (prevUploadingRef.current && !uploadingImages) {
+        const s = uploadBatchSummaryRef.current || { total: 0, success: 0, failed: 0 };
+        if (s.total > 0) {
+          console.log(`✅ Upload finished: ${s.success}/${s.total}${s.failed ? ` (failed: ${s.failed})` : ''}`);
+        }
+        uploadBatchSummaryRef.current = { total: 0, success: 0, failed: 0 };
+      }
+      prevUploadingRef.current = uploadingImages;
+    } catch {}
+  }, [uploadingImages]);
 
   // Save keywordsCount to localStorage when it changes
   useEffect(() => {
@@ -1196,51 +1267,32 @@ export default function ImportPage() {
     }
   };
 
-  // Ctrl/Cmd+V to open paste modal for selected rows
+  // Capture pasted clipboard text (no Clipboard API permissions prompt)
   useEffect(() => {
     const handler = (e) => {
       try {
-        const isPaste = (e.key === 'v' || e.key === 'V') && (e.metaKey || e.ctrlKey);
-        if (!isPaste) return;
-        // ignore when typing
+        // Don't interfere with normal typing/pasting in inputs/contentEditable
         const ae = document.activeElement;
         const isEditable = ae && ((ae.getAttribute && ae.getAttribute('contenteditable') === 'true') || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
         if (isEditable) return;
+
+        const shouldHandle = pasteOpen || pendingPasteRef.current;
+        if (!shouldHandle) return;
+
+        const txt = (e.clipboardData && e.clipboardData.getData && (e.clipboardData.getData('text/plain') || e.clipboardData.getData('text'))) || '';
+        if (!txt) return;
+
         e.preventDefault();
-        (async () => {
-          try {
-            const txt = await navigator.clipboard.readText();
-            if (!txt) return;
-            let nextTitle = '';
-            let nextDescription = '';
-            let nextKeywords = [];
-            let parsedOk = false;
-            try {
-              const parsed = JSON.parse(txt);
-              if (parsed && typeof parsed === 'object') {
-                if (typeof parsed.title === 'string') nextTitle = parsed.title;
-                if (typeof parsed.description === 'string') nextDescription = parsed.description;
-                if (Array.isArray(parsed.keywords)) nextKeywords = parsed.keywords;
-                if (typeof parsed.keywords === 'string') nextKeywords = parsed.keywords.split(',').map(s=>s.trim()).filter(Boolean);
-                parsedOk = true;
-              }
-            } catch {}
-            if (!parsedOk) {
-              const lines = txt.split(/\r?\n/);
-              if (lines.length >= 1) nextTitle = (lines[0] || '').trim();
-              if (lines.length >= 2) nextDescription = (lines[1] || '').trim();
-              if (lines.length >= 3) nextKeywords = (lines[2] || '').split(',').map(s=>s.trim()).filter(Boolean);
-            }
-            setPasteData({ title: nextTitle, description: nextDescription, keywords: nextKeywords });
-            setPasteOptions({ title: { include: true, clear: false }, description: { include: true, clear: false }, keywords: { include: true, clear: false } });
-            setPasteOpen(true);
-          } catch {}
-        })();
+        const parsed = parseClipboardMetadata(txt);
+        setPasteData(parsed);
+        setPasteOptions(getDefaultPasteOptions());
+        setPasteOpen(true);
+        pendingPasteRef.current = false;
       } catch {}
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+    window.addEventListener('paste', handler);
+    return () => window.removeEventListener('paste', handler);
+  }, [pasteOpen, parseClipboardMetadata, getDefaultPasteOptions]);
 
 /*  
   // Deselect when clicking outside the grid
@@ -1681,8 +1733,8 @@ export default function ImportPage() {
             : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
           const text = [title, description, keywords.join(', ')].join('\n');
           e.preventDefault();
-          navigator.clipboard && navigator.clipboard.writeText(text)
-            .then(() => { showToast('Copied metadata'); })
+          copyTextToClipboard(text)
+            .then((ok) => { if (ok) showToast('Copied metadata'); })
             .catch(() => {});
           // Capture last copied info for modal preview
           try {
@@ -1698,46 +1750,29 @@ export default function ImportPage() {
 
         // Paste: open modal to choose apply strategy; allow pasting to one or many selected rows
         if (isPaste) {
-          e.preventDefault();
-          (async () => {
-            try {
-              const txt = await navigator.clipboard.readText();
-              if (!txt) return;
-              let nextTitle = '';
-              let nextDescription = '';
-              let nextKeywords = [];
+          // Only intercept paste shortcut when we have a target selection
+          let ids = Array.from(selectedRows instanceof Set ? selectedRows.values() : []);
+          if (!ids.length && lastSelectedIndex !== null && rows[lastSelectedIndex]) {
+            ids = [rows[lastSelectedIndex].id];
+          }
+          if (!ids.length) {
+            e.preventDefault();
+            showToast('No rows selected');
+            return;
+          }
 
-              let parsedOk = false;
-              try {
-                const parsed = JSON.parse(txt);
-                if (parsed && typeof parsed === 'object') {
-                  if (typeof parsed.title === 'string') nextTitle = parsed.title;
-                  if (typeof parsed.description === 'string') nextDescription = parsed.description;
-                  if (Array.isArray(parsed.keywords)) nextKeywords = parsed.keywords;
-                  if (typeof parsed.keywords === 'string') {
-                    nextKeywords = parsed.keywords.split(',').map(s=>s.trim()).filter(Boolean);
-                  }
-                  parsedOk = true;
-                }
-              } catch {}
-              if (!parsedOk) {
-                const lines = txt.split(/\r?\n/);
-                if (lines.length >= 1) nextTitle = (lines[0] || '').trim();
-                if (lines.length >= 2) nextDescription = (lines[1] || '').trim();
-                if (lines.length >= 3) nextKeywords = (lines[2] || '').split(',').map(s=>s.trim()).filter(Boolean);
-              }
-
-              setPasteData({ title: nextTitle, description: nextDescription, keywords: nextKeywords });
-              setPasteOptions({ title: { include: true, clear: false }, description: { include: true, clear: false }, keywords: { include: true, clear: false } });
-              setPasteOpen(true);
-            } catch {}
-          })();
+          // Arm next paste event to populate modal (no navigator.clipboard.readText())
+          pendingPasteRef.current = true;
+          setPasteData({ title: '', description: '', keywords: [] });
+          setPasteOptions(getDefaultPasteOptions());
+          setPasteOpen(true);
+          // Do NOT preventDefault: allow the real paste event to fire so we can read e.clipboardData
         }
       } catch {}
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [rows, selectedRows, lastSelectedIndex]);
+  }, [rows, selectedRows, lastSelectedIndex, copyTextToClipboard, getDefaultPasteOptions]);
 
   // Load images from API
   useEffect(() => {
@@ -1878,9 +1913,9 @@ export default function ImportPage() {
               // Continue anyway if storage check fails
             }
             
-            console.log('Saving new images to API in batch:', unsavedImages.length, 'images');
             setUploadingImages(true);
             setUploadProgress({ current: 0, total: unsavedImages.length });
+            uploadBatchSummaryRef.current = { total: unsavedImages.length, success: 0, failed: 0 };
             
             // Save all images in batch
             const batchSize = 5; // Process 5 images at a time
@@ -1892,9 +1927,8 @@ export default function ImportPage() {
               await Promise.all(
                 batch.map(async (row) => {
                   try {
-                    console.log('Saving new image:', row.name);
                     const savedImage = await saveImageMetadata(folderId, row);
-                    console.log('New image saved successfully:', row.name);
+                    try { uploadBatchSummaryRef.current.success += 1; } catch {}
                     
                     // Update with stored thumbUrl
                     setRows(prev => prev.map(r => 
@@ -1908,6 +1942,7 @@ export default function ImportPage() {
                     setUploadProgress({ current: processedCount, total: unsavedImages.length });
                   } catch (error) {
                     console.error('Error saving new image to API:', error);
+                    try { uploadBatchSummaryRef.current.failed += 1; } catch {}
                     processedCount++;
                     setUploadProgress({ current: processedCount, total: unsavedImages.length });
                   }
