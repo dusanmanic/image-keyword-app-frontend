@@ -58,6 +58,35 @@ const Container = styled.div`
   overflow: hidden;
 `;
 
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const QueueStatusBar = styled.div`
+  margin: 0 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(147, 197, 253, 0.8);
+  background: linear-gradient(90deg, rgba(30, 64, 175, 0.10), rgba(147, 197, 253, 0.10));
+  color: #1e40af;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+`;
+
+const QueueSpinner = styled.span`
+  width: 16px;
+  height: 16px;
+  border: 2px solid #93c5fd;
+  border-top-color: #1e40af;
+  border-radius: 50%;
+  animation: ${spin} 0.7s linear infinite;
+`;
+
 const Header = styled.div`
   display: flex;
   align-items: center;
@@ -2356,6 +2385,13 @@ export default function ImportPage() {
         </div>
       )}
 
+      {pollingQueueStatus && (
+        <QueueStatusBar>
+          <QueueSpinner />
+          Checking batch status… will refresh when done
+        </QueueStatusBar>
+      )}
+
       {rows.length === 0 ? (
             <DropZone
             $table
@@ -2573,28 +2609,6 @@ export default function ImportPage() {
         } 
       />
 
-      {/* Line in bottom when polling status of selected in queue */}
-      {pollingQueueStatus && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: '10px 16px',
-          background: 'linear-gradient(to top, #1e40af18, transparent)',
-          color: '#1e40af',
-          fontSize: 13,
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          zIndex: 900,
-        }}>
-          <span style={{ width: 16, height: 16, border: '2px solid #93c5fd', borderTopColor: '#1e40af', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-          Proveravam status batch-a… osvežiće se kada završe
-        </div>
-      )}
     </Container>
   );
 }
