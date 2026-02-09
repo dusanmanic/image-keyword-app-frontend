@@ -7,6 +7,7 @@ import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../c
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
 import IntroductionModal from "../components/IntroductionModal.jsx";
 import { useStore } from "../store/useStore.js";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 
 
 const Container = styled.div`
@@ -962,30 +963,22 @@ export default function FoldersPage() {
       )}
 
       {deleteConfirmOpen && (
-        <ModalOverlay onClick={closeDeleteConfirm} style={{ zIndex: 60 }}>
-          <ModalCard onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-            <ModalTitle style={{ color: '#b91c1c' }}>Delete folder?</ModalTitle>
-            <Text $size="14px" style={{ color: '#374151', marginBottom: 12 }}>
-              Are you sure you want to delete{' '}
-              <span style={{ fontWeight: 700 }}>
-                {(folders || []).find(f => f.id === deleteTargetId)?.name || 'this folder'}
-              </span>
-              ? This will also delete all images in the folder.
-            </Text>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <Button
-                onClick={closeDeleteConfirm}
-                disabled={deleteBusy}
-                style={{ background: 'white', color: '#1e40af', borderColor: '#e5e7eb' }}
-              >
-                Cancel
-              </Button>
-              <Button onClick={confirmDeleteFolder} $danger disabled={deleteBusy}>
-                {deleteBusy ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </ModalCard>
-        </ModalOverlay>
+        <ConfirmModal
+          open={deleteConfirmOpen}
+          title="Delete folder?"
+          danger
+          busy={deleteBusy}
+          confirmText={deleteBusy ? "Deleting..." : "Delete"}
+          cancelText="Cancel"
+          onCancel={closeDeleteConfirm}
+          onConfirm={confirmDeleteFolder}
+        >
+          Are you sure you want to delete{" "}
+          <span style={{ fontWeight: 700 }}>
+            {(folders || []).find(f => f.id === deleteTargetId)?.name || "this folder"}
+          </span>
+          ? This will also delete all images in the folder.
+        </ConfirmModal>
       )}
       
       {showIntroModal && (
