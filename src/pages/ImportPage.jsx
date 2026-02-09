@@ -2237,6 +2237,91 @@ export default function ImportPage() {
     }
   };
 
+  // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 BOM + required columns/order
+  const exportWindowsCsv = () => {
+    try {
+      const headers = [
+        'file name',
+        'created date',
+        'description',
+        'country',
+        'brief code',
+        'title',
+        'keywords',
+      ];
+      const toCsvValue = (v) => {
+        const s = (v ?? '').toString();
+        if (s.includes('"') || s.includes(',') || s.includes('\n') || s.includes('\r')) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      };
+      const ensureExt = (fileName, kind) => {
+        const base = String(fileName || '').trim();
+        if (!base) return '';
+        // If it already has an extension, keep it
+        if (/\.[a-z0-9]{2,5}$/i.test(base)) return base;
+        if (kind === 'video') return `${base}.mov`;
+        return `${base}.jpg`;
+      };
+      const formatDate = (d) => {
+        // Required: YYYY-MM-DD (we choose this format consistently)
+        const dt = d instanceof Date ? d : (d ? new Date(d) : null);
+        if (!dt || Number.isNaN(dt.getTime())) return '';
+        const yyyy = String(dt.getFullYear()).padStart(4, '0');
+        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
+
+      const lines = [headers.join(',')];
+      for (const r of rows) {
+        const rawName = r.name || r.originalName || '';
+        const mime = r.type || r.originalBlob?.type || '';
+        const kind = String(mime).toLowerCase().startsWith('video/') ? 'video' : 'image';
+        const fileName = ensureExt(rawName, kind);
+        if (!fileName) continue; // spec: file name column can't be empty; ignore row
+
+        const title = r.title || '';
+        const description = r.description || '';
+        const keywordsArr = Array.isArray(r.keywords)
+          ? r.keywords
+          : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
+        const keywordsStr = keywordsArr.join(', ');
+
+        const createdDate = formatDate(
+          r.createdAt ||
+          r.created_date ||
+          r.createdDate ||
+          r.originalBlob?.lastModified ||
+          null
+        );
+        const country = r.country || '';
+        const briefCode = r.briefCode || r.brief_code || '';
+
+        const rowVals = [fileName, createdDate, description, country, briefCode, title, keywordsStr].map(toCsvValue);
+        lines.push(rowVals.join(','));
+      }
+
+      // Windows CSV: CRLF line endings + BOM for Excel
+      const csvContent = '\ufeff' + lines.join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const folderName = (Array.isArray(folders) ? folders.find(f => String(f.id) === String(folderId))?.name : null) || 'export';
+      const safeName = String(folderName).replace(/[^\w\-\s]/g, '').trim() || 'export';
+      // Note: we can't use "/" in filenames; use underscore instead.
+      a.download = `${safeName}_istock_getty.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      showToast('iStock/Getty CSV export failed', 'error');
+    }
+  };
+
   // Apply paste modal action
   const applyPaste = async () => {
     try {
@@ -2316,6 +2401,7 @@ export default function ImportPage() {
             Move to folder
           </Button>
           <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
+          <ExportButton onClick={exportWindowsCsv} type="button" title="Export iStock/Getty CSV (ESP)">iStock/Getty CSV</ExportButton>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
           <span>{currentFolder?.name || 'Folder'}</span>
