@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
+import { useAuthRedux } from "../hooks/useAuthRedux.js";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -102,11 +103,32 @@ const BuyCreditsButton = styled.button`
   }
 `;
 
+const GoToFoldersButton = styled.button`
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #059669;
+  }
+`;
+
 export default function WelcomePage() {
   const navigate = useNavigate();
+  const { isActive } = useAuthRedux();
 
   const handleBuyCredits = () => {
     navigate('/payment');
+  };
+
+  const handleGoToFolders = () => {
+    navigate('/folders');
   };
 
   return (
@@ -153,13 +175,27 @@ export default function WelcomePage() {
         </FeatureList>
 
         <CTA>
-          <CTATitle>Ready to get started?</CTATitle>
-          <CTAText>
-            Get 10,000 credits for just $25 and start analyzing your images with AI-powered keyword generation!
-          </CTAText>
-          <BuyCreditsButton onClick={handleBuyCredits}>
-            Buy Credits
-          </BuyCreditsButton>
+          {isActive === false ? (
+            <>
+              <CTATitle>Ready to get started?</CTATitle>
+              <CTAText>
+                Get 10,000 credits for just $25 and start analyzing your images with AI-powered keyword generation!
+              </CTAText>
+              <BuyCreditsButton onClick={handleBuyCredits}>
+                Buy Credits
+              </BuyCreditsButton>
+            </>
+          ) : (
+            <>
+              <CTATitle>You're all set! 🎉</CTATitle>
+              <CTAText>
+                Your account is active. Start organizing your images by creating folders and analyzing them with AI.
+              </CTAText>
+              <GoToFoldersButton onClick={handleGoToFolders}>
+                Go to Folders →
+              </GoToFoldersButton>
+            </>
+          )}
         </CTA>
       </WelcomeCard>
     </Container>

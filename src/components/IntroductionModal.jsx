@@ -183,7 +183,7 @@ export default function IntroductionModal({ onClose, onProceed, hasExistingFolde
             <SectionContent>
               <SectionTitle>What are Folders?</SectionTitle>
               <SectionText>
-                Folders help you organize your photo sets. Each folder can contain multiple images from the same shoot or theme.
+                Folders help you organize images from the same shoot, event, or theme. Each folder can contain multiple photos with shared metadata.
               </SectionText>
             </SectionContent>
           </Section>
@@ -191,9 +191,9 @@ export default function IntroductionModal({ onClose, onProceed, hasExistingFolde
           <Section>
             <SectionIcon>🤖</SectionIcon>
             <SectionContent>
-              <SectionTitle>AI-Powered Tagging</SectionTitle>
+              <SectionTitle>Smart Auto-Tagging</SectionTitle>
               <SectionText>
-                When you analyze images, AI automatically suggests 1-2 category tags for your folder based on the content. Categories help you find and filter folders quickly.
+                When you analyze images, AI automatically suggests 1-2 category tags based on image content (e.g., "nature", "business", "food"). Tags help you filter and find folders quickly.
               </SectionText>
             </SectionContent>
           </Section>
@@ -201,9 +201,9 @@ export default function IntroductionModal({ onClose, onProceed, hasExistingFolde
           <Section>
             <SectionIcon>📝</SectionIcon>
             <SectionContent>
-              <SectionTitle>Details for Better Analysis</SectionTitle>
+              <SectionTitle>Folder Description = Better Keywords</SectionTitle>
               <SectionText>
-                Add a description to your folder (shooting location, number of people, theme) to help AI generate more accurate keywords and descriptions for your images.
+                Add details about your shoot (location, subjects, theme) in the folder description. AI uses this context to generate more accurate titles, descriptions, and keywords for your images.
               </SectionText>
             </SectionContent>
           </Section>
@@ -211,9 +211,9 @@ export default function IntroductionModal({ onClose, onProceed, hasExistingFolde
           <Section>
             <SectionIcon>🏷️</SectionIcon>
             <SectionContent>
-              <SectionTitle>Manual Tagging</SectionTitle>
+              <SectionTitle>Manual Tagging (Optional)</SectionTitle>
               <SectionText>
-                You can also manually select up to 3 category tags. Once you set tags (manually or automatically), they won't change on future analyses.
+                You can manually select up to 3 tags. Once set (auto or manual), tags won't change on future analyses—keeping your organization stable.
               </SectionText>
             </SectionContent>
           </Section>

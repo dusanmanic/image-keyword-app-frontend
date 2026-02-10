@@ -183,7 +183,7 @@ export default function ImportIntroModal({ onClose, onProceed }) {
             <SectionContent>
               <SectionTitle>Upload Images</SectionTitle>
               <SectionText>
-                Click "Upload" or drag & drop images into the zone. Supports JPG, PNG, and other common image formats.
+                Click "Upload" or drag & drop images into the zone. Supports JPG, PNG, and other common formats. Images are stored securely in the cloud.
               </SectionText>
             </SectionContent>
           </Section>
@@ -193,7 +193,7 @@ export default function ImportIntroModal({ onClose, onProceed }) {
             <SectionContent>
               <SectionTitle>AI Keyword Wizard</SectionTitle>
               <SectionText>
-                Select images and click "Keyword Wizard" to generate titles, descriptions, and Getty-optimized keywords automatically. AI uses folder details for better accuracy.
+                Select images and click "Keyword Wizard" to automatically generate titles, descriptions, and keywords. AI uses your folder description for better context and accuracy.
               </SectionText>
             </SectionContent>
           </Section>
@@ -203,7 +203,7 @@ export default function ImportIntroModal({ onClose, onProceed }) {
             <SectionContent>
               <SectionTitle>Edit Metadata</SectionTitle>
               <SectionText>
-                Click any cell in the table to edit titles, descriptions, or keywords. Changes are saved automatically to the cloud.
+                Click any cell in the table to edit titles, descriptions, or keywords. Changes sync automatically and are saved instantly.
               </SectionText>
             </SectionContent>
           </Section>
@@ -213,7 +213,7 @@ export default function ImportIntroModal({ onClose, onProceed }) {
             <SectionContent>
               <SectionTitle>Embed & Export</SectionTitle>
               <SectionText>
-                "Embed to folder" saves metadata directly into image files (IPTC/XMP). "Export CSV" creates a spreadsheet for bulk uploads to stock sites.
+                Embed: Write metadata directly into image files (IPTC/XMP format). Export CSV: Generate iStock/Getty-ready spreadsheet with mapped keywords for bulk uploads.
               </SectionText>
             </SectionContent>
           </Section>

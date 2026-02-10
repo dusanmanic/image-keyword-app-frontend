@@ -274,7 +274,7 @@ function AuthenticatedApp() {
           )}
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
-          <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink>
+          {/* <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink> */}
           <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Credits</NavLink>
           <LogoutButton 
             onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
