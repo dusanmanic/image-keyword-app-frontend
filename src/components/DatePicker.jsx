@@ -16,7 +16,7 @@ const Input = styled.input`
   background: transparent;
   border-radius: 8px;
   width: ${props => props.$width || '180px'};
-  color: #1e40af;
+  color: #111827;
   color-scheme: light;
   font-family: 'Nunito Sans';
   font-size: 14px;
@@ -68,7 +68,7 @@ export default function DatePicker({ id, value, onChange, placeholder, width }) 
         selected={selected}
         onChange={handleChange}
         placeholderText={placeholder}
-        dateFormat="yyyy-MM-dd"
+        dateFormat="dd.MM.yyyy"
         popperPlacement="bottom-start"
         showPopperArrow
         isClearable={false}
@@ -97,13 +97,25 @@ const GlobalStyles = createGlobalStyle`
     background: #eff6ff !important;
     border-bottom: 1px solid #e5e7eb !important;
   }
+  .react-datepicker__day {
+    border-radius: 999px !important;
+    background: transparent !important;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .react-datepicker__day:hover {
+    background: #eff6ff !important;
+    color: #1e40af !important;
+  }
   .react-datepicker__day--selected,
   .react-datepicker__day--keyboard-selected {
-    background: #1e40af !important;
+    background: transparent !important;
+    color: #1e40af !important;
+    border: 2px solid #1e40af !important;
   }
   .react-datepicker__day--today {
-    border-radius: 50%;
-    outline: 2px solid #93c5fd;
+    border-radius: 999px !important;
+    outline: none !important;
+    border: 1px dashed #93c5fd !important;
   }
 
   /* Ensure library close icon stays hidden */
@@ -115,19 +127,18 @@ const ClearButton = styled.button`
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #eff6ff;
-  border: 1px solid #cbd5e1;
-  color: #1e40af;
-  font-weight: 700;
-  line-height: 20px;
-  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 
   &:focus,
   &:active,
