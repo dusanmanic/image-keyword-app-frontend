@@ -52,15 +52,6 @@ const PrimaryButton = styled.button`
   padding: 10px 14px;
   font-weight: 800;
   cursor: pointer;
-
-  &:focus,
-  &:active,
-  &:focus-visible,
-  &:focus-within {
-    outline: none;
-    border-color: none;
-    box-shadow: none;
-  }
 `;
 
 const SecondaryButton = styled.button`
@@ -71,15 +62,6 @@ const SecondaryButton = styled.button`
   padding: 10px 14px;
   font-weight: 800;
   cursor: pointer;
-
-  &:focus,
-  &:active,
-  &:focus-visible,
-  &:focus-within {
-    outline: none;
-    border-color: none;
-    box-shadow: none;
-  }
 `;
 
 const Title = styled.h3`
@@ -115,8 +97,8 @@ const CountryCol = styled.div`
 `;
 
 const Relative = styled.div`
-  position: relative;
   width: 325px;
+  position: relative;
 `;
 
 const TextInput = styled.input`
@@ -130,7 +112,7 @@ const TextInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: none;
+    border-color: #1e40af;
     box-shadow: none;
   }
 `;
@@ -153,7 +135,7 @@ const Option = styled.div`
   padding: 10px 12px;
   font-size: 14px;
   color: #374151;
-  background: ${p => (p.$active ? '#eff6ff' : 'white')};
+  background: ${p => (p.$active ? "#eff6ff" : "white")};
   cursor: pointer;
 `;
 
@@ -167,16 +149,6 @@ const HelpRow = styled.div`
 const HelpText = styled.div`
   color: #9ca3af;
   font-size: 12px;
-`;
-
-const ClearButton = styled.button`
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
 `;
 
 const InlineClear = styled.button`
@@ -231,6 +203,7 @@ export default function IstockGettyExportModal({
       return [];
     }
   }, []);
+
   const countryLabelSet = React.useMemo(
     () => new Set(countryLabels.map((s) => s.toLowerCase())),
     [countryLabels]
@@ -241,16 +214,17 @@ export default function IstockGettyExportModal({
     setCountry(val);
     setCountryQuery(val);
     setCountryOpen(false);
-    try { localStorage.setItem("istock_country", val); } catch {}
+    try {
+      localStorage.setItem("istock_country", val);
+    } catch {}
   }, []);
 
-  // Initialize when opened (and allow defaultShootDate to prefill)
+  // Initialize when opened (and allow defaultShootDate + last country to prefill)
   React.useEffect(() => {
     if (!open) return;
     try {
-      const savedShootDate = localStorage.getItem("istock_shoot_date") || "";
       const savedCountry = localStorage.getItem("istock_country") || "";
-      setShootDate((defaultShootDate || savedShootDate || "").slice(0, 10));
+      setShootDate((defaultShootDate || "").slice(0, 10));
       setCountry(savedCountry);
       setCountryQuery(savedCountry);
     } catch {
@@ -264,20 +238,21 @@ export default function IstockGettyExportModal({
   if (!open) return null;
 
   const filteredCountries = countryLabels
-    .filter((label) => label.toLowerCase().includes(String(countryQuery || "").toLowerCase()))
+    .filter((label) =>
+      label.toLowerCase().includes(String(countryQuery || "").toLowerCase())
+    )
     .slice(0, 80);
 
   return (
     <Overlay onClick={onClose}>
       <Card onClick={(e) => e.stopPropagation()}>
         <Header>
-          <Title>iStock/Getty CSV export</Title>
+          <Title>CSV export</Title>
         </Header>
 
         <Body>
           <InfoText>
-            Pick a <strong>shoot date</strong>. It will be written into the CSV{" "}
-            <code>created date</code> column for all images.
+            Optionally pick a <strong>shoot date</strong> and <strong>country</strong>. They will pre-fill the CSV fields, but you can also leave them blank and edit them later on the site.
           </InfoText>
 
           <Row>
@@ -352,17 +327,15 @@ export default function IstockGettyExportModal({
             type="button"
             onClick={() => {
               const d = String(shootDate || "").trim();
-              if (!d) {
-                showToast("Shoot date is required for iStock/Getty export", "error");
-                return;
-              }
               const c = String(countryQuery || "").trim();
               if (c && !countryLabelSet.has(c.toLowerCase())) {
-                showToast("Please choose a valid country from the list (or clear it).", "error");
+                showToast(
+                  "Please choose a valid country from the list (or clear it).",
+                  "error"
+                );
                 return;
               }
               try {
-                localStorage.setItem("istock_shoot_date", d);
                 localStorage.setItem("istock_country", c);
               } catch {}
               onExport?.({ shootDate: d, country: c });
