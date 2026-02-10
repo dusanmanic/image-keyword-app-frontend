@@ -72,7 +72,8 @@ export default function DatePicker({ id, value, onChange, placeholder, width }) 
         popperPlacement="bottom-start"
         showPopperArrow
         isClearable={false}
-        customInput={<Input as="input" $width={width} />}
+        autoComplete="off"
+        customInput={<Input as="input" $width={width} autoComplete="off" />}
       />
       {selected && (
         <ClearButton type="button" onClick={()=> handleChange(null)} title="Clear date">×</ClearButton>

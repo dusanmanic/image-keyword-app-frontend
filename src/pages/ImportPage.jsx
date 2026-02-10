@@ -2192,61 +2192,6 @@ export default function ImportPage() {
     onFiles(entries);
   };
 
-  // Export current rows to CSV
-  const exportCsv = () => {
-    try {
-      const headers = [
-        'file name',
-        'title',
-        'description',
-        'keywords',
-        'created date',
-        'country'
-      ];
-      const toCsvValue = (v) => {
-        const s = (v ?? '').toString();
-        if (s.includes('"') || s.includes(',') || s.includes('\n')) {
-          return '"' + s.replace(/"/g, '""') + '"';
-        }
-        return s;
-      };
-      const ensureFileName = (fileName) => {
-        const base = String(fileName || '').trim();
-        if (!base) return '';
-        if (/\.[a-z0-9]{2,5}$/i.test(base)) return base;
-        return `${base}.jpg`;
-      };
-      const lines = [headers.join(',')];
-      for (const r of rows) {
-        const rawName = r.name || r.originalName || '';
-        const fileName = ensureFileName(rawName);
-        if (!fileName) continue; // never output blank file names
-        const title = r.title || '';
-        const description = r.description || '';
-        const keywordsArr = Array.isArray(r.keywords) ? r.keywords : String(r.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
-        const keywordsStr = keywordsArr.join(', ');
-        const createdDate = '';
-        const country = '';
-        const rowVals = [fileName, title, description, keywordsStr, createdDate, country].map(toCsvValue);
-        lines.push(rowVals.join(','));
-      }
-      const csvContent = lines.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const folderName = (Array.isArray(folders) ? folders.find(f => String(f.id) === String(folderId))?.name : null) || 'export';
-      const safeName = String(folderName).replace(/[^\w\-\s]/g, '').trim() || 'export';
-      a.download = `${safeName}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      showToast('CSV export failed', 'error');
-    }
-  };
-
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
   const exportWindowsCsv = (shootDateOverride = '', countryOverride = '') => {
     try {
@@ -2409,15 +2354,14 @@ export default function ImportPage() {
           >
             Move to folder
           </Button>
-          <ExportButton onClick={exportCsv} type="button" title="Export CSV">Export CSV</ExportButton>
           <ExportButton
             onClick={() => {
               setIstockExportOpen(true);
             }}
             type="button"
-            title="Export iStock/Getty CSV (Excel)"
+            title="Export CSV"
           >
-            iStock/Getty CSV
+            Export CSV
           </ExportButton>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
