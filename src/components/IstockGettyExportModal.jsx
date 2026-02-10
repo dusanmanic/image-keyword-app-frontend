@@ -247,7 +247,7 @@ export default function IstockGettyExportModal({
     <Overlay onClick={onClose}>
       <Card onClick={(e) => e.stopPropagation()}>
         <Header>
-          <Title>CSV export</Title>
+          <Title> iStock/Getty CSV export</Title>
         </Header>
 
         <Body>

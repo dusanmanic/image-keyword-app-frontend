@@ -140,9 +140,16 @@ export function useApi() {
         folderId,
         imageIds,
         maxKeywords: options.maxKeywords,
-        prompt: options.prompt,
-        useGettyKeywords: options.useGettyKeywords
+        prompt: options.prompt
       })
+    });
+    return data;
+  }, [apiCall]);
+
+  const mapKeywordsToGetty = useCallback(async (keywords, maxKeywords = 50) => {
+    const data = await apiCall('/api/analyze/map-to-getty', {
+      method: 'POST',
+      body: JSON.stringify({ keywords, maxKeywords })
     });
     return data;
   }, [apiCall]);
@@ -262,6 +269,7 @@ export function useApi() {
     startAnalyzeBatch,
     getAnalyzeBatchStatus,
     getAnalyzeStatusByImageIds,
+    mapKeywordsToGetty,
     login,
     register,
     logout,

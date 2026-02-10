@@ -6,18 +6,16 @@ import { getAuthHeaders } from "./authService.js";
 import { getApiBaseUrl } from "../config/api.js";
 
 /**
- * Analyze image and generate metadata
+ * Analyze image and generate metadata (AI generates custom keywords, mapping to Getty happens during export)
  * @param {Blob} imageBlob - Image blob to analyze
  * @param {number} maxKeywords - Maximum number of keywords to generate
  * @param {string} [prompt] - Optional additional prompt
- * @param {boolean} [useGettyKeywords] - Use Getty/iStock approved keywords only
  * @returns {Promise<{title: string, description: string, keywords: string[]}>}
  */
-export async function analyzeImage(imageBlob, maxKeywords = 30, prompt = "", useGettyKeywords = false) {
+export async function analyzeImage(imageBlob, maxKeywords = 30, prompt = "") {
   const formData = new FormData();
   formData.append("image", imageBlob);
   formData.append("maxKeywords", String(maxKeywords));
-  formData.append("useGettyKeywords", String(useGettyKeywords));
   
   if (prompt && prompt.trim()) {
     formData.append("prompt", prompt.trim());

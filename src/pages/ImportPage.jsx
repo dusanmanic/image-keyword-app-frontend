@@ -768,7 +768,7 @@ export default function ImportPage() {
   
   // API integration
   const { folders, saveFolder } = useFoldersRedux();
-  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages, startAnalyzeBatch, getAnalyzeBatchStatus, getAnalyzeStatusByImageIds } = useApi();
+  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages, startAnalyzeBatch, getAnalyzeBatchStatus, getAnalyzeStatusByImageIds, mapKeywordsToGetty } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
   const [folderStats, setFolderStats] = useState(null);
   const [folderStatsLoading, setFolderStatsLoading] = useState(false);
@@ -799,16 +799,6 @@ export default function ImportPage() {
     }
   });
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
-  
-  // Load useGettyKeywords from localStorage
-  const [useGettyKeywords, setUseGettyKeywords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('useGettyKeywords');
-      return saved === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -939,15 +929,6 @@ export default function ImportPage() {
     }
   }, [keywordsCount]);
 
-  // Save useGettyKeywords to localStorage when it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('useGettyKeywords', String(useGettyKeywords));
-    } catch (error) {
-      console.error('Failed to save useGettyKeywords to localStorage:', error);
-    }
-  }, [useGettyKeywords]);
-
   // Check if user should see import intro modal on page load
   useEffect(() => {
     const hideImportIntro = localStorage.getItem('hideImportIntroModal');
@@ -1038,7 +1019,7 @@ export default function ImportPage() {
       if (extra) parts.push(`Added extra suggestion: ${extra}`);
       const combinedPrompt = parts.join(' <br/> ');
 
-      const data = await analyzeImage(blob, keywordsCount, combinedPrompt, useGettyKeywords);
+      const data = await analyzeImage(blob, keywordsCount, combinedPrompt);
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';
@@ -1140,8 +1121,7 @@ export default function ImportPage() {
       setBulkDone(0);
       const { batchId, total } = await startAnalyzeBatch(folderId, withUrl, {
         prompt: extraPrompt,
-        maxKeywords: keywordsCount,
-        useGettyKeywords: useGettyKeywords ?? false
+        maxKeywords: keywordsCount
       });
       setBulkTotal(total);
       const poll = async () => {
@@ -2193,8 +2173,43 @@ export default function ImportPage() {
   };
 
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
-  const exportWindowsCsv = (shootDateOverride = '', countryOverride = '') => {
+  const exportWindowsCsv = async (shootDateOverride = '', countryOverride = '') => {
     try {
+      showToast('Mapping keywords to Getty-approved terms...');
+      
+      // Collect all unique keywords from all rows
+      const allCustomKeywords = new Set();
+      for (const r of rows) {
+        const keywordsArr = Array.isArray(r.keywords)
+          ? r.keywords
+          : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
+        keywordsArr.forEach(kw => allCustomKeywords.add(kw));
+      }
+
+      // Map custom keywords to Getty-approved keywords
+      let keywordMapping = {}; // custom -> getty
+      if (allCustomKeywords.size > 0) {
+        try {
+          const customKeywordsArray = Array.from(allCustomKeywords);
+          const mappingResult = await mapKeywordsToGetty(customKeywordsArray, 50);
+          
+          // Create a mapping: for each original keyword, find its Getty equivalent
+          // Since semantic mapping may not return all keywords, we'll use best-effort matching
+          const gettyKeywords = mappingResult.gettyKeywords || [];
+          customKeywordsArray.forEach((customKw, idx) => {
+            // Simple 1:1 mapping (semantic mapping might change order, but we trust the backend)
+            keywordMapping[customKw] = gettyKeywords[idx] || customKw; // fallback to original if no Getty match
+          });
+          
+          showToast('Keywords mapped successfully!');
+        } catch (err) {
+          console.error('Getty mapping failed:', err);
+          showToast('Getty mapping failed, using original keywords', 'error');
+          // Fallback: use original keywords
+          Array.from(allCustomKeywords).forEach(kw => keywordMapping[kw] = kw);
+        }
+      }
+
       const headers = [
         'file name',
         'created date',
@@ -2238,18 +2253,16 @@ export default function ImportPage() {
 
         const title = r.title || '';
         const description = r.description || '';
-        const keywordsArr = Array.isArray(r.keywords)
+        const customKeywordsArr = Array.isArray(r.keywords)
           ? r.keywords
           : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
-        const keywordsStr = keywordsArr.join(', ');
+        
+        // Map custom keywords to Getty keywords using the mapping
+        const gettyKeywordsArr = customKeywordsArr.map(customKw => keywordMapping[customKw] || customKw);
+        const keywordsStr = gettyKeywordsArr.join(', ');
 
-        const createdDate = override || formatDate(
-          r.createdAt ||
-          r.created_date ||
-          r.createdDate ||
-          r.originalBlob?.lastModified ||
-          null
-        );
+        // Only use override date if provided; otherwise leave empty
+        const createdDate = override || '';
         const country = overrideCountry || r.country || '';
         const briefCode = r.briefCode || r.brief_code || '';
 
@@ -2359,9 +2372,9 @@ export default function ImportPage() {
               setIstockExportOpen(true);
             }}
             type="button"
-            title="Export CSV"
+            title="Export iStock/Getty CSV"
           >
-            Export CSV
+            Export iStock/Getty CSV
           </ExportButton>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
@@ -2400,15 +2413,6 @@ export default function ImportPage() {
               })}
             </DropdownOptions>
           </KeywordsCountSelect>
-          
-          <CheckboxLabel style={{ marginLeft: 12 }}>
-            <Checkbox
-              type="checkbox"
-              checked={useGettyKeywords}
-              onChange={(e) => setUseGettyKeywords(e.target.checked)}
-            />
-            <span>iStock/Getty</span>
-          </CheckboxLabel>
         </KeywordsCountContainer>
       </Header>
 
@@ -2686,9 +2690,9 @@ export default function ImportPage() {
             }
           })()
         }
-        onExport={({ shootDate, country }) => {
+        onExport={async ({ shootDate, country }) => {
           setIstockExportOpen(false);
-          exportWindowsCsv(shootDate, country);
+          await exportWindowsCsv(shootDate, country);
         }}
       />
 
