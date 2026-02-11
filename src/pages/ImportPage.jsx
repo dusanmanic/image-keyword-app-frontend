@@ -2411,12 +2411,47 @@ export default function ImportPage() {
             Export iStock/Getty CSV
           </ExportButton>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
-          <span>{currentFolder?.name || 'Folder'}</span>
-          <span style={{ color: '#9ca3af' }}>—</span>
-          <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 12 }}>
-            {folderStatsLoading ? 'Loading…' : folderStats ? `${folderStats.imageCount} images · ${folderStats.storage.formatted}` : ''}
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
+            <span>{currentFolder?.name || 'Folder'}</span>
+            <span style={{ color: '#9ca3af' }}>—</span>
+            <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 12 }}>
+              {folderStatsLoading ? 'Loading…' : folderStats ? `${folderStats.imageCount} images · ${folderStats.storage.formatted}` : ''}
+            </span>
+          </div>
+          {currentFolder?.id && (
+            <div style={{ fontSize: 11, color: '#6b7280' }}>
+              <span style={{ fontWeight: 500 }}>Folder ID:</span>{' '}
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  cursor: 'pointer',
+                  textDecoration: 'underline dotted'
+                }}
+                title="Click to copy folder ID"
+                onClick={async () => {
+                  try {
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(currentFolder.id);
+                    } else {
+                      const ta = document.createElement('textarea');
+                      ta.value = currentFolder.id;
+                      ta.style.position = 'fixed';
+                      ta.style.left = '-9999px';
+                      document.body.appendChild(ta);
+                      ta.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(ta);
+                    }
+                  } catch (err) {
+                    console.error('Failed to copy folder ID:', err);
+                  }
+                }}
+              >
+                {currentFolder.id}
+              </span>
+            </div>
+          )}
         </div>
         
         <KeywordsCountContainer ref={controlsRef}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import { useApi } from "../hooks/useApi.js";
@@ -247,6 +247,29 @@ const IconButton = styled.button`
   &:focus-within {
     outline: none;
     background: transparent;
+  }
+`;
+
+const DeleteCornerButton = styled.button`
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #b91c1c;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+
+  &:focus,
+  &:active,
+  &:focus-visible,
+  &:focus-within {
+    outline: none;
   }
 `;
 
@@ -511,6 +534,8 @@ export default function FoldersPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [hoverDeleteId, setHoverDeleteId] = useState(null);
+  const hoverTimersRef = useRef({});
   const navigate = useNavigate();
   const { getFolders } = useApi();
   const { showToast } = useStore();
@@ -808,11 +833,30 @@ export default function FoldersPage() {
       ) : (
         <CardsGrid>
         {folders?.map(f => {
+          const isDeleteVisible = hoverDeleteId === f.id;
           return (
             <RowCard 
               key={f.id} 
               onClick={() => openFolder(f.id)}
+              onMouseEnter={() => {
+                if (hoverTimersRef.current[f.id]) {
+                  clearTimeout(hoverTimersRef.current[f.id]);
+                }
+                hoverTimersRef.current[f.id] = setTimeout(() => {
+                  setHoverDeleteId(f.id);
+                }, 1500);
+              }}
+              onMouseLeave={() => {
+                if (hoverTimersRef.current[f.id]) {
+                  clearTimeout(hoverTimersRef.current[f.id]);
+                  delete hoverTimersRef.current[f.id];
+                }
+                if (hoverDeleteId === f.id) {
+                  setHoverDeleteId(null);
+                }
+              }}
               $cardBg={f.color ? FOLDER_COLORS.find(c => c.name === f.color)?.color || '#ffffff' : '#ffffff'}
+              style={{ position: 'relative' }}
             >
               <CardHeader>
                 <CardLeft>
@@ -870,6 +914,18 @@ export default function FoldersPage() {
                   )}
                 </CardSection>
               </CardBody>
+              {isDeleteVisible && (
+                <DeleteCornerButton
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDeleteConfirm(f.id);
+                  }}
+                  title="Delete folder"
+                >
+                  🗑️ <span>Delete</span>
+                </DeleteCornerButton>
+              )}
             </RowCard>
           )
         })}
