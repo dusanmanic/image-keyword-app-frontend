@@ -768,7 +768,17 @@ export default function ImportPage() {
   
   // API integration
   const { folders, saveFolder } = useFoldersRedux();
-  const { getFolderImages, saveImageMetadata, getFolderStats, moveImages, startAnalyzeBatch, getAnalyzeBatchStatus, getAnalyzeStatusByImageIds, mapKeywordsToGetty } = useApi();
+  const { 
+    getFolderImages, 
+    saveImageMetadata, 
+    getFolderStats, 
+    moveImages, 
+    startAnalyzeBatch, 
+    getAnalyzeBatchStatus, 
+    getAnalyzeStatusByImageIds, 
+    mapKeywordsToGetty,
+    saveImageExportLogs
+  } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
   const [folderStats, setFolderStats] = useState(null);
   const [folderStatsLoading, setFolderStatsLoading] = useState(false);
@@ -2246,6 +2256,7 @@ export default function ImportPage() {
       const override = String(shootDateOverride || '').trim();
       const overrideCountry = String(countryOverride || '').trim();
       const lines = [headers.join(',')];
+      const exportLogItems = [];
       for (const r of rows) {
         const rawName = r.name || r.originalName || '';
         const fileName = ensureExt(rawName);
@@ -2266,8 +2277,31 @@ export default function ImportPage() {
         const country = overrideCountry || r.country || '';
         const briefCode = r.briefCode || r.brief_code || '';
 
+        // Collect export log item (for audit)
+        if (r.id) {
+          exportLogItems.push({
+            imageId: r.id,
+            folderId,
+            customKeywords: customKeywordsArr,
+            gettyKeywords: gettyKeywordsArr
+          });
+        }
+
         const rowVals = [fileName, createdDate, description, country, briefCode, title, keywordsStr].map(toCsvValue);
         lines.push(rowVals.join(','));
+      }
+
+      // Save export logs (audit) in the background; CSV export should still succeed even if this fails
+      if (exportLogItems.length > 0) {
+        try {
+          await saveImageExportLogs({
+            platform: 'istock',
+            batchId: null,
+            items: exportLogItems
+          });
+        } catch (logErr) {
+          console.error('Failed to save export logs (non-fatal):', logErr);
+        }
       }
 
       // Windows CSV: CRLF line endings (avoid BOM; some importers treat it as part of "file name" header)

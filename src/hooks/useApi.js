@@ -154,6 +154,14 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  const saveImageExportLogs = useCallback(async ({ platform, batchId, items }) => {
+    const data = await apiCall('/api/user/export-logs', {
+      method: 'POST',
+      body: JSON.stringify({ platform, batchId, items })
+    });
+    return data;
+  }, [apiCall]);
+
   const getAnalyzeBatchStatus = useCallback(async (batchId) => {
     const data = await apiCall(`/api/analyze/batch/${batchId}`);
     return data;
@@ -269,6 +277,8 @@ export function useApi() {
     startAnalyzeBatch,
     getAnalyzeBatchStatus,
     getAnalyzeStatusByImageIds,
+    mapKeywordsToGetty,
+    saveImageExportLogs,
     mapKeywordsToGetty,
     login,
     register,
