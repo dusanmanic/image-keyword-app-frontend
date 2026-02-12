@@ -240,7 +240,7 @@ export default function KeywordWizardIntroModal({ onClose, onProceed }) {
           {/* Cost info - hidden until pricing is finalized
           <HighlightBox>
             <HighlightText>
-              💰 <strong>Cost-Effective:</strong> Each analysis costs ~$0.01-0.02 depending on image complexity. Your spending limit is shown in the top-right corner.
+              🎯 <strong>Simple pricing:</strong> Each AI analysis uses 1 token from your limit. Your analysis limit is shown in the top-right corner.
             </HighlightText>
           </HighlightBox>
           */}

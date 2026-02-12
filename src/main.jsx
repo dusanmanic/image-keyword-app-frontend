@@ -166,8 +166,9 @@ function AuthenticatedApp() {
   const { logout, email, isActive } = useAuthRedux();
   const { uiLoading, toast, clearToast } = useStore();
   const [storageInfo, setStorageInfo] = useState(null);
-  // Storage indicator is always visible
+  const [spendingInfo, setSpendingInfo] = useState(null);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const [loadingSpending, setLoadingSpending] = useState(false);
 
   // Auto-dismiss toast after 3s
   useEffect(() => {
@@ -205,8 +206,37 @@ function AuthenticatedApp() {
     };
     
     loadStorage();
-    // Refresh every 30 seconds
     const interval = setInterval(loadStorage, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load spending/analysis info (tokens = analyses)
+  useEffect(() => {
+    const loadSpending = async () => {
+      try {
+        setLoadingSpending(true);
+        const token = localStorage.getItem('auth_token');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+        const response = await fetch(`${API_BASE_URL}/api/user/spending-info`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.spending) {
+            setSpendingInfo(data.spending);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading spending info:', error);
+      } finally {
+        setLoadingSpending(false);
+      }
+    };
+    loadSpending();
+    const interval = setInterval(loadSpending, 30000);
     return () => clearInterval(interval);
   }, []);
   
@@ -254,6 +284,39 @@ function AuthenticatedApp() {
           <AppTitle>KeyWorld</AppTitle>
         </HeaderLeft>
         <Nav>
+          {spendingInfo && !loadingSpending && (
+            spendingInfo.remaining <= 0 ? (
+              <Link to="/payment" style={{ textDecoration: 'none' }}>
+                <StorageIndicator 
+                  $isOverLimit 
+                  $isWarning={false}
+                  title="No analyses left. Click to buy more."
+                  style={{ cursor: 'pointer' }}
+                >
+                  <StorageText>
+                    🎯 0 left · Buy more
+                  </StorageText>
+                </StorageIndicator>
+              </Link>
+            ) : (
+              <StorageIndicator 
+                $isOverLimit={false} 
+                $isWarning={spendingInfo.percentage >= 80}
+                title={`Analyses: ${spendingInfo.current} / ${spendingInfo.limit} (${spendingInfo.remaining} remaining)`}
+              >
+                <StorageText>
+                  🎯 {spendingInfo.current} / {spendingInfo.limit}
+                </StorageText>
+                <StorageProgress>
+                  <StorageProgressBar 
+                    $percentage={Math.min(100, spendingInfo.percentage)}
+                    $isOverLimit={false}
+                    $isWarning={spendingInfo.percentage >= 80}
+                  />
+                </StorageProgress>
+              </StorageIndicator>
+            )
+          )}
           {storageInfo && !loadingStorage && (
             <StorageIndicator 
               $isOverLimit={storageInfo.isOverLimit} 
@@ -275,7 +338,7 @@ function AuthenticatedApp() {
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
           {/* <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink> */}
-          <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Credits</NavLink>
+          <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Analyses</NavLink>
           <LogoutButton 
             onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
             title={`Logout${email?` (${email})`:''}`} 

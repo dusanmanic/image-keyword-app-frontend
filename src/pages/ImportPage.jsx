@@ -114,17 +114,17 @@ const Button = styled.button`
 
 const MagicButton = styled(Button)`
   background: #8b5cf6;
-  &:hover { background: #7c3aed; }
+  &:hover:not(:disabled) { background: #7c3aed; }
 `;
 
 const EmbedButton = styled(Button)`
   background: #059669;
-  &:hover { background: #047857; }
+  &:hover:not(:disabled) { background: #047857; }
 `;
 
 const ExportButton = styled(Button)`
   background: #0ea5e9;
-  &:hover { background: #0284c7; }
+  &:hover:not(:disabled) { background: #0284c7; }
 `;
 
 const KeywordsCountContainer = styled.div`
@@ -809,6 +809,30 @@ export default function ImportPage() {
     }
   });
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
+  const [spendingInfo, setSpendingInfo] = useState(null);
+  const noAnalysesLeft = spendingInfo && spendingInfo.remaining <= 0;
+
+  // Load spending/analysis info for button disabled state
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${API_BASE_URL}/api/user/spending-info`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.spending) setSpendingInfo(data.spending);
+        }
+      } catch (e) {
+        console.error('Error loading spending info:', e);
+      }
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -1082,8 +1106,8 @@ export default function ImportPage() {
       let errorMsg = 'Analysis failed. Please try again.';
       if (e?.message?.includes('File too large') || e?.response?.status === 413) {
         errorMsg = 'Image is too large. Please use a smaller image (max 10MB).';
-      } else if (e?.message?.includes('limit') || e?.message?.includes('spending')) {
-        errorMsg = 'Spending limit reached. Please contact support.';
+      } else if (e?.message?.includes('limit') || e?.message?.includes('Analysis limit')) {
+        errorMsg = 'Analysis limit reached. Go to Buy Credits to get more analyses.';
       } else if (e?.response?.status === 403) {
         errorMsg = e?.response?.data?.message || 'Access denied. Check your account status.';
       } else if (e?.response?.status === 500) {
@@ -2374,8 +2398,9 @@ export default function ImportPage() {
           <MagicButton
             onClick={handleKeywordWizardClick}
             type="button"
-            disabled={bulkRunning || allSelectedInQueueOrProcessing}
+            disabled={bulkRunning || allSelectedInQueueOrProcessing || noAnalysesLeft}
             title={
+              noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
               bulkRunning ? 'Analiza u toku…' :
               allSelectedInQueueOrProcessing ? 'Sve izabrane slike su već u obradi' :
               'Analiziraj izabrane'
@@ -2386,7 +2411,12 @@ export default function ImportPage() {
               {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
             </span>
           </MagicButton>
-          <EmbedButton onClick={embedSelected} type="button" title="Embed to folder">
+          <EmbedButton
+            onClick={embedSelected}
+            type="button"
+            disabled={noAnalysesLeft}
+            title={noAnalysesLeft ? 'No analyses left. Buy more to continue.' : 'Embed to folder'}
+          >
             Embed to folder
           </EmbedButton>
           <Button
@@ -2403,10 +2433,12 @@ export default function ImportPage() {
           </Button>
           <ExportButton
             onClick={() => {
+              if (noAnalysesLeft) { showToast('No analyses left. Buy more to continue.', 'error'); return; }
               setIstockExportOpen(true);
             }}
             type="button"
-            title="Export iStock/Getty CSV"
+            disabled={noAnalysesLeft}
+            title={noAnalysesLeft ? 'No analyses left. Buy more to continue.' : 'Export iStock/Getty CSV'}
           >
             Export iStock/Getty CSV
           </ExportButton>
@@ -2727,7 +2759,8 @@ export default function ImportPage() {
               </div>
             </ModalBody>
             <ModalActions>
-              <MagicButton type="button" onClick={() => {
+              <MagicButton type="button" disabled={noAnalysesLeft} onClick={() => {
+                if (noAnalysesLeft) return;
                 setPromptOpen(false);
                 if (promptTargetRow) {
                   analyzeRow(promptTargetRow, promptText);

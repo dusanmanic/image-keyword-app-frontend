@@ -86,22 +86,25 @@ export default function AccountDeactivatedPage() {
         <Title>Account Needs Activation</Title>
         <Message>
           Your account is currently inactive. To start using AI-powered image analysis, 
-          you need to purchase 10,000 credits for just $25 and activate your account.
+          purchase analyses for just $25. Each analysis = 1 AI-powered keyword extraction for one image.
         </Message>
         
         <InfoBox>
           <InfoText>
-            <strong>How to get started?</strong>
+            <strong>How does it work?</strong>
             <br /><br />
-            Simply buy 10,000 credits for just $25 using our secure payment system. Once your payment is processed, 
-            your account will be automatically activated and you'll be able to use all features.
+            • 1 purchase = 10,000 analyses (1 analysis per image)
+            <br />
+            • Secure payment via Stripe
+            <br />
+            • Account activates automatically after payment
             <br /><br />
-            Start analyzing your images right away! 🚀
+            Buy analyses now and start keyword extraction right away! 🚀
           </InfoText>
         </InfoBox>
         
         <BuyCreditsButton onClick={handleBuyCredits}>
-          Buy Credits & Activate Account 💳
+          Buy 10,000 Analyses ($25) & Activate Account 💳
         </BuyCreditsButton>
       </Card>
     </Container>

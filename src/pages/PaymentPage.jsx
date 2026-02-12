@@ -362,7 +362,7 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent, 
   if (success) {
     return (
       <SuccessMessage>
-        🎉 Payment successful! Your account has been activated and credits have been added. 
+        🎉 Payment successful! Your account is activated and 10,000 analyses have been added. 
         You can now use all features of the application.
       </SuccessMessage>
     );
@@ -501,9 +501,9 @@ export default function PaymentPage() {
   return (
     <Container>
       <PaymentCard>
-        <Title>Buy Credits</Title>
+        <Title>Buy Analyses</Title>
         <Subtitle>
-          Get 10,000 credits for just $25 and start analyzing your images with AI
+          Get 10,000 AI analyses for $25. Each analysis = 1 image keyword extraction.
         </Subtitle>
 
         <PackageContainer>
@@ -511,7 +511,7 @@ export default function PaymentPage() {
             <PackageCard key={pkg.id}>
               {pkg.popular && <PopularBadge>Most Popular</PopularBadge>}
               <PackageName>{pkg.name}</PackageName>
-              <PackageCredits>{pkg.credits.toLocaleString()} Credits</PackageCredits>
+              <PackageCredits>{pkg.credits.toLocaleString()} Analyses</PackageCredits>
               <PackagePrice>${pkg.price}</PackagePrice>
               <PackageDescription>{pkg.description}</PackageDescription>
             </PackageCard>
