@@ -86,7 +86,7 @@ export default function AccountDeactivatedPage() {
         <Title>Account Needs Activation</Title>
         <Message>
           Your account is currently inactive. To start using AI-powered image analysis, 
-          purchase analyses for just $25. Each analysis = 1 AI-powered keyword extraction for one image.
+          purchase analyses for just $100. Each analysis = 1 AI-powered keyword extraction for one image.
         </Message>
         
         <InfoBox>
@@ -104,7 +104,7 @@ export default function AccountDeactivatedPage() {
         </InfoBox>
         
         <BuyCreditsButton onClick={handleBuyCredits}>
-          Buy 10,000 Analyses ($25) & Activate Account 💳
+          Buy 10,000 Analyses ($100) & Activate Account 💳
         </BuyCreditsButton>
       </Card>
     </Container>
