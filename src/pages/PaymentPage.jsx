@@ -503,7 +503,7 @@ export default function PaymentPage() {
       <PaymentCard>
         <Title>Buy Analyses</Title>
         <Subtitle>
-          Get 10,000 AI analyses for $25. Each analysis = 1 image keyword extraction.
+          Get 10,000 AI analyses for $100. Each analysis = 1 image keyword extraction.
         </Subtitle>
 
         <PackageContainer>

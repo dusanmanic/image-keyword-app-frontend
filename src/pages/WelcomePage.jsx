@@ -179,7 +179,7 @@ export default function WelcomePage() {
             <>
               <CTATitle>Ready to get started?</CTATitle>
               <CTAText>
-                Get 10,000 AI analyses for just $25 and start keyword extraction on your images!
+                Get 10,000 AI analyses for just $100 and start keyword extraction on your images!
               </CTAText>
               <BuyCreditsButton onClick={handleBuyCredits}>
                 Buy Credits
