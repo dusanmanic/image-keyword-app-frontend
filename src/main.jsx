@@ -204,10 +204,14 @@ function AuthenticatedApp() {
         setLoadingStorage(false);
       }
     };
-    
     loadStorage();
     const interval = setInterval(loadStorage, 30000);
-    return () => clearInterval(interval);
+    const onRefreshUser = () => loadStorage();
+    window.addEventListener('refresh-user', onRefreshUser);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refresh-user', onRefreshUser);
+    };
   }, []);
 
   // Load spending/analysis info (tokens = analyses)
@@ -237,7 +241,14 @@ function AuthenticatedApp() {
     };
     loadSpending();
     const interval = setInterval(loadSpending, 30000);
-    return () => clearInterval(interval);
+    const onRefreshUser = () => {
+      loadSpending();
+    };
+    window.addEventListener('refresh-user', onRefreshUser);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('refresh-user', onRefreshUser);
+    };
   }, []);
   
   const isActiveRoute = (path) => {

@@ -466,20 +466,16 @@ export default function PaymentPage() {
       // Notify backend about successful payment
       const result = await confirmPaymentSuccess(paymentIntent.id);
       
-      console.log('Payment success result:', result);
-      
       // Update user status to active (payment was successful, so activate immediately)
-      console.log('Setting isActive to true...');
       setIsActive(true);
-      console.log('isActive set to true');
       
-      // Refresh payment history if it's currently shown
+      // Refresh header (spending/analyses count) and payment history
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-user'));
+      }
       if (showHistory) {
         fetchTransactions();
       }
-      
-      console.log('Payment successful - user activated:', paymentIntent);
-      // The success message will be shown by the CheckoutForm component
     } catch (error) {
       console.error('Error confirming payment:', error);
     }
