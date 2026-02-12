@@ -1153,8 +1153,15 @@ export default function ImportPage() {
       setBulkRunning(true);
       setBulkTotal(withUrl.length);
       setBulkDone(0);
+      const folder = folders?.find(f => String(f.id) === String(folderId));
+      const folderDesc = (folder?.description || '').trim();
+      const extra = (extraPrompt || '').trim();
+      const parts = [];
+      if (folderDesc) parts.push(`User set shooting set description: ${folderDesc}`);
+      if (extra) parts.push(`Added extra suggestion: ${extra}`);
+      const combinedPrompt = parts.join(' <br/> ');
       const { batchId, total } = await startAnalyzeBatch(folderId, withUrl, {
-        prompt: extraPrompt,
+        prompt: combinedPrompt,
         maxKeywords: keywordsCount
       });
       setBulkTotal(total);
