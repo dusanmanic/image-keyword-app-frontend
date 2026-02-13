@@ -2216,40 +2216,38 @@ export default function ImportPage() {
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
   const exportWindowsCsv = async (shootDateOverride = '', countryOverride = '') => {
     try {
-      showToast('Mapping keywords to Getty-approved terms...');
-      
-      // Collect all unique keywords from all rows
-      const allCustomKeywords = new Set();
-      for (const r of rows) {
-        const keywordsArr = Array.isArray(r.keywords)
-          ? r.keywords
-          : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
-        keywordsArr.forEach(kw => allCustomKeywords.add(kw));
-      }
+      showToast('Mapping keywords to Getty-approved terms per image...');
 
-      // Map custom keywords to Getty-approved keywords
-      let keywordMapping = {}; // custom -> getty
-      if (allCustomKeywords.size > 0) {
-        try {
-          const customKeywordsArray = Array.from(allCustomKeywords);
-          const mappingResult = await mapKeywordsToGetty(customKeywordsArray, 50);
-          
-          // Create a mapping: for each original keyword, find its Getty equivalent
-          // Since semantic mapping may not return all keywords, we'll use best-effort matching
-          const gettyKeywords = mappingResult.gettyKeywords || [];
-          customKeywordsArray.forEach((customKw, idx) => {
-            // Simple 1:1 mapping (semantic mapping might change order, but we trust the backend)
-            keywordMapping[customKw] = gettyKeywords[idx] || customKw; // fallback to original if no Getty match
-          });
-          
-          showToast('Keywords mapped successfully!');
-        } catch (err) {
-          console.error('Getty mapping failed:', err);
-          showToast('Getty mapping failed, using original keywords', 'error');
-          // Fallback: use original keywords
-          Array.from(allCustomKeywords).forEach(kw => keywordMapping[kw] = kw);
+      // Small cache avoids repeated calls for identical keywords across images.
+      const mappedKeywordCache = new Map(); // normalized custom keyword -> getty keyword
+      const mapKeywordsForImage = async (customKeywordsArr) => {
+        const normalized = customKeywordsArr
+          .map((kw) => String(kw || '').trim())
+          .filter(Boolean);
+        if (!normalized.length) return [];
+
+        const keywordsToMap = [];
+        for (const kw of normalized) {
+          const cacheKey = kw.toLowerCase();
+          if (!mappedKeywordCache.has(cacheKey)) {
+            keywordsToMap.push(kw);
+          }
         }
-      }
+
+        if (keywordsToMap.length) {
+          const mappingResult = await mapKeywordsToGetty(keywordsToMap, 50);
+          const mapped = Array.isArray(mappingResult?.gettyKeywords) ? mappingResult.gettyKeywords : [];
+          keywordsToMap.forEach((kw, idx) => {
+            const cacheKey = kw.toLowerCase();
+            mappedKeywordCache.set(cacheKey, mapped[idx] || kw);
+          });
+        }
+
+        return normalized.map((kw) => {
+          const mapped = mappedKeywordCache.get(kw.toLowerCase());
+          return mapped || kw;
+        });
+      };
 
       const headers = [
         'file name',
@@ -2299,8 +2297,16 @@ export default function ImportPage() {
           ? r.keywords
           : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
         
-        // Map custom keywords to Getty keywords using the mapping
-        const gettyKeywordsArr = customKeywordsArr.map(customKw => keywordMapping[customKw] || customKw);
+        // Map keywords per image (instead of one global mapping for whole batch).
+        let gettyKeywordsArr = customKeywordsArr;
+        if (customKeywordsArr.length > 0) {
+          try {
+            gettyKeywordsArr = await mapKeywordsForImage(customKeywordsArr);
+          } catch (err) {
+            console.error('Getty mapping failed for image, using original keywords:', r.id, err);
+            gettyKeywordsArr = customKeywordsArr;
+          }
+        }
         const keywordsStr = gettyKeywordsArr.join(', ');
 
         // Only use override date if provided; otherwise leave empty
