@@ -267,10 +267,11 @@ export default function IstockGettyExportModal({
 
         <Body>
           <InfoText>
-            Optionally pick a <strong>shoot date</strong> and <strong>country</strong>. They will pre-fill the CSV fields, but you can also leave them blank and edit them later on the site.
+            Optionally pick a <strong>country</strong>. The <strong>created date</strong> for each image comes from its EXIF metadata. You can leave country blank and edit it later on the site.
           </InfoText>
 
-          <Row>
+          {/* Shoot date commented out: we use imageCreatedAt (from EXIF) per image for the "created date" column in the CSV instead of a single override. */}
+          {/* <Row>
             <Label>Shoot date</Label>
             <DatePicker
               id="istock-shoot-date"
@@ -279,7 +280,7 @@ export default function IstockGettyExportModal({
               placeholder="Enter date"
               width="180px"
             />
-          </Row>
+          </Row> */}
 
           <Row>
             <Label>Country</Label>

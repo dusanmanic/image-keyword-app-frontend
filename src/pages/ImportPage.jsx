@@ -15,6 +15,35 @@ import { useStore } from "../store/index.js";
 import ImportIntroModal from "../components/ImportIntroModal.jsx";
 import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 import IstockGettyExportModal from "../components/IstockGettyExportModal.jsx";
+import piexif from "piexifjs";
+
+// Extract image creation date from EXIF (DateTimeOriginal)
+async function extractImageCreatedAt(file) {
+  if (!file || !file.type?.startsWith("image/")) return null;
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    if (!dataUrl || typeof dataUrl !== "string") return null;
+    const exif = piexif.load(dataUrl);
+    const exifIfd = exif?.Exif;
+    if (!exifIfd) return null;
+    const raw = exifIfd[piexif.ExifIFD.DateTimeOriginal];
+    if (!raw || typeof raw !== "string") return null;
+    // Format: "2010:10:10 10:10:10" -> ISO
+    const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (!m) return null;
+    const [, y, mo, d, h, mi, s] = m;
+    const iso = `${y}-${mo}-${d}T${h}:${mi}:${s}.000Z`;
+    const t = new Date(iso).getTime();
+    return Number.isNaN(t) ? null : iso;
+  } catch {
+    return null;
+  }
+}
 
 // Reusable checkbox pair for paste options
 function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onChangeClear }) {
@@ -1409,12 +1438,24 @@ export default function ImportPage() {
       key: "image",
       name: "Image",
       frozen: true,
-      width: 250,
+      width: 190,
       renderHeaderCell: () => <div className="hdr">Image</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
-      renderCell: ({ row }) => (
+      renderCell: ({ row }) => {
+        const displayName = row.name || row.originalName || '';
+        const createdAt = row.imageCreatedAt;
+        let dateStr = '';
+        if (createdAt) {
+          try {
+            const d = new Date(createdAt);
+            if (!Number.isNaN(d.getTime())) {
+              dateStr = d.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            }
+          } catch {}
+        }
+        return (
         <div
-          style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
+          style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', position: 'relative', padding: 4 }}
           onClick={(e) => {
             try {
               const idx = rows.findIndex(r => r.id === row.id);
@@ -1443,27 +1484,36 @@ export default function ImportPage() {
                 }
                 setSelectedRows(next);
                 setLastSelectedIndex(idx);
-              }
-            } catch {}
-          }}
+            }
+          } catch {}
+        }}
         >
+          {displayName ? (
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 4, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }} title={displayName}>
+              {displayName}
+            </div>
+          ) : null}
           {row.thumbUrl ? (
           <img
             src={row.thumbUrl}
               alt={row.name || 'thumbnail'}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+            style={{ flex: 1, maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', minHeight: 0 }}
               onError={(e) => { try { e.currentTarget.style.display = 'none'; } catch {} }}
           />
           ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 12 }}>
+            <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 12 }}>
               No preview
             </div>
           )}
+          {dateStr ? (
+            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Created {dateStr}</div>
+          ) : null}
           {row.embedded && (
             <EmbeddedBadge title="Embedded to folder">✓</EmbeddedBadge>
           )}
         </div>
-      )
+        );
+      }
     },
     {
       key: "title",
@@ -2134,10 +2184,12 @@ export default function ImportPage() {
       try {
         const rawId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         const newId = rawId.replace(/\s+/g, "_").replace(/[?#%&]/g, "_");
-        
+
+        const imageCreatedAt = await extractImageCreatedAt(f);
+
         // Resize to 1024px for S3: one image for grid display and AI analysis
         const { blob: imageBlob } = await resizeImage(f, 1024, "image/jpeg", 0.85);
-        
+
         return {
           id: newId,
           name: f.name,
@@ -2150,10 +2202,13 @@ export default function ImportPage() {
           description: "",
           keywords: [],
           color: "",
+          ...(imageCreatedAt ? { imageCreatedAt } : {}),
         };
       } catch (error) {
         console.error('Error processing image:', f.name, error);
         // Add fallback if processing fails
+        let imageCreatedAt = null;
+        try { imageCreatedAt = await extractImageCreatedAt(f); } catch {}
         const rawId = `${f.name}-${f.size}-${f.lastModified}-${Math.random()}`;
         return {
           id: rawId.replace(/\s+/g, "_").replace(/[?#%&]/g, "_"),
@@ -2164,6 +2219,7 @@ export default function ImportPage() {
           title: "",
           description: "",
           keywords: [],
+          ...(imageCreatedAt ? { imageCreatedAt } : {}),
         };
       }
     };
@@ -2343,8 +2399,8 @@ export default function ImportPage() {
         }
         const keywordsStr = gettyKeywordsArr.join(', ');
 
-        // Only use override date if provided; otherwise leave empty
-        const createdDate = override || '';
+        // Use imageCreatedAt per image (from EXIF) when available; fallback to shoot date override
+        const createdDate = formatDate(r.imageCreatedAt) || override || '';
         const country = overrideCountry || r.country || '';
         const briefCode = r.briefCode || r.brief_code || '';
 
