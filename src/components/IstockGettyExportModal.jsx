@@ -52,6 +52,13 @@ const PrimaryButton = styled.button`
   padding: 10px 14px;
   font-weight: 800;
   cursor: pointer;
+
+  &:focus,
+  &:active,
+  &:focus-visible,
+  &:focus-within {
+    outline: none;
+  }
 `;
 
 const SecondaryButton = styled.button`
@@ -62,6 +69,13 @@ const SecondaryButton = styled.button`
   padding: 10px 14px;
   font-weight: 800;
   cursor: pointer;
+
+  &:focus,
+  &:active,
+  &:focus-visible,
+  &:focus-within {
+    outline: none;
+  }
 `;
 
 const Title = styled.h3`
