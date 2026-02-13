@@ -2234,19 +2234,39 @@ export default function ImportPage() {
           }
         }
 
-        if (keywordsToMap.length) {
-          const mappingResult = await mapKeywordsToGetty(keywordsToMap, 50);
-          const mapped = Array.isArray(mappingResult?.gettyKeywords) ? mappingResult.gettyKeywords : [];
-          keywordsToMap.forEach((kw, idx) => {
+        // Always request per-image mapping so backend can backfill to 50 Getty terms.
+        const mappingInput = keywordsToMap.length ? keywordsToMap : normalized;
+        let mappedFromBackend = [];
+        if (mappingInput.length) {
+          const mappingResult = await mapKeywordsToGetty(mappingInput, 50);
+          mappedFromBackend = Array.isArray(mappingResult?.gettyKeywords) ? mappingResult.gettyKeywords : [];
+
+          // Cache only direct keyword->keyword mappings (first N correspond to mappingInput).
+          mappingInput.forEach((kw, idx) => {
             const cacheKey = kw.toLowerCase();
-            mappedKeywordCache.set(cacheKey, mapped[idx] || kw);
+            mappedKeywordCache.set(cacheKey, mappedFromBackend[idx] || kw);
           });
         }
 
-        return normalized.map((kw) => {
+        const mappedOriginal = normalized.map((kw) => {
           const mapped = mappedKeywordCache.get(kw.toLowerCase());
           return mapped || kw;
         });
+
+        // Final per-image keywords:
+        // 1) keep mapped originals, 2) append backend backfill terms, 3) unique, max 50.
+        const unique = [];
+        const seen = new Set();
+        [...mappedOriginal, ...mappedFromBackend].forEach((kw) => {
+          const value = String(kw || '').trim();
+          if (!value) return;
+          const key = value.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          unique.push(value);
+        });
+
+        return unique.slice(0, 50);
       };
 
       const headers = [
