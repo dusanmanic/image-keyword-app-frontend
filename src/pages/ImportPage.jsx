@@ -904,8 +904,10 @@ export default function ImportPage() {
   const [promptText, setPromptText] = useState("");
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
-  const [pollingQueueStatus, setPollingQueueStatus] = useState(false); // kada su sve izabrane u redu, pollujemo status
+  const [pollingQueueStatus, setPollingQueueStatus] = useState(false); // when all selected in queue, poll status
   const [istockExportOpen, setIstockExportOpen] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [csvExportProgress, setCsvExportProgress] = useState({ current: 0, total: 0 });
 
   // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
   const isImageInQueueOrProcessing = (row) => {
@@ -2215,6 +2217,8 @@ export default function ImportPage() {
 
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
   const exportWindowsCsv = async (shootDateOverride = '', countryOverride = '') => {
+    setExportingCsv(true);
+    setCsvExportProgress({ current: 0, total: rows.length });
     try {
       showToast('Mapping keywords to Getty-approved terms per image...');
 
@@ -2306,10 +2310,20 @@ export default function ImportPage() {
       const overrideCountry = String(countryOverride || '').trim();
       const lines = [headers.join(',')];
       const exportLogItems = [];
+      let processedRows = 0;
+      const totalRows = rows.length;
       for (const r of rows) {
+        const bumpProgress = () => {
+          processedRows += 1;
+          setCsvExportProgress({ current: processedRows, total: totalRows });
+        };
+
         const rawName = r.name || r.originalName || '';
         const fileName = ensureExt(rawName);
-        if (!fileName) continue; // spec: file name column can't be empty; ignore row
+        if (!fileName) {
+          bumpProgress();
+          continue; // spec: file name column can't be empty; ignore row
+        }
 
         const title = r.title || '';
         const description = r.description || '';
@@ -2346,6 +2360,7 @@ export default function ImportPage() {
 
         const rowVals = [fileName, createdDate, description, country, briefCode, title, keywordsStr].map(toCsvValue);
         lines.push(rowVals.join(','));
+        bumpProgress();
       }
 
       // Save export logs (audit) in the background; CSV export should still succeed even if this fails
@@ -2377,6 +2392,9 @@ export default function ImportPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       showToast('iStock/Getty CSV export failed', 'error');
+    } finally {
+      setExportingCsv(false);
+      setCsvExportProgress({ current: 0, total: 0 });
     }
   };
 
@@ -2466,14 +2484,19 @@ export default function ImportPage() {
           </Button>
           <ExportButton
             onClick={() => {
+              if (exportingCsv) return;
               if (noAnalysesLeft) { showToast('No analyses left. Buy more to continue.', 'error'); return; }
               setIstockExportOpen(true);
             }}
             type="button"
-            disabled={noAnalysesLeft}
-            title={noAnalysesLeft ? 'No analyses left. Buy more to continue.' : 'Export iStock/Getty CSV'}
+            disabled={noAnalysesLeft || exportingCsv}
+            title={
+              noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
+              exportingCsv ? 'Export in progress...' :
+              'Export iStock/Getty CSV'
+            }
           >
-            Export iStock/Getty CSV
+            {exportingCsv ? 'Exporting iStock/Getty CSV...' : 'Export iStock/Getty CSV'}
           </ExportButton>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
@@ -2815,6 +2838,7 @@ export default function ImportPage() {
       <IstockGettyExportModal
         open={istockExportOpen}
         onClose={() => setIstockExportOpen(false)}
+        loading={exportingCsv}
         defaultShootDate={
           (() => {
             try {
@@ -2850,12 +2874,13 @@ export default function ImportPage() {
       
       {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
-        show={ pasteLoading || embedLoading || processingImages || uploadingImages} 
+        show={ pasteLoading || embedLoading || processingImages || uploadingImages || exportingCsv} 
         text={
           pasteLoading ? "Applying paste..." :
           embedLoading ? "Embedding metadata..." :
           processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
           uploadingImages ? `Saving to database... ${uploadProgress.current}/${uploadProgress.total}` :
+          exportingCsv ? `Mapping Getty keywords... ${csvExportProgress.current}/${csvExportProgress.total || rows.length}` :
           "Loading..."
         } 
       />

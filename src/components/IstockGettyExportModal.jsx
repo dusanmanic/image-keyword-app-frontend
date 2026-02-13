@@ -199,6 +199,7 @@ export default function IstockGettyExportModal({
   onClose,
   defaultShootDate = "",
   onExport,
+  loading = false,
 }) {
   const { showToast } = useStore();
 
@@ -258,7 +259,7 @@ export default function IstockGettyExportModal({
     .slice(0, 80);
 
   return (
-    <Overlay onClick={onClose}>
+    <Overlay onClick={() => { if (!loading) onClose?.(); }}>
       <Card onClick={(e) => e.stopPropagation()}>
         <Header>
           <Title> iStock/Getty CSV export</Title>
@@ -287,6 +288,7 @@ export default function IstockGettyExportModal({
               <Relative>
                 <TextInput
                   value={countryQuery || ""}
+                  disabled={loading}
                   onChange={(e) => {
                     setCountryQuery(e.target.value);
                     setCountryOpen(true);
@@ -298,6 +300,7 @@ export default function IstockGettyExportModal({
                 {countryQuery && (
                   <InlineClear
                     type="button"
+                    disabled={loading}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       applyCountry("");
@@ -334,12 +337,15 @@ export default function IstockGettyExportModal({
         </Body>
 
         <Actions>
-          <SecondaryButton type="button" onClick={onClose}>
+          <SecondaryButton type="button" onClick={onClose} disabled={loading} style={{ opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
             Cancel
           </SecondaryButton>
           <PrimaryButton
             type="button"
+            disabled={loading}
+            style={{ opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
             onClick={() => {
+              if (loading) return;
               const d = String(shootDate || "").trim();
               const c = String(countryQuery || "").trim();
               if (c && !countryLabelSet.has(c.toLowerCase())) {
@@ -355,7 +361,7 @@ export default function IstockGettyExportModal({
               onExport?.({ shootDate: d, country: c });
             }}
           >
-            Export
+            {loading ? "Exporting..." : "Export"}
           </PrimaryButton>
         </Actions>
       </Card>
