@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -316,8 +316,114 @@ const DownloadButton = styled.a`
   }
 `;
 
+const PaymentMethodTabs = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+`;
+
+const TabButton = styled.button`
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid ${(p) => (p.$active ? '#1e40af' : '#e5e7eb')};
+  background: ${(p) => (p.$active ? '#eff6ff' : 'white')};
+  color: ${(p) => (p.$active ? '#1e40af' : '#6b7280')};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1e40af;
+    color: #1e40af;
+    outline: none;
+  }
+
+  &:focus,
+  &:active,
+  &:focus-visible,
+  &:focus-within {
+    outline: none;
+  }
+`;
+
+const PayPalButtonsWrapper = styled.div`
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+`;
+
 // Stripe Elements configuration
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+
+const PayPalButtonsBlock = React.memo(function PayPalButtonsBlock({ selectedPackage, createPayPalOrder, confirmPayPalSuccess, onPaymentSuccess }) {
+  const containerRef = useRef(null);
+  const buttonsRenderedRef = useRef(false);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const callbacksRef = useRef({ createPayPalOrder, confirmPayPalSuccess, onPaymentSuccess });
+  callbacksRef.current = { createPayPalOrder, confirmPayPalSuccess, onPaymentSuccess };
+
+  useEffect(() => {
+    if (!PAYPAL_CLIENT_ID || !selectedPackage) return;
+    if (window.paypal) {
+      setSdkReady(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture&disable-funding=card`;
+    script.async = true;
+    script.onload = () => setSdkReady(true);
+    document.body.appendChild(script);
+    return () => {
+      if (script.parentNode) script.parentNode.removeChild(script);
+    };
+  }, [selectedPackage]);
+
+  useEffect(() => {
+    if (!sdkReady || !window.paypal || !containerRef.current || !selectedPackage || success) return;
+    if (buttonsRenderedRef.current) return;
+    buttonsRenderedRef.current = true;
+
+    const price = selectedPackage.price;
+    const buttons = window.paypal.Buttons({
+      createOrder: async () => {
+        const orderId = await callbacksRef.current.createPayPalOrder(price);
+        if (!orderId) throw new Error('Could not create order');
+        return orderId;
+      },
+      onApprove: async (data) => {
+        try {
+          await callbacksRef.current.confirmPayPalSuccess(data.orderID);
+          setSuccess(true);
+          callbacksRef.current.onPaymentSuccess({ id: data.orderID });
+        } catch (err) {
+          console.error('PayPal confirm error:', err);
+        }
+      },
+      style: { shape: 'rect', color: 'blue', layout: 'vertical' }
+    });
+    buttons.render(containerRef.current);
+  }, [sdkReady, selectedPackage, success]);
+
+  if (success) {
+    return (
+      <SuccessMessage>
+        🎉 Payment successful! Your account is activated and 10,000 analyses have been added.
+        You can now use all features of the application.
+      </SuccessMessage>
+    );
+  }
+  return (
+    <PayPalButtonsWrapper>
+      <div ref={containerRef} data-paypal-container />
+    </PayPalButtonsWrapper>
+  );
+});
 
 const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent, isLoading }) => {
   const stripe = useStripe();
@@ -413,10 +519,12 @@ const CheckoutForm = ({ selectedPackage, onPaymentSuccess, createPaymentIntent, 
 export default function PaymentPage() {
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [loading, setLoading] = useState(true); // Keep for initial packages loading
+  const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const { getCreditPackages, createPaymentIntent, confirmPaymentSuccess, getCreditTransactions, downloadInvoice, isLoading } = useApi();
+  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paypalEnabled, setPaypalEnabled] = useState(false);
+  const { getCreditPackages, createPaymentIntent, confirmPaymentSuccess, getCreditTransactions, downloadInvoice, getPayPalConfig, createPayPalOrder, confirmPayPalSuccess, isLoading } = useApi();
   const { setIsActive } = useAuthRedux();
 
   useEffect(() => {
@@ -436,6 +544,14 @@ export default function PaymentPage() {
 
     fetchPackages();
   }, [getCreditPackages]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPayPalConfig().then((enabled) => {
+      if (!cancelled) setPaypalEnabled(!!enabled);
+    });
+    return () => { cancelled = true; };
+  }, [getPayPalConfig]);
 
   const fetchTransactions = async () => {
     try {
@@ -463,22 +579,23 @@ export default function PaymentPage() {
 
   const handlePaymentSuccess = async (paymentIntent) => {
     try {
-      // Notify backend about successful payment
-      const result = await confirmPaymentSuccess(paymentIntent.id);
-      
-      // Update user status to active (payment was successful, so activate immediately)
+      await confirmPaymentSuccess(paymentIntent.id);
       setIsActive(true);
-      
-      // Refresh header (spending/analyses count) and payment history
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('refresh-user'));
       }
-      if (showHistory) {
-        fetchTransactions();
-      }
+      if (showHistory) fetchTransactions();
     } catch (error) {
       console.error('Error confirming payment:', error);
     }
+  };
+
+  const handlePayPalSuccess = async () => {
+    setIsActive(true);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refresh-user'));
+    }
+    if (showHistory) fetchTransactions();
   };
 
   if (loading) {
@@ -515,16 +632,51 @@ export default function PaymentPage() {
         </PackageContainer>
 
         {selectedPackage && (
-          <Elements stripe={stripePromise} options={{ disableLink: true }}>
-            <PaymentForm>
-              <CheckoutForm 
-                selectedPackage={selectedPackage} 
-                onPaymentSuccess={handlePaymentSuccess}
-                createPaymentIntent={createPaymentIntent}
-                isLoading={isLoading}
-              />
-            </PaymentForm>
-          </Elements>
+          <PaymentForm>
+            <PaymentMethodTabs>
+              <TabButton $active={paymentMethod === 'card'} onClick={() => setPaymentMethod('card')}>
+                Pay with Card (Stripe)
+              </TabButton>
+              <TabButton $active={paymentMethod === 'paypal'} onClick={() => setPaymentMethod('paypal')}>
+                Pay with PayPal
+              </TabButton>
+            </PaymentMethodTabs>
+            {paymentMethod === 'card' && (
+              <Elements stripe={stripePromise} options={{ disableLink: true }}>
+                <CheckoutForm
+                  selectedPackage={selectedPackage}
+                  onPaymentSuccess={handlePaymentSuccess}
+                  createPaymentIntent={createPaymentIntent}
+                  isLoading={isLoading}
+                />
+              </Elements>
+            )}
+            {paypalEnabled && PAYPAL_CLIENT_ID && (
+              <div style={{ display: paymentMethod === 'paypal' ? 'block' : 'none' }}>
+                <FormTitle>Pay with PayPal</FormTitle>
+                <SecurityBadge>
+                  <StripeVerifiedLogo>
+                    <VerifiedCheckmark>✓</VerifiedCheckmark>
+                    <span>PayPal</span>
+                  </StripeVerifiedLogo>
+                  <div style={{ fontSize: '12px' }}>
+                    Secure checkout with your PayPal account
+                  </div>
+                </SecurityBadge>
+                <PayPalButtonsBlock
+                  selectedPackage={selectedPackage}
+                  createPayPalOrder={createPayPalOrder}
+                  confirmPayPalSuccess={confirmPayPalSuccess}
+                  onPaymentSuccess={handlePayPalSuccess}
+                />
+              </div>
+            )}
+            {paymentMethod === 'paypal' && (!paypalEnabled || !PAYPAL_CLIENT_ID) && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', background: '#f8fafc', borderRadius: 8 }}>
+                PayPal is not configured. Please use <strong>Pay with Card (Stripe)</strong> or ask the administrator to set up PayPal.
+              </div>
+            )}
+          </PaymentForm>
         )}
 
         <HistorySection>

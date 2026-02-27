@@ -224,6 +224,27 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  const getPayPalConfig = useCallback(async () => {
+    const data = await apiCall('/api/payment/paypal-config');
+    return data?.enabled ?? false;
+  }, [apiCall]);
+
+  const createPayPalOrder = useCallback(async (amount) => {
+    const data = await apiCall('/api/payment/create-paypal-order', {
+      method: 'POST',
+      body: JSON.stringify({ amount, currency: 'USD' })
+    });
+    return data?.orderId;
+  }, [apiCall]);
+
+  const confirmPayPalSuccess = useCallback(async (orderId) => {
+    const data = await apiCall('/api/payment/payment-success-paypal', {
+      method: 'POST',
+      body: JSON.stringify({ orderId })
+    });
+    return data;
+  }, [apiCall]);
+
   const getUserCredits = useCallback(async () => {
     const data = await apiCall('/api/payment/credits');
     return data;
@@ -286,6 +307,9 @@ export function useApi() {
     getCreditPackages,
     createPaymentIntent,
     confirmPaymentSuccess,
+    getPayPalConfig,
+    createPayPalOrder,
+    confirmPayPalSuccess,
     getUserCredits,
     getCreditTransactions,
     downloadInvoice
