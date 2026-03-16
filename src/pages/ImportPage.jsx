@@ -938,7 +938,7 @@ export default function ImportPage() {
   const [exportingCsv, setExportingCsv] = useState(false);
   const [csvExportProgress, setCsvExportProgress] = useState({ current: 0, total: 0 });
 
-  // Only images in the queue or being processed are "busy"; others (completed/none/failed) are not disabled
+  // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
   const isImageInQueueOrProcessing = (row) => {
     if (!row?.id) return false;
     if (analyzingIds.has(row.id)) return true;
@@ -2276,8 +2276,59 @@ export default function ImportPage() {
     setExportingCsv(true);
     setCsvExportProgress({ current: 0, total: rows.length });
     try {
-      showToast('Preparing CSV export...');
-      
+      showToast('Mapping keywords to Getty-approved terms per image...');
+
+      // Small cache avoids repeated calls for identical keywords across images.
+      const mappedKeywordCache = new Map(); // normalized custom keyword -> getty keyword
+      const mapKeywordsForImage = async (customKeywordsArr) => {
+        const normalized = customKeywordsArr
+          .map((kw) => String(kw || '').trim())
+          .filter(Boolean);
+        if (!normalized.length) return [];
+
+        const keywordsToMap = [];
+        for (const kw of normalized) {
+          const cacheKey = kw.toLowerCase();
+          if (!mappedKeywordCache.has(cacheKey)) {
+            keywordsToMap.push(kw);
+          }
+        }
+
+        // Always request per-image mapping so backend can backfill to 50 Getty terms.
+        const mappingInput = keywordsToMap.length ? keywordsToMap : normalized;
+        let mappedFromBackend = [];
+        if (mappingInput.length) {
+          const mappingResult = await mapKeywordsToGetty(mappingInput, 50);
+          mappedFromBackend = Array.isArray(mappingResult?.gettyKeywords) ? mappingResult.gettyKeywords : [];
+
+          // Cache only direct keyword->keyword mappings (first N correspond to mappingInput).
+          mappingInput.forEach((kw, idx) => {
+            const cacheKey = kw.toLowerCase();
+            mappedKeywordCache.set(cacheKey, mappedFromBackend[idx] || kw);
+          });
+        }
+
+        const mappedOriginal = normalized.map((kw) => {
+          const mapped = mappedKeywordCache.get(kw.toLowerCase());
+          return mapped || kw;
+        });
+
+        // Final per-image keywords:
+        // 1) keep mapped originals, 2) append backend backfill terms, 3) unique, max 50.
+        const unique = [];
+        const seen = new Set();
+        [...mappedOriginal, ...mappedFromBackend].forEach((kw) => {
+          const value = String(kw || '').trim();
+          if (!value) return;
+          const key = value.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          unique.push(value);
+        });
+
+        return unique.slice(0, 50);
+      };
+
       const headers = [
         'file name',
         'created date',
@@ -2336,8 +2387,16 @@ export default function ImportPage() {
           ? r.keywords
           : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
         
-        // Use keywords as-is since Gemini already selected from the allowed list
-        const gettyKeywordsArr = customKeywordsArr.slice(0, 50);
+        // Map keywords per image (instead of one global mapping for whole batch).
+        let gettyKeywordsArr = customKeywordsArr;
+        if (customKeywordsArr.length > 0) {
+          try {
+            gettyKeywordsArr = await mapKeywordsForImage(customKeywordsArr);
+          } catch (err) {
+            console.error('Getty mapping failed for image, using original keywords:', r.id, err);
+            gettyKeywordsArr = customKeywordsArr;
+          }
+        }
         const keywordsStr = gettyKeywordsArr.join(', ');
 
         // Use imageCreatedAt per image (from EXIF) when available; fallback to shoot date override
@@ -2449,9 +2508,9 @@ export default function ImportPage() {
             disabled={bulkRunning || allSelectedInQueueOrProcessing || noAnalysesLeft}
             title={
               noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
-              bulkRunning ? 'Analysis in progress…' :
-              allSelectedInQueueOrProcessing ? 'All selected images are already processing' :
-              'Analyze selected'
+              bulkRunning ? 'Analiza u toku…' :
+              allSelectedInQueueOrProcessing ? 'Sve izabrane slike su već u obradi' :
+              'Analiziraj izabrane'
             }
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
