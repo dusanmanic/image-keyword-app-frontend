@@ -633,7 +633,6 @@ const StyledDataGrid = styled(DataGrid)`
   }
   
   width: 100%;
-  height: 100%;
   border: 2px solid #DAE0E8;
   background-color: transparent;
   border-radius: 12px;
@@ -2785,7 +2784,7 @@ export default function ImportPage() {
             Drag & drop images here
           </DropZone>
       ) : (
-        <div ref={gridRef} style={{ overflow: 'auto', flex: 1, minHeight: 0, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div ref={gridRef} style={{ overflow: 'auto', alignSelf: 'flex-start', maxHeight: 'calc(100vh - 222px)', minWidth: 0, width: '100%' }}>
         <StyledDataGrid
           columns={cols}
           rows={rows}
@@ -2797,7 +2796,7 @@ export default function ImportPage() {
             onSelectedRowsChange={setSelectedRows}
           className="rdg-light"
           rowClass={(row) => (analyzingIds.has(row.id) ? 'row-disabled' : '')}
-          style={{ width: '100%', minWidth: '100%', flex: 1 }}
+          style={{ width: '100%', minWidth: '100%', height: Math.min(40 + rows.length * 150, typeof window !== 'undefined' ? window.innerHeight - 250 : 600) }}
         />
         </div>
       )}
