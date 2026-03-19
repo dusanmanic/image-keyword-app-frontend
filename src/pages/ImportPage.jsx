@@ -1521,7 +1521,7 @@ export default function ImportPage() {
       key: "title",
       name: "Title",
       frozen: true,
-      width: '25%',
+      width: '10%',
       renderHeaderCell: () => <div className="hdr">Title</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
@@ -1647,6 +1647,7 @@ export default function ImportPage() {
       key: "keywords",
       name: "Keywords",
       frozen: true,
+      width: '45%',
       cellClass: (row) => {
         const busy = analyzingIds.has(row.id) ? 'row-busy' : '';
         return `flex-start-cell${busy ? ' ' + busy : ''}`;
