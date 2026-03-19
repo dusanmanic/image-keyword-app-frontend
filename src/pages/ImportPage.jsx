@@ -609,6 +609,7 @@ const OverlayPlaceholder = styled.span`
 `;
 
 const StyledDataGrid = styled(DataGrid)`
+  width: 100% !important;
   /* Remove blue focus/selection styles */
   --rdg-selection-color: inherit;
   --rdg-selection-background-color: transparent;
@@ -631,6 +632,7 @@ const StyledDataGrid = styled(DataGrid)`
     color: inherit;
   }
   
+  width: 100%;
   height: 100%;
   border: 2px solid #DAE0E8;
   background-color: transparent;
@@ -1521,7 +1523,7 @@ export default function ImportPage() {
       key: "title",
       name: "Title",
       frozen: true,
-      width: '10%',
+      width: '1fr',
       renderHeaderCell: () => <div className="hdr">Title</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
@@ -1583,7 +1585,7 @@ export default function ImportPage() {
     {
       key: "description",
       name: "Description",
-      width: '25%',
+      width: '2.5fr',
       frozen: true,
       renderHeaderCell: () => <div className="hdr">Description</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
@@ -1647,7 +1649,7 @@ export default function ImportPage() {
       key: "keywords",
       name: "Keywords",
       frozen: true,
-      width: '45%',
+      width: '4.5fr',
       cellClass: (row) => {
         const busy = analyzingIds.has(row.id) ? 'row-busy' : '';
         return `flex-start-cell${busy ? ' ' + busy : ''}`;
@@ -2783,7 +2785,7 @@ export default function ImportPage() {
             Drag & drop images here
           </DropZone>
       ) : (
-        <div ref={gridRef} style={{ overflow: 'auto' }}>
+        <div ref={gridRef} style={{ overflow: 'auto', flex: 1, minHeight: 0, minWidth: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
         <StyledDataGrid
           columns={cols}
           rows={rows}
@@ -2795,6 +2797,7 @@ export default function ImportPage() {
             onSelectedRowsChange={setSelectedRows}
           className="rdg-light"
           rowClass={(row) => (analyzingIds.has(row.id) ? 'row-disabled' : '')}
+          style={{ width: '100%', minWidth: '100%', flex: 1 }}
         />
         </div>
       )}
