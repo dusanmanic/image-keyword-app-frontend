@@ -866,6 +866,7 @@ export default function ImportPage() {
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteData, setPasteData] = useState({ title: '', description: '', keywords: [] });
+  const [keywordsViewMode, setKeywordsViewMode] = useState('custom'); // 'custom' | 'getty'
   const [pasteOptions, setPasteOptions] = useState({
     title: { include: true, clear: false },
     description: { include: true, clear: false },
@@ -1213,6 +1214,7 @@ export default function ImportPage() {
                   title: fresh.title ?? r.title,
                   description: fresh.description ?? r.description,
                   keywords: Array.isArray(fresh.keywords) ? fresh.keywords : (r.keywords || []),
+                  gettyKeywords: Array.isArray(fresh.gettyKeywords) ? fresh.gettyKeywords : (r.gettyKeywords || []),
                   analysis_status: fresh.analysis_status ?? fresh.analysisStatus ?? r.analysis_status,
                   analyzedAt: fresh.analyzedAt ?? fresh.analyzedat ?? r.analyzedAt,
                 };
@@ -1649,18 +1651,65 @@ export default function ImportPage() {
         const busy = analyzingIds.has(row.id) ? 'row-busy' : '';
         return `flex-start-cell${busy ? ' ' + busy : ''}`;
       },
-      renderHeaderCell: () => <div className="hdr">Keywords</div>,
+      renderHeaderCell: () => {
+        const hasAnyGetty = rows.some(r => Array.isArray(r.gettyKeywords) && r.gettyKeywords.length > 0);
+        return (
+          <div className="hdr" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>Keywords</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setKeywordsViewMode('custom'); }}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  border: '1px solid #93c5fd',
+                  borderRadius: 6,
+                  background: keywordsViewMode === 'custom' ? '#1e40af' : '#eff6ff',
+                  color: keywordsViewMode === 'custom' ? '#fff' : '#1e40af',
+                  cursor: 'pointer',
+                }}
+              >
+                Custom
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); if (hasAnyGetty) setKeywordsViewMode('getty'); }}
+                disabled={!hasAnyGetty}
+                title={hasAnyGetty ? 'Show Getty/iStock keywords from last CSV export' : 'Export to CSV first to see Getty keywords'}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  border: '1px solid #93c5fd',
+                  borderRadius: 6,
+                  background: keywordsViewMode === 'getty' ? '#1e40af' : (hasAnyGetty ? '#eff6ff' : '#e5e7eb'),
+                  color: keywordsViewMode === 'getty' ? '#fff' : (hasAnyGetty ? '#1e40af' : '#9ca3af'),
+                  cursor: hasAnyGetty ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Getty/iStock
+              </button>
+            </div>
+          </div>
+        );
+      },
       renderCell: ({ row, onRowChange }) => {
-        const list = Array.isArray(row.keywords)
-          ? row.keywords
-          : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const isGettyMode = keywordsViewMode === 'getty';
+        const gettyList = Array.isArray(row.gettyKeywords) ? row.gettyKeywords : [];
+        const list = isGettyMode
+          ? gettyList
+          : (Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean));
         const chipsRef = React.useRef(null);
         const [hasDraft, setHasDraft] = useState(false);
         const addKeyword = (val) => {
+          if (isGettyMode) return; // read-only in Getty mode
           const t = (val || '').trim();
           if (!t) return;
-          if (list.includes(t)) return;
-          const newKeywords = [...list, t];
+          const customList = Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+          if (customList.includes(t)) return;
+          const newKeywords = [...customList, t];
           onRowChange({ ...row, keywords: newKeywords }, true);
           saveMetadataChanges(row.id, { keywords: newKeywords });
           if (chipsRef.current) chipsRef.current.textContent = '';
@@ -1668,12 +1717,15 @@ export default function ImportPage() {
           showToast('Keywords updated');
         };
         const removeAt = (idx) => {
-          const next = list.filter((_, i) => i !== idx);
+          if (isGettyMode) return;
+          const customList = Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+          const next = customList.filter((_, i) => i !== idx);
           onRowChange({ ...row, keywords: next }, true);
           saveMetadataChanges(row.id, { keywords: next });
           showToast('Keywords updated');
         };
         const handleKeyDown = (e) => {
+          if (isGettyMode) return;
           if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
             e.preventDefault();
             const sel = window.getSelection();
@@ -1682,12 +1734,29 @@ export default function ImportPage() {
           }
           if (e.key === 'Backspace') {
             const content = (chipsRef.current?.textContent || '').trim();
-            if (!content && list.length) {
+            const customList = Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+            if (!content && customList.length) {
               e.preventDefault();
-              removeAt(list.length - 1);
+              removeAt(customList.length - 1);
             }
           }
         };
+        if (isGettyMode) {
+          return (
+            <MetaChipsWrapper>
+              <MetaChips style={{ cursor: 'default' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {list.length > 0 ? list.map((kw, idx) => (
+                    <MetaChip key={idx} style={{ cursor: 'default' }}>{kw}</MetaChip>
+                  )) : (
+                    <span style={{ color: '#9ca3af', fontSize: 12 }}>Not exported yet</span>
+                  )}
+                </div>
+              </MetaChips>
+              <KeywordCountBadge>{list.length}</KeywordCountBadge>
+            </MetaChipsWrapper>
+          );
+        }
         return (
           <MetaChipsWrapper>
             <MetaChips
@@ -1944,6 +2013,7 @@ export default function ImportPage() {
                 title: fresh.title ?? r.title,
                 description: fresh.description ?? r.description,
                 keywords: Array.isArray(fresh.keywords) ? fresh.keywords : (r.keywords || []),
+                gettyKeywords: Array.isArray(fresh.gettyKeywords) ? fresh.gettyKeywords : (r.gettyKeywords || []),
                 analysis_status: fresh.analysis_status ?? fresh.analysisStatus ?? r.analysis_status,
               };
             });
@@ -2430,6 +2500,12 @@ export default function ImportPage() {
         } catch (logErr) {
           console.error('Failed to save export logs (non-fatal):', logErr);
         }
+        // Update rows with gettyKeywords so Getty/iStock button works immediately without refresh
+        setRows(prev => prev.map(r => {
+          const item = exportLogItems.find(x => x.imageId === r.id);
+          if (!item?.gettyKeywords?.length) return r;
+          return { ...r, gettyKeywords: item.gettyKeywords };
+        }));
       }
 
       // Windows CSV: CRLF line endings (avoid BOM; some importers treat it as part of "file name" header)
