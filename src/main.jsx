@@ -471,8 +471,13 @@ function MainApp() {
     return <LoginPage />;
   }
 
+  // While fetching ToS status, show loading (don't flash modal for users who already accepted)
+  if (tosStatus === 'loading') {
+    return <LoadingScreen />;
+  }
+
   // ToS required: show full-screen modal until acceptance
-  if (tosStatus === 'loading' || tosStatus === 'required') {
+  if (tosStatus === 'required') {
     return (
       <TosModal
         tosContent={tosData?.content}
