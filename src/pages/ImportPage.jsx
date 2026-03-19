@@ -1654,7 +1654,7 @@ export default function ImportPage() {
       renderHeaderCell: () => {
         const hasAnyGetty = rows.some(r => Array.isArray(r.gettyKeywords) && r.gettyKeywords.length > 0);
         return (
-          <div className="hdr" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="hdr" style={{ display: 'flex', flexDirection: 'column', gap: 4, pointerEvents: 'auto' }}>
             <span>Keywords</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <button
