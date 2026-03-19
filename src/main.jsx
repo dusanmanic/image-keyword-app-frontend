@@ -417,9 +417,10 @@ function MainApp() {
     init();
   }, []);
 
-  // Fetch ToS status when authenticated
+  // Fetch ToS status when authenticated (run only when auth changes, not on every render)
   useEffect(() => {
     if (!isAuthenticated || !isTokenValid()) return;
+    if (tosStatus === 'accepted') return; // Don't re-fetch once accepted – prevents infinite loop
     const fetchTos = async () => {
       setTosStatus('loading');
       setTosError(null);
@@ -438,7 +439,8 @@ function MainApp() {
       }
     };
     fetchTos();
-  }, [isAuthenticated, isTokenValid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Load folders only when authenticated AND ToS accepted
   useEffect(() => {
