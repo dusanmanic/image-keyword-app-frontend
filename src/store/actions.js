@@ -24,6 +24,12 @@ export const setIsActive = (isActive) => ({
   payload: isActive
 });
 
+// ToS (from /me response – avoids separate API call)
+export const setTosFromMe = (tosAccepted, tosContent = null, tosVersion = null) => ({
+  type: 'SET_TOS_FROM_ME',
+  payload: { tosAccepted, tosContent, tosVersion }
+});
+
 // Folders actions
 export const setFolders = (folders) => ({
   type: 'SET_FOLDERS',

@@ -9,6 +9,9 @@ export function useStore() {
   const email = useSelector(state => state.email);
   const isAuthenticated = useSelector(state => state.isAuthenticated);
   const isActive = useSelector(state => state.isActive);
+  const tosAccepted = useSelector(state => state.tosAccepted);
+  const tosContent = useSelector(state => state.tosContent);
+  const tosVersion = useSelector(state => state.tosVersion);
   const folders = useSelector(state => state.folders);
   const selectedFolder = useSelector(state => state.selectedFolder);
   const loading = useSelector(state => state.loading);
@@ -22,6 +25,9 @@ export function useStore() {
     email,
     isAuthenticated,
     isActive,
+    tosAccepted,
+    tosContent,
+    tosVersion,
     folders,
     selectedFolder,
     loading,
@@ -35,6 +41,7 @@ export function useStore() {
     setAuthenticated: (isAuthenticated) => dispatch(actions.setAuthenticated(isAuthenticated)),
     clearAuth: () => dispatch(actions.clearAuth()),
     setIsActive: (isActive) => dispatch(actions.setIsActive(isActive)),
+    setTosFromMe: (tosAccepted, tosContent, tosVersion) => dispatch(actions.setTosFromMe(tosAccepted, tosContent, tosVersion)),
     setFolders: (folders) => dispatch(actions.setFolders(folders)),
     addFolder: (folder) => dispatch(actions.addFolder(folder)),
     updateFolder: (folder) => dispatch(actions.updateFolder(folder)),

@@ -13,7 +13,8 @@ export function useAuthRedux() {
     setAuthenticated, 
     clearAuth,
     isActive,
-    setIsActive
+    setIsActive,
+    setTosFromMe
   } = useStore();
   
   const { login: apiLogin, register: apiRegister, logout: apiLogout } = useApi();
@@ -66,6 +67,14 @@ export function useAuthRedux() {
       localStorage.setItem("auth_token", data.token || "");
       localStorage.setItem("auth_email", emailArg);
       try { localStorage.setItem("remembered_email", emailArg); } catch {}
+
+      // Fetch /me for ToS status (login response doesn't include it)
+      try {
+        const me = await fetchCurrentUser();
+        setTosFromMe(me.tosAccepted ?? false, me.tosContent ?? null, me.tosVersion ?? null);
+      } catch {
+        setTosFromMe(false, null, null);
+      }
       
     } catch (error) {
       throw new Error(error.message || "Login failed. Please check your credentials.");
@@ -135,6 +144,8 @@ export function useAuthRedux() {
             } else if (typeof me?.user?.isActive === 'number') {
               setIsActive(me.user.isActive === 1);
             }
+            // ToS from /me (single API call)
+            setTosFromMe(me.tosAccepted ?? false, me.tosContent ?? null, me.tosVersion ?? null);
           } catch (e) {
             // If user was deleted, clear auth state
             if (e.message && e.message.includes('User not found')) {

@@ -397,16 +397,15 @@ const LoadingScreen = () => (
 
 function MainApp() {
   const { isAuthenticated, isTokenValid, initializeAuth } = useAuthRedux();
+  const { tosAccepted, tosContent, setTosFromMe } = useStore();
   const { loadFolders } = useFoldersRedux();
-  const { getTos, acceptTos } = useApi();
+  const { acceptTos } = useApi();
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [tosStatus, setTosStatus] = useState('loading'); // 'loading' | 'accepted' | 'required'
-  const [tosData, setTosData] = useState(null); // { content, version }
   const [tosError, setTosError] = useState(null);
   const [tosSubmitting, setTosSubmitting] = useState(false);
 
-  // Initialize auth from localStorage on mount
+  // Initialize auth from localStorage on mount (fetches /me with ToS – single API call)
   useEffect(() => {
     const init = async () => {
       setIsRefreshing(true);
@@ -417,37 +416,12 @@ function MainApp() {
     init();
   }, []);
 
-  // Fetch ToS status when authenticated (run only when auth changes, not on every render)
-  useEffect(() => {
-    if (!isAuthenticated || !isTokenValid()) return;
-    if (tosStatus === 'accepted') return; // Don't re-fetch once accepted – prevents infinite loop
-    const fetchTos = async () => {
-      setTosStatus('loading');
-      setTosError(null);
-      try {
-        const data = await getTos();
-        if (data.userAccepted) {
-          setTosStatus('accepted');
-        } else {
-          setTosData({ content: data.tos?.content || '', version: data.currentVersion });
-          setTosStatus('required');
-        }
-      } catch (e) {
-        setTosError(e.message || 'Failed to load Terms of Service');
-        setTosStatus('required');
-        setTosData({ content: '', version: '' });
-      }
-    };
-    fetchTos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
-
   // Load folders only when authenticated AND ToS accepted
   useEffect(() => {
-    if (isAuthenticated && isTokenValid() && tosStatus === 'accepted') {
+    if (isAuthenticated && isTokenValid() && tosAccepted === true) {
       loadFolders();
     }
-  }, [isAuthenticated, tosStatus]);
+  }, [isAuthenticated, tosAccepted]);
 
   const handleTosAccept = async (content) => {
     if (!content || tosSubmitting) return;
@@ -455,7 +429,7 @@ function MainApp() {
     setTosError(null);
     try {
       await acceptTos(content);
-      setTosStatus('accepted');
+      setTosFromMe(true, null, null);
     } catch (e) {
       setTosError(e.message || 'Failed to accept Terms of Service');
     } finally {
@@ -471,16 +445,16 @@ function MainApp() {
     return <LoginPage />;
   }
 
-  // While fetching ToS status, show loading (don't flash modal for users who already accepted)
-  if (tosStatus === 'loading') {
+  // Waiting for /me response (ToS status) – show loading, don't flash modal
+  if (tosAccepted === null) {
     return <LoadingScreen />;
   }
 
   // ToS required: show full-screen modal until acceptance
-  if (tosStatus === 'required') {
+  if (tosAccepted === false) {
     return (
       <TosModal
-        tosContent={tosData?.content}
+        tosContent={tosContent || ''}
         onAccept={handleTosAccept}
         isLoading={tosSubmitting}
         error={tosError}

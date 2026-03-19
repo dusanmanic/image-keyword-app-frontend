@@ -7,6 +7,9 @@ const initialState = {
   email: '',
   isAuthenticated: false,
   isActive: true,
+  tosAccepted: null, // null = not yet fetched, true/false from /me
+  tosContent: null,
+  tosVersion: null,
   
   // Folders
   folders: [],
@@ -30,7 +33,14 @@ const reducer = (state = initialState, action) => {
     case 'SET_AUTHENTICATED':
       return { ...state, isAuthenticated: action.payload };
     case 'CLEAR_AUTH':
-      return { ...state, token: '', email: '', isAuthenticated: false, isActive: true };
+      return { ...state, token: '', email: '', isAuthenticated: false, isActive: true, tosAccepted: null, tosContent: null, tosVersion: null };
+    case 'SET_TOS_FROM_ME':
+      return {
+        ...state,
+        tosAccepted: action.payload.tosAccepted,
+        tosContent: action.payload.tosContent ?? null,
+        tosVersion: action.payload.tosVersion ?? null
+      };
     case 'SET_IS_ACTIVE':
       console.log('Reducer: SET_IS_ACTIVE called with:', action.payload);
       return { ...state, isActive: action.payload };
