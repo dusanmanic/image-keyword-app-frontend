@@ -202,6 +202,20 @@ export function useApi() {
     }
   }, [apiCall]);
 
+  // ToS API (requires auth, does NOT require ToS acceptance)
+  const getTos = useCallback(async () => {
+    const data = await apiCall('/api/tos');
+    return data;
+  }, [apiCall]);
+
+  const acceptTos = useCallback(async (content) => {
+    const data = await apiCall('/api/tos/accept', {
+      method: 'POST',
+      body: JSON.stringify({ content })
+    });
+    return data;
+  }, [apiCall]);
+
   // Payment API
   const getCreditPackages = useCallback(async () => {
     const data = await apiCall('/api/payment/packages');
@@ -304,6 +318,8 @@ export function useApi() {
     login,
     register,
     logout,
+    getTos,
+    acceptTos,
     getCreditPackages,
     createPaymentIntent,
     confirmPaymentSuccess,

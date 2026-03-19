@@ -14,6 +14,7 @@ import ImportPage from './pages/ImportPage.jsx'
 import StatisticPage from './pages/StatisticPage.jsx'
 import PaymentPage from './pages/PaymentPage.jsx'
 import AccountDeactivatedPage from './pages/AccountDeactivatedPage.jsx'
+import { TosModal } from './components/TosModal.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -371,12 +372,39 @@ function AuthenticatedApp() {
   )
 }
 
+const LoadingScreen = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '4px solid #e5e7eb',
+        borderTop: '4px solid #1e40af',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        margin: '0 auto 16px'
+      }} />
+      <p style={{ color: '#6b7280', fontSize: '16px' }}>Loading...</p>
+    </div>
+  </div>
+);
+
 function MainApp() {
   const { isAuthenticated, isTokenValid, initializeAuth } = useAuthRedux();
-  const { loadFolders, loading: foldersLoading } = useFoldersRedux();
+  const { loadFolders } = useFoldersRedux();
+  const { getTos, acceptTos } = useApi();
   const [isInitializing, setIsInitializing] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
+  const [tosStatus, setTosStatus] = useState('loading'); // 'loading' | 'accepted' | 'required'
+  const [tosData, setTosData] = useState(null); // { content, version }
+  const [tosError, setTosError] = useState(null);
+  const [tosSubmitting, setTosSubmitting] = useState(false);
 
   // Initialize auth from localStorage on mount
   useEffect(() => {
@@ -387,49 +415,72 @@ function MainApp() {
       setIsRefreshing(false);
     };
     init();
-  }, []); 
-  // Load folders only when authenticated
+  }, []);
+
+  // Fetch ToS status when authenticated
   useEffect(() => {
-    if (isAuthenticated && isTokenValid()) {
+    if (!isAuthenticated || !isTokenValid()) return;
+    const fetchTos = async () => {
+      setTosStatus('loading');
+      setTosError(null);
+      try {
+        const data = await getTos();
+        if (data.userAccepted) {
+          setTosStatus('accepted');
+        } else {
+          setTosData({ content: data.tos?.content || '', version: data.currentVersion });
+          setTosStatus('required');
+        }
+      } catch (e) {
+        setTosError(e.message || 'Failed to load Terms of Service');
+        setTosStatus('required');
+        setTosData({ content: '', version: '' });
+      }
+    };
+    fetchTos();
+  }, [isAuthenticated, isTokenValid]);
+
+  // Load folders only when authenticated AND ToS accepted
+  useEffect(() => {
+    if (isAuthenticated && isTokenValid() && tosStatus === 'accepted') {
       loadFolders();
     }
-  }, [isAuthenticated]);
-  
-  
-  // Show loading while initializing or refreshing
+  }, [isAuthenticated, tosStatus]);
+
+  const handleTosAccept = async (content) => {
+    if (!content || tosSubmitting) return;
+    setTosSubmitting(true);
+    setTosError(null);
+    try {
+      await acceptTos(content);
+      setTosStatus('accepted');
+    } catch (e) {
+      setTosError(e.message || 'Failed to accept Terms of Service');
+    } finally {
+      setTosSubmitting(false);
+    }
+  };
+
   if (isInitializing || isRefreshing) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '4px solid #e5e7eb', 
-            borderTop: '4px solid #1e40af', 
-            borderRadius: '50%', 
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }}></div>
-          <p style={{ color: '#6b7280', fontSize: '16px' }}>
-            {isInitializing ? 'Initializing...' : 'Refreshing...'}
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
-  
-  // Ako nema tokena ili je token nevalidan, prikaži login screen
+
   if (!isAuthenticated || !isTokenValid()) {
     return <LoginPage />;
   }
 
-  // Ako je autentifikovan, prikaži glavnu aplikaciju
+  // ToS required: show full-screen modal until acceptance
+  if (tosStatus === 'loading' || tosStatus === 'required') {
+    return (
+      <TosModal
+        tosContent={tosData?.content}
+        onAccept={handleTosAccept}
+        isLoading={tosSubmitting}
+        error={tosError}
+      />
+    );
+  }
+
   return <AuthenticatedApp />;
 }
 
