@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, useNavigate, useLocation, Link } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, useNavigate, useLocation, Link, Navigate } from 'react-router-dom'
 import styled from 'styled-components'
 import { useApi } from './hooks/useApi.js'
 import { showSpinner, StoreProvider, useStore } from './store/index.js'
@@ -8,6 +8,7 @@ import { useAuthRedux } from './hooks/useAuthRedux.js'
 import { useFoldersRedux } from './hooks/useFoldersRedux.js'
 import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import LandingPage from './pages/LandingPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
@@ -22,7 +23,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 const Header = styled.header`
   position: sticky;
   top: 0;
-  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
   border-bottom: 1px solid #e5e7eb;
   padding: 16px 24px;
   display: flex;
@@ -46,9 +47,10 @@ const AppIcon = styled.img`
 
 const AppTitle = styled.h1`
   color: #1e40af;
-  font-size: 22px;
+  font-size: clamp(14px, 2.4vw, 22px);
   margin: 0;
   font-weight: 700;
+  line-height: 1.2;
 `;
 
 const Nav = styled.nav`
@@ -68,11 +70,11 @@ const NavLink = styled(Link)`
   position: relative;
   
   &:hover {
-    background: #eff6ff;
+    background: #f3f4f6;
   }
   
   &.active {
-    background: #eff6ff;
+    background: #f3f4f6;
     
     &::after {
       content: '';
@@ -254,7 +256,7 @@ function AuthenticatedApp() {
   
   const isActiveRoute = (path) => {
     if (path === '/folders') {
-      return location.pathname === '/' || location.pathname === '/folders';
+      return location.pathname === '/folders';
     }
     if (path === '/home') {
       return location.pathname === '/home';
@@ -292,8 +294,8 @@ function AuthenticatedApp() {
     <div>
       <Header>
         <HeaderLeft>
-          <AppIcon src="/logo-app.svg" alt="KeyWorld" />
-          <AppTitle>KeyWorld</AppTitle>
+          <AppIcon src="/logo-app.svg" alt="Jaba Keyword" />
+          <AppTitle>Jaba Keyword</AppTitle>
         </HeaderLeft>
         <Nav>
           {spendingInfo && !loadingSpending && (
@@ -396,6 +398,8 @@ const LoadingScreen = () => (
 );
 
 function MainApp() {
+  const location = useLocation();
+  const pathname = location.pathname;
   const { isAuthenticated, isTokenValid, initializeAuth } = useAuthRedux();
   const { tosAccepted, tosContent, setTosFromMe } = useStore();
   const { loadFolders } = useFoldersRedux();
@@ -441,8 +445,12 @@ function MainApp() {
     return <LoadingScreen />;
   }
 
-  if (!isAuthenticated || !isTokenValid()) {
-    return <LoginPage />;
+  const authed = isAuthenticated && isTokenValid();
+
+  if (!authed) {
+    if (pathname === '/') return <LandingPage />;
+    if (pathname === '/login') return <LoginPage />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   // Waiting for /me response (ToS status) – show loading, don't flash modal
@@ -460,6 +468,14 @@ function MainApp() {
         error={tosError}
       />
     );
+  }
+
+  if (pathname === '/login') {
+    return <Navigate to="/folders" replace />;
+  }
+
+  if (pathname === '/') {
+    return <LandingPage />;
   }
 
   return <AuthenticatedApp />;

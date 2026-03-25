@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import { useAuthRedux } from "../hooks/useAuthRedux.js";
+import { getPostLoginPath } from "../utils/postLoginRedirect.js";
 import GlobalSpinner from "./GlobalSpinner.jsx";
 
 const Wrapper = styled.div`
@@ -112,6 +113,7 @@ export default function AuthPanel({ initialTab = 'login', initialEmail = '' }) {
   const [loginErr, setLoginErr] = useState("");
   const [registerErr, setRegisterErr] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const validate = (emailValue, passwordValue, setError) => {
     if (!emailValue || !passwordValue) {
@@ -133,9 +135,10 @@ export default function AuthPanel({ initialTab = 'login', initialEmail = '' }) {
     if (!validate(loginEmail, loginPassword, setLoginErr)) return;
     try {
       setBusy(true); setLoginErr("");
-      await login(loginEmail, loginPassword);
+      const result = await login(loginEmail, loginPassword);
       setLoginEmail(""); setLoginPassword("");
-      navigate("/", { replace: true });
+      if (result?.inactive) return;
+      navigate(getPostLoginPath(location), { replace: true });
     } catch (e) {
       setLoginErr(e.message || "Login failed. Please check your credentials.");
     } finally {
@@ -147,9 +150,10 @@ export default function AuthPanel({ initialTab = 'login', initialEmail = '' }) {
     if (!validate(registerEmail, registerPassword, setRegisterErr)) return;
     try {
       setBusy(true); setRegisterErr("");
-      await register(registerEmail, registerPassword);
+      const result = await register(registerEmail, registerPassword);
       setRegisterEmail(""); setRegisterPassword("");
-      navigate("/", { replace: true });
+      if (result?.inactive) return;
+      navigate(getPostLoginPath(location), { replace: true });
     } catch (e) {
       setRegisterErr(e.message || "Registration failed. Please try again.");
     } finally {

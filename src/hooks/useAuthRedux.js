@@ -58,11 +58,12 @@ export function useAuthRedux() {
         });
       }
       
-      // Redirect new users to welcome page
-      if (data.user?.isActive === false || data.user?.isActive === 0) {
+      const inactive =
+        data.user?.isActive === false || data.user?.isActive === 0;
+      if (inactive) {
         navigate('/home');
       }
-      
+
       // Update localStorage
       localStorage.setItem("auth_token", data.token || "");
       localStorage.setItem("auth_email", emailArg);
@@ -76,6 +77,7 @@ export function useAuthRedux() {
         setTosFromMe(false, null, null);
       }
       
+      return { inactive: !!inactive };
     } catch (error) {
       throw new Error(error.message || "Login failed. Please check your credentials.");
     }
@@ -84,10 +86,8 @@ export function useAuthRedux() {
   // Register function
   const register = async (emailArg, password) => {
     try {
-      // Register user first
       await apiRegister(emailArg, password);
-      // Then login automatically
-      await login(emailArg, password);
+      return await login(emailArg, password);
     } catch (error) {
       throw new Error(error.message || "Registration failed. Please try again.");
     }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuthRedux } from '../hooks/useAuthRedux.js';
+import { getPostLoginPath } from '../utils/postLoginRedirect.js';
 import AuthPanel from '../components/AuthPanel.jsx';
 
 const PageContainer = styled.div`
@@ -94,6 +95,7 @@ const ErrorLine = styled.div`
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, email, logout, login } = useAuthRedux();
   const [showAuth, setShowAuth] = useState(false);
   const [pw, setPw] = useState("");
@@ -109,7 +111,7 @@ function LoginPage() {
           <Title>You’re signed in</Title>
           <MaskedEmail>{masked}</MaskedEmail>
           <ButtonsGrid>
-            <PrimaryButton onClick={() => navigate('/', { replace: true })}>
+            <PrimaryButton onClick={() => navigate('/folders', { replace: true })}>
               Continue
             </PrimaryButton>
             <SecondaryButton onClick={async () => { await logout(); }}>
@@ -142,8 +144,9 @@ function LoginPage() {
                 if (!pw) { setErr('Please enter your password'); return; }
                 try {
                   setBusy(true); setErr("");
-                  await login(savedEmail, pw);
-                  navigate('/', { replace: true });
+                  const result = await login(savedEmail, pw);
+                  if (result?.inactive) return;
+                  navigate(getPostLoginPath(location), { replace: true });
                 } catch(e) {
                   setErr(e.message || 'Login failed. Please check your credentials.');
                 } finally { setBusy(false); }
