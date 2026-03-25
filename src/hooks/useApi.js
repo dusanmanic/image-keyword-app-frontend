@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { fetchPublicTos as fetchPublicTosRequest } from '../services/tosPublicService.js';
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -216,6 +217,21 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  /** Public ToS (no JWT). Same as Terms page — uses tosPublicService. */
+  const getPublicTos = useCallback(async (options = {}) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchPublicTosRequest(options);
+      return data;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Payment API
   const getCreditPackages = useCallback(async () => {
     const data = await apiCall('/api/payment/packages');
@@ -320,6 +336,7 @@ export function useApi() {
     logout,
     getTos,
     acceptTos,
+    getPublicTos,
     getCreditPackages,
     createPaymentIntent,
     confirmPaymentSuccess,

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { useApi } from '../hooks/useApi.js';
 
 const Overlay = styled.div`
   position: fixed;
@@ -40,6 +42,19 @@ const Subtitle = styled.p`
   margin: 8px 0 0;
   font-size: 14px;
   color: #64748b;
+  line-height: 1.5;
+`;
+
+const FullPageLink = styled(Link)`
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const ScrollArea = styled.div`
@@ -107,12 +122,40 @@ const ErrorText = styled.p`
 `;
 
 export function TosModal({ tosContent, onAccept, isLoading, error }) {
+  const { getPublicTos } = useApi();
   const [checked, setChecked] = useState(false);
+  const [bodyText, setBodyText] = useState(() => (tosContent && tosContent.trim() ? tosContent : ''));
+  const [loadingBody, setLoadingBody] = useState(() => !tosContent?.trim());
+
+  useEffect(() => {
+    if (tosContent?.trim()) {
+      setBodyText(tosContent);
+      setLoadingBody(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingBody(true);
+    getPublicTos()
+      .then((d) => {
+        if (!cancelled) setBodyText(d.content || '');
+      })
+      .catch(() => {
+        if (!cancelled) setBodyText('');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingBody(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tosContent, getPublicTos]);
 
   const handleAccept = () => {
-    if (!checked || isLoading || !tosContent?.trim()) return;
-    onAccept(tosContent);
+    if (!checked || isLoading || !bodyText?.trim()) return;
+    onAccept(bodyText);
   };
+
+  const displayText = loadingBody ? 'Loading…' : bodyText || 'Could not load terms. Use “Read on a full page” or try again later.';
 
   return (
     <Overlay role="dialog" aria-modal="true" aria-labelledby="tos-title">
@@ -122,8 +165,9 @@ export function TosModal({ tosContent, onAccept, isLoading, error }) {
           <Subtitle>
             You must read and accept the Terms of Service to use this application.
           </Subtitle>
+          <FullPageLink to="/terms">Read on a full page</FullPageLink>
         </Header>
-        <ScrollArea>{tosContent || 'Loading…'}</ScrollArea>
+        <ScrollArea>{displayText}</ScrollArea>
         <Footer>
           <CheckboxLabel>
             <Checkbox
@@ -136,7 +180,7 @@ export function TosModal({ tosContent, onAccept, isLoading, error }) {
           {error && <ErrorText>{error}</ErrorText>}
           <AcceptButton
             onClick={handleAccept}
-            disabled={!checked || isLoading || !tosContent?.trim()}
+            disabled={!checked || isLoading || !bodyText?.trim()}
             aria-label="Accept Terms of Service"
           >
             {isLoading ? 'Accepting…' : 'Accept'}

@@ -317,6 +317,18 @@ const FooterBrand = styled.div`
   margin-bottom: 6px;
 `;
 
+const FooterLinks = styled.div`
+  margin-top: 12px;
+  a {
+    color: #1e40af;
+    font-weight: 600;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+`;
+
 export default function LandingPage() {
   const { isAuthenticated } = useAuthRedux();
   const loggedIn = isAuthenticated;
@@ -469,6 +481,9 @@ export default function LandingPage() {
       <Footer>
         <FooterBrand>Jaba Keyword</FooterBrand>
         <div>Keywords and metadata for stock contributors.</div>
+        <FooterLinks>
+          <Link to="/terms">Terms of Service</Link>
+        </FooterLinks>
       </Footer>
     </Shell>
   );

@@ -20,6 +20,9 @@ export async function fetchCurrentUser() {
     throw new Error('User not found - please login again');
   }
   
+  if (res.status === 401) {
+    throw new Error('UNAUTHORIZED');
+  }
   if (!res.ok) throw new Error('Failed to fetch user');
   return await res.json();
 }

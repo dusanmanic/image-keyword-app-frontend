@@ -1,6 +1,7 @@
 import { useStore } from '../store/index.js';
 import { useApi } from './useApi.js';
 import { fetchCurrentUser } from '../services/authService.js';
+import { fetchPublicTos } from '../services/tosPublicService.js';
 import { useNavigate } from 'react-router-dom';
 
 export function useAuthRedux() {
@@ -147,11 +148,22 @@ export function useAuthRedux() {
             // ToS from /me (single API call)
             setTosFromMe(me.tosAccepted ?? false, me.tosContent ?? null, me.tosVersion ?? null);
           } catch (e) {
-            // If user was deleted, clear auth state
-            if (e.message && e.message.includes('User not found')) {
+            const msg = e?.message || '';
+            if (msg.includes('User not found')) {
               clearAuth();
               localStorage.removeItem("auth_token");
               localStorage.removeItem("auth_email");
+            } else if (msg === 'UNAUTHORIZED') {
+              clearAuth();
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("auth_email");
+            } else {
+              try {
+                const d = await fetchPublicTos();
+                setTosFromMe(false, d.content ?? null, d.version ?? null);
+              } catch {
+                setTosFromMe(false, null, null);
+              }
             }
           }
         }

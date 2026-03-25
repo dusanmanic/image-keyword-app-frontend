@@ -9,6 +9,7 @@ import { useFoldersRedux } from './hooks/useFoldersRedux.js'
 import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
+import TermsPage from './pages/TermsPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
@@ -441,11 +442,16 @@ function MainApp() {
     }
   };
 
-  if (isInitializing || isRefreshing) {
+  // /terms is public: don't block on auth bootstrap (no JWT required for content)
+  if ((isInitializing || isRefreshing) && pathname !== '/terms') {
     return <LoadingScreen />;
   }
 
   const authed = isAuthenticated && isTokenValid();
+
+  if (pathname === '/terms') {
+    return <TermsPage />;
+  }
 
   if (!authed) {
     if (pathname === '/') return <LandingPage />;

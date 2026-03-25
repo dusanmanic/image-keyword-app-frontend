@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuthRedux } from '../hooks/useAuthRedux.js';
 import { getPostLoginPath } from '../utils/postLoginRedirect.js';
@@ -93,6 +93,26 @@ const ErrorLine = styled.div`
   border: 1px solid #fecaca;
 `;
 
+const LoginFooter = styled.div`
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+  line-height: 1.6;
+`;
+
+const FooterLink = styled(Link)`
+  color: #1e40af;
+  font-weight: 600;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,6 +138,11 @@ function LoginPage() {
               Use another account
             </SecondaryButton>
           </ButtonsGrid>
+          <LoginFooter>
+            <FooterLink to="/">Back to home</FooterLink>
+            {' · '}
+            <FooterLink to="/terms">Terms of Service</FooterLink>
+          </LoginFooter>
         </Card>
       </PageContainer>
     );
@@ -159,6 +184,11 @@ function LoginPage() {
               Use another account
             </SecondaryButton>
           </ButtonsGrid>
+          <LoginFooter>
+            <FooterLink to="/">Back to home</FooterLink>
+            {' · '}
+            <FooterLink to="/terms">Terms of Service</FooterLink>
+          </LoginFooter>
         </Card>
       </PageContainer>
     );
@@ -169,6 +199,11 @@ function LoginPage() {
       <Card style={{ padding: 28, maxWidth: 460 }}>
         <Title>Login / Register</Title>
         <AuthPanel initialTab="login" initialEmail={savedEmail} />
+        <LoginFooter>
+          <FooterLink to="/">Back to home</FooterLink>
+          {' · '}
+          <FooterLink to="/terms">Terms of Service</FooterLink>
+        </LoginFooter>
       </Card>
     </PageContainer>
   );
