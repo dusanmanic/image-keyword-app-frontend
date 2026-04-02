@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
@@ -84,7 +84,7 @@ function PastePreview({ data }) {
 const Container = styled.div`
   height: calc(100vh - 100px);
   background: #f3f4f6;
-  padding: 20px 20px 0 20px;
+  padding: 10px 10px 0 10px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -644,7 +644,7 @@ const ModalTextArea = styled.textarea`
 `;
 
 const DropZone = styled.div`
-  height: ${props => props.$table ? 'calc(100vh - 222px)' : 'calc(70vh - 112px)'};
+  height: ${props => props.$table ? 'calc(100vh - 200px)' : 'calc(70vh - 112px)'};
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1075,6 +1075,8 @@ export default function ImportPage() {
   const [promptConfirmOpen, setPromptConfirmOpen] = useState(false);
   const [promptTargetRow, setPromptTargetRow] = useState(null); // null => bulk; object => single row
   const [pollingQueueStatus, setPollingQueueStatus] = useState(false); // when all selected in queue, poll status
+  /** Pixel height of the grid viewport (from layout); avoids magic innerHeight offsets. */
+  const [gridViewportHeight, setGridViewportHeight] = useState(480);
   const [istockExportOpen, setIstockExportOpen] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [csvExportProgress, setCsvExportProgress] = useState({ current: 0, total: 0 });
@@ -1136,6 +1138,24 @@ export default function ImportPage() {
     }).map(r => r.id).filter(Boolean);
     return inQueue;
   }, [allSelectedInQueueOrProcessing, rows, selectedRows]);
+
+  const HEADER_ROW_HEIGHT = 40;
+  const DATA_ROW_HEIGHT = 150;
+  const GRID_BOTTOM_GAP_PX = 10;
+
+  useLayoutEffect(() => {
+    if (rows.length === 0) return undefined;
+    const el = gridRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => {
+      const h = Math.round(el.getBoundingClientRect().height);
+      if (h > 0) setGridViewportHeight(Math.max(200, h - GRID_BOTTOM_GAP_PX));
+    };
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [rows.length, pollingQueueStatus]);
 
   const { embedOneToFolder } = useEmbedToFolder();
   const { showToast: showGlobalToast } = useStore();
@@ -3024,20 +3044,29 @@ export default function ImportPage() {
             Drag & drop images here
           </DropZone>
       ) : (
-        <div ref={gridRef} style={{ overflow: 'auto', alignSelf: 'flex-start', maxHeight: 'calc(100vh - 222px)', minWidth: 0, width: '100%' }}>
-        <StyledDataGrid
-          columns={cols}
-          rows={rows}
-          rowHeight={150}
-          headerRowHeight={40}
-          onRowsChange={setRows}
-          rowKeyGetter={(row) => row.id}
+        <div
+          ref={gridRef}
+          style={{
+            flex: 1,
+            minHeight: 0,
+            minWidth: 0,
+            width: '100%',
+            overflow: 'hidden',
+          }}
+        >
+          <StyledDataGrid
+            columns={cols}
+            rows={rows}
+            rowHeight={DATA_ROW_HEIGHT}
+            headerRowHeight={HEADER_ROW_HEIGHT}
+            onRowsChange={setRows}
+            rowKeyGetter={(row) => row.id}
             selectedRows={selectedRows}
             onSelectedRowsChange={setSelectedRows}
-          className="rdg-light"
-          rowClass={(row) => (analyzingIds.has(row.id) ? 'row-disabled' : '')}
-          style={{ width: '100%', minWidth: '100%', height: Math.min(40 + rows.length * 150, typeof window !== 'undefined' ? window.innerHeight - 250 : 600) }}
-        />
+            className="rdg-light"
+            rowClass={(row) => (analyzingIds.has(row.id) ? 'row-disabled' : '')}
+            style={{ width: '100%', minWidth: '100%', height: gridViewportHeight }}
+          />
         </div>
       )}
 {/*       {bulkRunning && (
