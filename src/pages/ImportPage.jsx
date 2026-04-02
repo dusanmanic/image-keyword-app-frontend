@@ -137,11 +137,23 @@ const HeaderBar = styled.div`
     0 1px 0 rgba(255, 255, 255, 0.9) inset,
     0 4px 16px rgba(15, 23, 42, 0.06);
   min-width: 0;
+  overflow: visible;
+`;
+
+/** Horizontal scroll only over the button strip so dropdowns in FolderMeta/Keywords are not clipped. */
+const ToolbarScrollRegion = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
+  padding: 2px 0;
 
   &::-webkit-scrollbar {
     height: 5px;
@@ -181,6 +193,8 @@ const KeywordsCountAside = styled.div`
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  position: relative;
+  z-index: 2;
 `;
 
 const ToolbarDivider = styled.span`
@@ -344,14 +358,14 @@ const DropdownOptions = styled.div`
   border: 1px solid #d1d5db;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 20000;
   margin-top: 4px;
   overflow: hidden;
   display: ${props => props.isOpen ? 'block' : 'none'};
 `;
 
 const DropdownOption = styled.div`
-  padding: 10px 12px;
+  padding: 5px 0 0 12px;
   font-size: 14px;
   color: #374151;
   cursor: pointer;
@@ -2754,6 +2768,7 @@ export default function ImportPage() {
     <Container>
       <Header>
         <HeaderBar ref={controlsRef}>
+          <ToolbarScrollRegion>
           <ToolbarScroll>
             <FastTooltip label="Upload images to this folder">
               <ToolbarPrimaryBtn $toolbar onClick={() => setOpen(true)} type="button">
@@ -2852,6 +2867,7 @@ export default function ImportPage() {
           </ToolbarScroll>
 
           <ToolbarDivider aria-hidden />
+          </ToolbarScrollRegion>
 
           <FolderMeta>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%', color: '#1e40af', fontWeight: 800, fontSize: 15 }}>
