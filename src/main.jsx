@@ -10,6 +10,7 @@ import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import TermsPage from './pages/TermsPage.jsx'
+import PrivacyPage from './pages/PrivacyPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
 import FoldersPage from './pages/FoldersPage.jsx'
 import ImportPage from './pages/ImportPage.jsx'
@@ -17,6 +18,7 @@ import StatisticPage from './pages/StatisticPage.jsx'
 import PaymentPage from './pages/PaymentPage.jsx'
 import AccountDeactivatedPage from './pages/AccountDeactivatedPage.jsx'
 import { TosModal } from './components/TosModal.jsx'
+import FastTooltip from './components/FastTooltip.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 
@@ -32,6 +34,7 @@ const Header = styled.header`
   justify-content: space-between;
   z-index: 40;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: visible;
 `;
 
 const HeaderLeft = styled.div`
@@ -58,6 +61,7 @@ const Nav = styled.nav`
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow: visible;
 `;
 
 const NavLink = styled(Link)`
@@ -244,13 +248,11 @@ function AuthenticatedApp() {
       }
     };
     loadSpending();
-    const interval = setInterval(loadSpending, 30000);
     const onRefreshUser = () => {
       loadSpending();
     };
     window.addEventListener('refresh-user', onRefreshUser);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('refresh-user', onRefreshUser);
     };
   }, []);
@@ -301,66 +303,70 @@ function AuthenticatedApp() {
         <Nav>
           {spendingInfo && !loadingSpending && (
             spendingInfo.remaining <= 0 ? (
-              <Link to="/payment" style={{ textDecoration: 'none' }}>
+              <FastTooltip label="No analyses left. Click to buy more.">
+                <Link to="/payment" style={{ textDecoration: 'none' }}>
+                  <StorageIndicator 
+                    $isOverLimit 
+                    $isWarning={false}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <StorageText>
+                      🎯 0 left · Buy more
+                    </StorageText>
+                  </StorageIndicator>
+                </Link>
+              </FastTooltip>
+            ) : (
+              <FastTooltip label={`Analyses: ${spendingInfo.current} / ${spendingInfo.limit} (${spendingInfo.remaining} remaining)`}>
                 <StorageIndicator 
-                  $isOverLimit 
-                  $isWarning={false}
-                  title="No analyses left. Click to buy more."
-                  style={{ cursor: 'pointer' }}
+                  $isOverLimit={false} 
+                  $isWarning={spendingInfo.percentage >= 80}
                 >
                   <StorageText>
-                    🎯 0 left · Buy more
+                    🎯 {spendingInfo.current} / {spendingInfo.limit}
                   </StorageText>
+                  <StorageProgress>
+                    <StorageProgressBar 
+                      $percentage={Math.min(100, spendingInfo.percentage)}
+                      $isOverLimit={false}
+                      $isWarning={spendingInfo.percentage >= 80}
+                    />
+                  </StorageProgress>
                 </StorageIndicator>
-              </Link>
-            ) : (
-              <StorageIndicator 
-                $isOverLimit={false} 
-                $isWarning={spendingInfo.percentage >= 80}
-                title={`Analyses: ${spendingInfo.current} / ${spendingInfo.limit} (${spendingInfo.remaining} remaining)`}
-              >
-                <StorageText>
-                  🎯 {spendingInfo.current} / {spendingInfo.limit}
-                </StorageText>
-                <StorageProgress>
-                  <StorageProgressBar 
-                    $percentage={Math.min(100, spendingInfo.percentage)}
-                    $isOverLimit={false}
-                    $isWarning={spendingInfo.percentage >= 80}
-                  />
-                </StorageProgress>
-              </StorageIndicator>
+              </FastTooltip>
             )
           )}
           {storageInfo && !loadingStorage && (
-            <StorageIndicator 
-              $isOverLimit={storageInfo.isOverLimit} 
-              $isWarning={storageInfo.percentage >= 80}
-              title={`Storage: ${storageInfo.total.formatted} / ${storageInfo.limit.formatted} (${storageInfo.remaining.formatted} remaining)`}
-            >
-              <StorageText>
-                📦 {storageInfo.total.formatted} / {storageInfo.limit.formatted}
-              </StorageText>
-              <StorageProgress>
-                <StorageProgressBar 
-                  $percentage={Math.min(100, storageInfo.percentage)}
-                  $isOverLimit={storageInfo.isOverLimit}
-                  $isWarning={storageInfo.percentage >= 80}
-                />
-              </StorageProgress>
-            </StorageIndicator>
+            <FastTooltip label={`Storage: ${storageInfo.total.formatted} / ${storageInfo.limit.formatted} (${storageInfo.remaining.formatted} remaining)`}>
+              <StorageIndicator 
+                $isOverLimit={storageInfo.isOverLimit} 
+                $isWarning={storageInfo.percentage >= 80}
+              >
+                <StorageText>
+                  📦 {storageInfo.total.formatted} / {storageInfo.limit.formatted}
+                </StorageText>
+                <StorageProgress>
+                  <StorageProgressBar 
+                    $percentage={Math.min(100, storageInfo.percentage)}
+                    $isOverLimit={storageInfo.isOverLimit}
+                    $isWarning={storageInfo.percentage >= 80}
+                  />
+                </StorageProgress>
+              </StorageIndicator>
+            </FastTooltip>
           )}
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
           {/* <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink> */}
           <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Analyses</NavLink>
-          <LogoutButton 
-            onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
-            title={`Logout${email?` (${email})`:''}`} 
-            aria-label="Logout"
-          >
-            Logout
-          </LogoutButton>
+          <FastTooltip label={`Logout${email ? ` (${email})` : ''}`}>
+            <LogoutButton 
+              onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
+              aria-label="Logout"
+            >
+              Logout
+            </LogoutButton>
+          </FastTooltip>
         </Nav>
       </Header>
       {isActive === false && location.pathname !== '/payment' && location.pathname !== '/home' ? <AccountDeactivatedPage /> : renderCurrent()}
@@ -442,8 +448,8 @@ function MainApp() {
     }
   };
 
-  // /terms is public: don't block on auth bootstrap (no JWT required for content)
-  if ((isInitializing || isRefreshing) && pathname !== '/terms') {
+  // /terms and /privacy are public: don't block on auth bootstrap (no JWT required for content)
+  if ((isInitializing || isRefreshing) && pathname !== '/terms' && pathname !== '/privacy') {
     return <LoadingScreen />;
   }
 
@@ -451,6 +457,10 @@ function MainApp() {
 
   if (pathname === '/terms') {
     return <TermsPage />;
+  }
+
+  if (pathname === '/privacy') {
+    return <PrivacyPage />;
   }
 
   if (!authed) {

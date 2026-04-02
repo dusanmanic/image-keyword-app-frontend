@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuthRedux } from '../hooks/useAuthRedux.js';
-import { useApi } from '../hooks/useApi.js';
+import { PRIVACY_CONTENT, PRIVACY_LAST_UPDATED } from '../config/privacyContent.js';
 
 const Shell = styled.div`
   min-height: 100vh;
@@ -99,52 +99,8 @@ const Body = styled.div`
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 `;
 
-const ErrorBox = styled.div`
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-  padding: 14px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
-`;
-
-export default function TermsPage() {
+export default function PrivacyPage() {
   const { isAuthenticated } = useAuthRedux();
-  const { getPublicTos, isLoading, error: loadError } = useApi();
-  const [content, setContent] = useState('');
-  const [version, setVersion] = useState('');
-  const [timedOut, setTimedOut] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 20000);
-    setTimedOut(false);
-    getPublicTos({ signal: controller.signal })
-      .then((data) => {
-        if (!cancelled) {
-          setContent(data.content || '');
-          setVersion(data.version || '');
-        }
-      })
-      .catch((e) => {
-        if (!cancelled && e?.name === 'AbortError') {
-          setTimedOut(true);
-        }
-      })
-      .finally(() => {
-        clearTimeout(t);
-      });
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [getPublicTos]);
-
-  const displayError = timedOut
-    ? 'Request timed out. Check that the API is running and try again.'
-    : loadError;
 
   return (
     <Shell>
@@ -155,16 +111,14 @@ export default function TermsPage() {
         </Brand>
         <NavLinks>
           <NavLink to="/">Back to home</NavLink>
-          <NavLink to="/privacy">Privacy Policy</NavLink>
+          <NavLink to="/terms">Terms of Service</NavLink>
           {isAuthenticated ? <NavLink to="/folders">App</NavLink> : <NavLink to="/login">Log in</NavLink>}
         </NavLinks>
       </TopBar>
       <Main>
-        <PageTitle>Terms of Service</PageTitle>
-        {version ? <Meta>Version {version}</Meta> : null}
-        {isLoading && <Body>Loading…</Body>}
-        {!isLoading && displayError && <ErrorBox>{displayError}</ErrorBox>}
-        {!isLoading && !displayError && <Body>{content || 'No content available.'}</Body>}
+        <PageTitle>Privacy Policy</PageTitle>
+        <Meta>Last updated: {PRIVACY_LAST_UPDATED}</Meta>
+        <Body>{PRIVACY_CONTENT}</Body>
       </Main>
     </Shell>
   );

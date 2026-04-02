@@ -483,6 +483,8 @@ export default function LandingPage() {
         <div>Keywords and metadata for stock contributors.</div>
         <FooterLinks>
           <Link to="/terms">Terms of Service</Link>
+          <span aria-hidden> · </span>
+          <Link to="/privacy">Privacy Policy</Link>
         </FooterLinks>
       </Footer>
     </Shell>

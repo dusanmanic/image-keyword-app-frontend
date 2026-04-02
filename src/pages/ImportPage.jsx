@@ -15,6 +15,8 @@ import { useStore } from "../store/index.js";
 import ImportIntroModal from "../components/ImportIntroModal.jsx";
 import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 import IstockGettyExportModal from "../components/IstockGettyExportModal.jsx";
+import GettyMappingModal from "../components/GettyMappingModal.jsx";
+import FastTooltip from "../components/FastTooltip.jsx";
 import piexif from "piexifjs";
 
 // Extract image creation date from EXIF (DateTimeOriginal)
@@ -118,42 +120,163 @@ const QueueSpinner = styled.span`
 `;
 
 const Header = styled.div`
+  margin-bottom: 14px;
+`;
+
+/** One row: action buttons · folder meta · keyword count (right). Horizontal scroll when needed. */
+const HeaderBar = styled.div`
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 16px rgba(15, 23, 42, 0.06);
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+
+  &::-webkit-scrollbar {
+    height: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+`;
+
+const FolderMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 140px;
+  max-width: min(480px, 45vw);
+`;
+
+const ToolbarScroll = styled.div`
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 2px 0;
+`;
+
+/** Pins keyword count to the right of the bar (flex row). */
+const KeywordsCountAside = styled.div`
+  margin-left: auto;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+`;
+
+const ToolbarDivider = styled.span`
+  flex: 0 0 auto;
+  width: 1px;
+  height: 30px;
+  background: linear-gradient(180deg, transparent, #e2e8f0 15%, #e2e8f0 85%, transparent);
+  opacity: 0.95;
 `;
 
 const Button = styled.button`
-  height: 44px;
+  height: ${(p) => (p.$toolbar ? "38px" : "44px")};
+  min-height: ${(p) => (p.$toolbar ? "38px" : "44px")};
   background: ${props => props.$variant === 'secondary' ? 'white' : '#2563eb'};
   color: ${props => props.$variant === 'secondary' ? '#1e40af' : 'white'};
   font-weight: 600;
-  padding: 10px 12px;
+  font-size: ${(p) => (p.$toolbar ? "13px" : undefined)};
+  letter-spacing: ${(p) => (p.$toolbar ? "-0.01em" : undefined)};
+  padding: ${(p) => (p.$toolbar ? "0 14px" : "10px 12px")};
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: ${(p) => (p.$toolbar ? "10px" : "8px")};
   cursor: pointer;
+  ${(p) =>
+    p.$toolbar
+      ? `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    &:hover:not(:disabled) {
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    }
+    &:active:not(:disabled) {
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+  `
+      : ""}
   &:hover {
     background: ${props => props.$variant === 'secondary' ? 'white' : '#1d4ed8'};
     border-color: ${props => props.$variant === 'secondary' ? '#93c5fd' : 'transparent'};
   }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
-  &:focus, &:active, &:focus-visible, &:focus-within { border-color: transparent; outline: none; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+  &:focus-visible {
+    outline: 2px solid #93c5fd;
+    outline-offset: 2px;
+  }
+  &:focus:not(:focus-visible), &:active, &:focus-within {
+    border-color: transparent;
+    outline: none;
+  }
 `;
 
 const MagicButton = styled(Button)`
-  background: #8b5cf6;
-  &:hover:not(:disabled) { background: #7c3aed; }
+  background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
+  border: 1px solid rgba(109, 40, 217, 0.25);
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #9f7aea 0%, #7c3aed 100%);
+  }
 `;
 
 const EmbedButton = styled(Button)`
-  background: #059669;
-  &:hover:not(:disabled) { background: #047857; }
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border: 1px solid rgba(5, 120, 87, 0.3);
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #059669 0%, #047857 100%);
+  }
 `;
 
 const ExportButton = styled(Button)`
-  background: #0ea5e9;
-  &:hover:not(:disabled) { background: #0284c7; }
+  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+  }
+`;
+
+const GettyMapButton = styled(Button)`
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  border: 1px solid rgba(180, 83, 9, 0.35);
+  color: #fff;
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  }
+`;
+
+/** Primary actions (Upload, Move) — same polish as other toolbar tones */
+const ToolbarPrimaryBtn = styled(Button)`
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border: 1px solid rgba(30, 64, 175, 0.28);
+  color: #fff;
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  }
 `;
 
 const KeywordsCountContainer = styled.div`
@@ -162,10 +285,11 @@ const KeywordsCountContainer = styled.div`
   gap: 8px;
   background: #f8fafc;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 12px;
   font-size: 14px;
   color: #374151;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 `;
 
 const KeywordsCountLabel = styled.span`
@@ -182,11 +306,12 @@ const KeywordsCountSelect = styled.div`
   font-size: 14px;
   color: #374151;
   cursor: pointer;
-  min-width: 35px;
+  min-width: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all 0.2s ease;
+  gap: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   
   &:hover {
     border-color: #1e40af;
@@ -806,7 +931,7 @@ export default function ImportPage() {
     startAnalyzeBatch, 
     getAnalyzeBatchStatus, 
     getAnalyzeStatusByImageIds, 
-    mapKeywordsToGetty,
+    mapGettyBatch,
     saveImageExportLogs
   } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
@@ -842,7 +967,7 @@ export default function ImportPage() {
   const [spendingInfo, setSpendingInfo] = useState(null);
   const noAnalysesLeft = spendingInfo && spendingInfo.remaining <= 0;
 
-  // Load spending/analysis info for button disabled state
+  // Spending: once on mount + on `refresh-user` (payment, after analysis — no polling)
   useEffect(() => {
     const load = async () => {
       try {
@@ -860,8 +985,8 @@ export default function ImportPage() {
       }
     };
     load();
-    const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
+    window.addEventListener('refresh-user', load);
+    return () => window.removeEventListener('refresh-user', load);
   }, []);
 
   // Fallback state to avoid undefined refs if paste modal JSX is present
@@ -939,6 +1064,8 @@ export default function ImportPage() {
   const [istockExportOpen, setIstockExportOpen] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [csvExportProgress, setCsvExportProgress] = useState({ current: 0, total: 0 });
+  const [mappingGettyLoading, setMappingGettyLoading] = useState(false);
+  const [gettyMapModalOpen, setGettyMapModalOpen] = useState(false);
 
   // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
   const isImageInQueueOrProcessing = (row) => {
@@ -953,6 +1080,34 @@ export default function ImportPage() {
     if (sel.size === 0) return false;
     const selectedRowsList = rows.filter(r => sel.has(r.id));
     return selectedRowsList.length > 0 && selectedRowsList.every(isImageInQueueOrProcessing);
+  }, [rows, selectedRows, analyzingIds]);
+
+  /** Getty mapping: needs custom keywords on every selection + no row stuck in analysis queue. */
+  const gettyMapEligibility = React.useMemo(() => {
+    const sel = selectedRows instanceof Set ? selectedRows : new Set();
+    if (sel.size === 0) return { ok: false, reason: "Select at least one image." };
+    const list = rows.filter((r) => sel.has(r.id));
+    for (const r of list) {
+      const kw = Array.isArray(r.keywords)
+        ? r.keywords
+        : String(r.keywords || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+      if (kw.length === 0) {
+        return {
+          ok: false,
+          reason: "Run Keyword Wizard first — each selected image needs custom keywords.",
+        };
+      }
+      if (isImageInQueueOrProcessing(r)) {
+        return {
+          ok: false,
+          reason: "Wait until analysis finishes for the selected row(s).",
+        };
+      }
+    }
+    return { ok: true, reason: "" };
   }, [rows, selectedRows, analyzingIds]);
 
   // ID-evi za polling: izabrane u redu ILI bilo koja slika u folderu sa pending/processing (npr. posle refresh-a)
@@ -1127,11 +1282,31 @@ export default function ImportPage() {
         }
       }
 
-      setRows(prev => prev.map(r => r.id === row.id ? ({ ...r, title: nextTitle, description: nextDescription, keywords: nextKeywords }) : r));
-      
-      // Save metadata changes to Firebase
-      saveMetadataChanges(row.id, { title: nextTitle, description: nextDescription, keywords: nextKeywords });
-      
+      const analyzedAtIso = new Date().toISOString();
+      setRows(prev =>
+        prev.map((r) =>
+          r.id === row.id
+            ? {
+                ...r,
+                title: nextTitle,
+                description: nextDescription,
+                keywords: nextKeywords,
+                analysis_status: "completed",
+                analyzedAt: analyzedAtIso,
+              }
+            : r
+        )
+      );
+
+      saveMetadataChanges(row.id, {
+        title: nextTitle,
+        description: nextDescription,
+        keywords: nextKeywords,
+        analysis_status: "completed",
+        analyzedAt: analyzedAtIso,
+      });
+
+      window.dispatchEvent(new CustomEvent('refresh-user'));
       showToast('Metadata updated');
     } catch (e) {
       console.error('Analysis error:', e);
@@ -1232,6 +1407,7 @@ export default function ImportPage() {
             setBulkRunning(false);
             setBulkTotal(0);
             setBulkDone(0);
+            window.dispatchEvent(new CustomEvent('refresh-user'));
             showToast(`Analysis complete. ${status.done} done, ${status.failed} failed.`);
             return;
           }
@@ -1679,7 +1855,7 @@ export default function ImportPage() {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); if (hasAnyGetty) setKeywordsViewMode('getty'); }}
                 disabled={!hasAnyGetty}
-                title={hasAnyGetty ? 'Show Getty/iStock keywords from last CSV export' : 'Export to CSV first to see Getty keywords'}
+                title={hasAnyGetty ? 'Getty/iStock mapped keywords (saved on server or from export)' : 'Use “Map to Getty/iStock” on selected rows, or export CSV after mapping'}
                 style={{
                   padding: '2px 8px',
                   fontSize: 11,
@@ -2343,63 +2519,71 @@ export default function ImportPage() {
     onFiles(entries);
   };
 
+  const mapGettyForSelected = async ({ force = false, scoreThreshold } = {}) => {
+    const sel = selectedRows instanceof Set ? selectedRows : new Set();
+    const ids = [...sel];
+    if (!ids.length) {
+      showToast('Select at least one image', 'error');
+      return;
+    }
+    if (!folderId) return;
+    setMappingGettyLoading(true);
+    try {
+      const data = await mapGettyBatch({
+        folderId,
+        imageIds: ids,
+        maxKeywords: keywordsCount,
+        force,
+        scoreThreshold,
+      });
+      const results = Array.isArray(data?.results) ? data.results : [];
+      const byId = new Map(results.map((r) => [r.imageId, r]));
+      setRows((prev) =>
+        prev.map((r) => {
+          const u = byId.get(r.id);
+          if (!u) return r;
+          return { ...r, gettyKeywords: Array.isArray(u.gettyKeywords) ? u.gettyKeywords : [] };
+        })
+      );
+      const skipped = results.filter((r) => r.skipped).length;
+      const done = results.length - skipped;
+      if (skipped && !done) {
+        showToast('No custom keywords to map on selected rows.', 'error');
+      } else if (skipped) {
+        showToast(`Getty mapping saved for ${done} image(s). ${skipped} skipped (no keywords).`);
+      } else {
+        showToast(`Getty/iStock mapping saved for ${results.length} image(s).`);
+      }
+    } catch (e) {
+      console.error(e);
+      showToast(e?.message || 'Getty mapping failed', 'error');
+    } finally {
+      setMappingGettyLoading(false);
+    }
+  };
+
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
+  // Uses Getty keywords saved via "Map to Getty/iStock" (or legacy: last export log).
   const exportWindowsCsv = async (shootDateOverride = '', countryOverride = '') => {
     setExportingCsv(true);
     setCsvExportProgress({ current: 0, total: rows.length });
     try {
-      showToast('Mapping keywords to Getty-approved terms per image...');
-
-      // Small cache avoids repeated calls for identical keywords across images.
-      const mappedKeywordCache = new Map(); // normalized custom keyword -> getty keyword
-      const mapKeywordsForImage = async (customKeywordsArr) => {
-        const normalized = customKeywordsArr
-          .map((kw) => String(kw || '').trim())
-          .filter(Boolean);
-        if (!normalized.length) return [];
-
-        const keywordsToMap = [];
-        for (const kw of normalized) {
-          const cacheKey = kw.toLowerCase();
-          if (!mappedKeywordCache.has(cacheKey)) {
-            keywordsToMap.push(kw);
-          }
-        }
-
-        // Always request per-image mapping so backend can backfill to 50 Getty terms.
-        const mappingInput = keywordsToMap.length ? keywordsToMap : normalized;
-        let mappedFromBackend = [];
-        if (mappingInput.length) {
-          const mappingResult = await mapKeywordsToGetty(mappingInput, 50);
-          mappedFromBackend = Array.isArray(mappingResult?.gettyKeywords) ? mappingResult.gettyKeywords : [];
-
-          // Cache only direct keyword->keyword mappings (first N correspond to mappingInput).
-          mappingInput.forEach((kw, idx) => {
-            const cacheKey = kw.toLowerCase();
-            mappedKeywordCache.set(cacheKey, mappedFromBackend[idx] || kw);
-          });
-        }
-
-        const mappedOriginal = normalized.map((kw) => {
-          const mapped = mappedKeywordCache.get(kw.toLowerCase());
-          return mapped || kw;
-        });
-
-        // Final per-image keywords:
-        // 1) keep mapped originals, 2) append backend backfill terms, 3) unique, max 50.
-        const unique = [];
-        const seen = new Set();
-        [...mappedOriginal, ...mappedFromBackend].forEach((kw) => {
-          const value = String(kw || '').trim();
-          if (!value) return;
-          const key = value.toLowerCase();
-          if (seen.has(key)) return;
-          seen.add(key);
-          unique.push(value);
-        });
-
-        return unique.slice(0, 50);
-      };
+      const missingGetty = rows.filter((r) => {
+        const custom = Array.isArray(r.keywords)
+          ? r.keywords
+          : String(r.keywords || '')
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+        const g = Array.isArray(r.gettyKeywords) ? r.gettyKeywords : [];
+        return custom.length > 0 && g.length === 0;
+      });
+      if (missingGetty.length > 0) {
+        showToast(
+          `${missingGetty.length} image(s) have no Getty mapping — keywords column will be empty for those. Use "Map to Getty/iStock" first.`,
+          'warning'
+        );
+      }
 
       const headers = [
         'file name',
@@ -2458,17 +2642,8 @@ export default function ImportPage() {
         const customKeywordsArr = Array.isArray(r.keywords)
           ? r.keywords
           : String(r.keywords || '').split(',').map(s => s.trim()).filter(Boolean);
-        
-        // Map keywords per image (instead of one global mapping for whole batch).
-        let gettyKeywordsArr = customKeywordsArr;
-        if (customKeywordsArr.length > 0) {
-          try {
-            gettyKeywordsArr = await mapKeywordsForImage(customKeywordsArr);
-          } catch (err) {
-            console.error('Getty mapping failed for image, using original keywords:', r.id, err);
-            gettyKeywordsArr = customKeywordsArr;
-          }
-        }
+
+        const gettyKeywordsArr = Array.isArray(r.gettyKeywords) ? r.gettyKeywords : [];
         const keywordsStr = gettyKeywordsArr.join(', ');
 
         // Use imageCreatedAt per image (from EXIF) when available; fallback to shoot date override
@@ -2578,133 +2753,182 @@ export default function ImportPage() {
   return (
     <Container>
       <Header>
-        <div ref={controlsRef} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Button onClick={() => setOpen(true)} type="button">Upload</Button>
-          <MagicButton
-            onClick={handleKeywordWizardClick}
-            type="button"
-            disabled={bulkRunning || allSelectedInQueueOrProcessing || noAnalysesLeft}
-            title={
-              noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
-              bulkRunning ? 'Analiza u toku…' :
-              allSelectedInQueueOrProcessing ? 'Sve izabrane slike su već u obradi' :
-              'Analiziraj izabrane'
-            }
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <WandIcon />
-              {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
-            </span>
-          </MagicButton>
-          <EmbedButton
-            onClick={embedSelected}
-            type="button"
-            disabled={noAnalysesLeft}
-            title={noAnalysesLeft ? 'No analyses left. Buy more to continue.' : 'Embed to folder'}
-          >
-            Embed to folder
-          </EmbedButton>
-          <Button
-            onClick={() => {
-              const hasSelection = (selectedRows instanceof Set ? selectedRows.size : 0) > 0;
-              if (!hasSelection) { showToast('No rows selected'); return; }
-              setMoveTargetFolderId('');
-              setMoveOpen(true);
-            }}
-            type="button"
-            title="Move selected to another folder"
-          >
-            Move to folder
-          </Button>
-          <ExportButton
-            onClick={() => {
-              if (exportingCsv) return;
-              if (noAnalysesLeft) { showToast('No analyses left. Buy more to continue.', 'error'); return; }
-              setIstockExportOpen(true);
-            }}
-            type="button"
-            disabled={noAnalysesLeft || exportingCsv}
-            title={
-              noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
-              exportingCsv ? 'Export in progress...' :
-              'Export iStock/Getty CSV'
-            }
-          >
-            {exportingCsv ? 'Exporting iStock/Getty CSV...' : 'Export iStock/Getty CSV'}
-          </ExportButton>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontWeight: 800, fontSize: 14 }}>
-            <span>{currentFolder?.name || 'Folder'}</span>
-            <span style={{ color: '#9ca3af' }}>—</span>
-            <span style={{ color: '#6b7280', fontWeight: 600, fontSize: 12 }}>
-              {folderStatsLoading ? 'Loading…' : folderStats ? `${folderStats.imageCount} images · ${folderStats.storage.formatted}` : ''}
-            </span>
-          </div>
-          {currentFolder?.id && (
-            <div style={{ fontSize: 11, color: '#6b7280' }}>
-              <span style={{ fontWeight: 500 }}>Folder ID:</span>{' '}
-              <span
-                style={{
-                  fontFamily: 'monospace',
-                  cursor: 'pointer',
-                  textDecoration: 'underline dotted'
-                }}
-                title="Click to copy folder ID"
-                onClick={async () => {
-                  try {
-                    if (navigator.clipboard?.writeText) {
-                      await navigator.clipboard.writeText(currentFolder.id);
-                    } else {
-                      const ta = document.createElement('textarea');
-                      ta.value = currentFolder.id;
-                      ta.style.position = 'fixed';
-                      ta.style.left = '-9999px';
-                      document.body.appendChild(ta);
-                      ta.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(ta);
-                    }
-                  } catch (err) {
-                    console.error('Failed to copy folder ID:', err);
-                  }
-                }}
+        <HeaderBar ref={controlsRef}>
+          <ToolbarScroll>
+            <FastTooltip label="Upload images to this folder">
+              <ToolbarPrimaryBtn $toolbar onClick={() => setOpen(true)} type="button">
+                Upload
+              </ToolbarPrimaryBtn>
+            </FastTooltip>
+            <FastTooltip
+              label={
+                noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
+                bulkRunning ? 'Analysis in progress…' :
+                allSelectedInQueueOrProcessing ? 'All selected images are already being processed' :
+                'Analyze selected'
+              }
+            >
+              <MagicButton
+                $toolbar
+                onClick={handleKeywordWizardClick}
+                type="button"
+                disabled={bulkRunning || allSelectedInQueueOrProcessing || noAnalysesLeft}
               >
-                {currentFolder.id}
+                <WandIcon />
+                {bulkRunning ? 'Analyzing…' : 'Keyword Wizard'}
+              </MagicButton>
+            </FastTooltip>
+            <FastTooltip label={noAnalysesLeft ? 'No analyses left. Buy more to continue.' : 'Embed to folder'}>
+              <EmbedButton
+                $toolbar
+                onClick={embedSelected}
+                type="button"
+                disabled={noAnalysesLeft}
+              >
+                Embed
+              </EmbedButton>
+            </FastTooltip>
+            <FastTooltip label="Move selected to another folder">
+              <ToolbarPrimaryBtn
+                $toolbar
+                onClick={() => {
+                  const hasSelection = (selectedRows instanceof Set ? selectedRows.size : 0) > 0;
+                  if (!hasSelection) { showToast('No rows selected'); return; }
+                  setMoveTargetFolderId('');
+                  setMoveOpen(true);
+                }}
+                type="button"
+              >
+                Move
+              </ToolbarPrimaryBtn>
+            </FastTooltip>
+            <ToolbarDivider aria-hidden />
+            <FastTooltip
+              label={
+                gettyMapEligibility.ok
+                  ? 'Map custom keywords to Getty/iStock (saved to your account)'
+                  : gettyMapEligibility.reason
+              }
+            >
+              <GettyMapButton
+                $toolbar
+                onClick={() => {
+                  if (!gettyMapEligibility.ok) {
+                    showToast(gettyMapEligibility.reason, "error");
+                    return;
+                  }
+                  setGettyMapModalOpen(true);
+                }}
+                type="button"
+                disabled={
+                  mappingGettyLoading ||
+                  (selectedRows instanceof Set ? selectedRows.size : 0) === 0 ||
+                  !gettyMapEligibility.ok
+                }
+              >
+                {mappingGettyLoading ? 'Mapping…' : 'Getty / iStock'}
+              </GettyMapButton>
+            </FastTooltip>
+            <FastTooltip
+              label={
+                noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
+                exportingCsv ? 'Export in progress...' :
+                'Export iStock/Getty CSV'
+              }
+            >
+              <ExportButton
+                $toolbar
+                onClick={() => {
+                  if (exportingCsv) return;
+                  if (noAnalysesLeft) { showToast('No analyses left. Buy more to continue.', 'error'); return; }
+                  setIstockExportOpen(true);
+                }}
+                type="button"
+                disabled={noAnalysesLeft || exportingCsv}
+              >
+                {exportingCsv ? 'Exporting…' : 'Export CSV'}
+              </ExportButton>
+            </FastTooltip>
+          </ToolbarScroll>
+
+          <ToolbarDivider aria-hidden />
+
+          <FolderMeta>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%', color: '#1e40af', fontWeight: 800, fontSize: 15 }}>
+              <span style={{ letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentFolder?.name || 'Folder'}</span>
+              <span style={{ color: '#cbd5e1', flexShrink: 0 }} aria-hidden>|</span>
+              <span style={{ color: '#64748b', fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
+                {folderStatsLoading ? 'Loading…' : folderStats ? `${folderStats.imageCount} images · ${folderStats.storage.formatted}` : ''}
               </span>
             </div>
-          )}
-        </div>
-        
-        <KeywordsCountContainer ref={controlsRef}>
-          <KeywordsCountLabel>Keywords:</KeywordsCountLabel>
-          <KeywordsCountSelect
-            onClick={() => setIsKeywordsDropdownOpen(!isKeywordsDropdownOpen)}
-            onBlur={() => setTimeout(() => setIsKeywordsDropdownOpen(false), 150)}
-            tabIndex={0}
-          >
-            <span>{keywordsCount}</span>
-            <DropdownArrow />
-            <DropdownOptions isOpen={isKeywordsDropdownOpen}>
-              {Array.from({ length: 5 }, (_, i) => {
-                const value = 10 + i * 10;
-                return (
-                  <DropdownOption
-                    key={value}
-                    isSelected={value === keywordsCount}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setKeywordsCount(value);
-                      setIsKeywordsDropdownOpen(false);
-                    }}
-                  >
-                    {value}
-                  </DropdownOption>
-                );
-              })}
-            </DropdownOptions>
-          </KeywordsCountSelect>
-        </KeywordsCountContainer>
+            {currentFolder?.id && (
+              <div style={{ fontSize: 11, color: '#64748b', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 500 }}>ID</span>{' '}
+                <span
+                  style={{
+                    fontFamily: 'ui-monospace, monospace',
+                    cursor: 'pointer',
+                    textDecoration: 'underline dotted',
+                    color: '#475569'
+                  }}
+                  title="Click to copy folder ID"
+                  onClick={async () => {
+                    try {
+                      if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(currentFolder.id);
+                      } else {
+                        const ta = document.createElement('textarea');
+                        ta.value = currentFolder.id;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                      }
+                    } catch (err) {
+                      console.error('Failed to copy folder ID:', err);
+                    }
+                  }}
+                >
+                  {currentFolder.id}
+                </span>
+              </div>
+            )}
+          </FolderMeta>
+
+          <KeywordsCountAside>
+            <KeywordsCountContainer>
+              <KeywordsCountLabel>Keywords</KeywordsCountLabel>
+              <KeywordsCountSelect
+                onClick={() => setIsKeywordsDropdownOpen(!isKeywordsDropdownOpen)}
+                onBlur={() => setTimeout(() => setIsKeywordsDropdownOpen(false), 150)}
+                tabIndex={0}
+              >
+                <span>{keywordsCount}</span>
+                <DropdownArrow />
+                <DropdownOptions isOpen={isKeywordsDropdownOpen}>
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const value = 10 + i * 10;
+                    return (
+                      <DropdownOption
+                        key={value}
+                        isSelected={value === keywordsCount}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setKeywordsCount(value);
+                          setIsKeywordsDropdownOpen(false);
+                        }}
+                      >
+                        {value}
+                      </DropdownOption>
+                    );
+                  })}
+                </DropdownOptions>
+              </KeywordsCountSelect>
+            </KeywordsCountContainer>
+          </KeywordsCountAside>
+        </HeaderBar>
       </Header>
 
       {moveOpen && (
@@ -2959,16 +3183,27 @@ export default function ImportPage() {
                   analyzeSelected(promptText);
                 }
               }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <WandIcon />
-                  {bulkRunning ? 'Analyzing…' : ' Keyword Wizard'}
-                </span>
+                <WandIcon />
+                {bulkRunning ? 'Analyzing…' : 'Keyword Wizard'}
               </MagicButton>
               <Button type="button" $variant="secondary" onClick={() => setPromptOpen(false)}>Cancel</Button>
             </ModalActions>
           </ModalCard>
         </PasteOverlay>
       )}
+
+      <GettyMappingModal
+        open={gettyMapModalOpen}
+        onClose={() => setGettyMapModalOpen(false)}
+        onConfirm={({ force, scoreThreshold }) => {
+          setGettyMapModalOpen(false);
+          mapGettyForSelected({ force, scoreThreshold });
+        }}
+        maxKeywords={keywordsCount}
+        selectedCount={selectedRows instanceof Set ? selectedRows.size : 0}
+        mappingAllowed={gettyMapEligibility.ok}
+        disabledHint={gettyMapEligibility.reason}
+      />
 
       <IstockGettyExportModal
         open={istockExportOpen}
@@ -3009,13 +3244,14 @@ export default function ImportPage() {
       
       {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
-        show={ pasteLoading || embedLoading || processingImages || uploadingImages || exportingCsv} 
+        show={ pasteLoading || embedLoading || processingImages || uploadingImages || exportingCsv || mappingGettyLoading} 
         text={
           pasteLoading ? "Applying paste..." :
           embedLoading ? "Embedding metadata..." :
           processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
           uploadingImages ? `Saving to database... ${uploadProgress.current}/${uploadProgress.total}` :
-          exportingCsv ? `Mapping Getty keywords... ${csvExportProgress.current}/${csvExportProgress.total || rows.length}` :
+          mappingGettyLoading ? "Mapping to Getty/iStock..." :
+          exportingCsv ? `Exporting CSV… ${csvExportProgress.current}/${csvExportProgress.total || rows.length}` :
           "Loading..."
         } 
       />

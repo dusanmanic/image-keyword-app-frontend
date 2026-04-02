@@ -155,6 +155,23 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  /** Map custom keywords to Getty for selected images; persists on server. */
+  const mapGettyBatch = useCallback(async ({
+    folderId,
+    imageIds,
+    maxKeywords = 50,
+    force = false,
+    scoreThreshold,
+  }) => {
+    const body = { folderId, imageIds, maxKeywords, force };
+    if (scoreThreshold != null) body.scoreThreshold = scoreThreshold;
+    const data = await apiCall('/api/analyze/map-getty-batch', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    return data;
+  }, [apiCall]);
+
   const saveImageExportLogs = useCallback(async ({ platform, batchId, items }) => {
     const data = await apiCall('/api/user/export-logs', {
       method: 'POST',
@@ -329,8 +346,8 @@ export function useApi() {
     getAnalyzeBatchStatus,
     getAnalyzeStatusByImageIds,
     mapKeywordsToGetty,
+    mapGettyBatch,
     saveImageExportLogs,
-    mapKeywordsToGetty,
     login,
     register,
     logout,

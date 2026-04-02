@@ -940,6 +940,7 @@ export default function FoldersPage() {
               <Label>Title</Label>
               <Input value={draft.title} onChange={(e)=> setDraft(d => ({ ...d, title: e.target.value }))} placeholder="Folder title" />
             </ModalRow>
+            {/* Temporarily hidden — “set description for AI” flow not reliable enough in production
             <ModalRow>
               <Label>Details for AI analysis</Label>
               <TextArea 
@@ -955,6 +956,7 @@ export default function FoldersPage() {
                 <Text style={{ color: '#9ca3af', marginTop: 4 }}>{(draft.description || '').length}/400</Text>
             </div>
             </ModalRow>
+            */}
             <ModalRow>
               <Label>Shooting date</Label>
               <DatePicker id="shooting-date" value={draft.shootingDate} onChange={(e)=> setDraft(d => ({ ...d, shootingDate: e.target.value }))} />

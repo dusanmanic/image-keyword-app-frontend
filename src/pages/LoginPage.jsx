@@ -142,6 +142,8 @@ function LoginPage() {
             <FooterLink to="/">Back to home</FooterLink>
             {' · '}
             <FooterLink to="/terms">Terms of Service</FooterLink>
+            {' · '}
+            <FooterLink to="/privacy">Privacy</FooterLink>
           </LoginFooter>
         </Card>
       </PageContainer>
@@ -188,6 +190,8 @@ function LoginPage() {
             <FooterLink to="/">Back to home</FooterLink>
             {' · '}
             <FooterLink to="/terms">Terms of Service</FooterLink>
+            {' · '}
+            <FooterLink to="/privacy">Privacy</FooterLink>
           </LoginFooter>
         </Card>
       </PageContainer>
@@ -203,6 +207,8 @@ function LoginPage() {
           <FooterLink to="/">Back to home</FooterLink>
           {' · '}
           <FooterLink to="/terms">Terms of Service</FooterLink>
+          {' · '}
+          <FooterLink to="/privacy">Privacy</FooterLink>
         </LoginFooter>
       </Card>
     </PageContainer>
