@@ -82,7 +82,7 @@ function PastePreview({ data }) {
 }
 
 const Container = styled.div`
-  height: calc(100vh - 100px);
+  height: calc(100vh - 85px);
   background: #f3f4f6;
   padding: 10px 10px 0 10px;
   display: flex;
@@ -644,7 +644,7 @@ const ModalTextArea = styled.textarea`
 `;
 
 const DropZone = styled.div`
-  height: ${props => props.$table ? 'calc(100vh - 200px)' : 'calc(70vh - 112px)'};
+  height: ${props => props.$table ? 'calc(100% - 155px)' : 'calc(70vh - 112px)'};
   display: flex;
   justify-content: center;
   align-items: center;
