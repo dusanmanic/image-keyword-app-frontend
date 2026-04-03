@@ -657,9 +657,8 @@ const DropZone = styled.div`
 
 const Toast = styled.div`
   position: fixed;
-  left: 50%;
+  right: 24px;
   bottom: 24px;
-  transform: translateX(-50%);
   background: #1e40af;
   color: white;
   padding: 10px 14px;
