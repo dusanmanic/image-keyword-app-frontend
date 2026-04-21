@@ -528,7 +528,7 @@ const KeywordsManagerList = styled.div`
   overflow: auto;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 26px 8px 8px;
+  padding: 8px;
 `;
 
 const KeywordsManagerSuggestions = styled.div`
@@ -3428,7 +3428,7 @@ export default function ImportPage() {
               </span>
             </ModalHeader>
             <KeywordsManagerBody>
-              <div style={{ color: '#64748b', fontSize: 12 }}>
+          {/* <div style={{ color: '#64748b', fontSize: 12 }}>
                 Type to add tag (Enter/comma/semicolon). Hover tag for actions.
               </div>
               <div style={{ color: gettyCatalogError ? '#b91c1c' : '#64748b', fontSize: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -3455,7 +3455,7 @@ export default function ImportPage() {
                   </ReloadIcon>
                   {gettyCatalogLoading ? "Loading..." : "Reload"}
                 </KeywordsManagerReloadBtn>
-              </div>
+              </div> */}
               <KeywordsManagerList>
                 <MetaChips
                   onClick={() => keywordsManagerInputRef.current && keywordsManagerInputRef.current.focus()}
