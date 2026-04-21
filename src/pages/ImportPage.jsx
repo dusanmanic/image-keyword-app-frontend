@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
 // import ToastComponent from "../components/Toast";
@@ -517,6 +517,132 @@ const ModalActions = styled.div`
   right: 20px;
 `;
 
+const KeywordsManagerBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const KeywordsManagerList = styled.div`
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 26px 8px 8px;
+`;
+
+const KeywordsManagerSuggestions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+`;
+
+const KeywordsManagerSuggestion = styled.button`
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  &:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1e40af;
+  }
+`;
+
+const KeywordsManagerReloadBtn = styled.button`
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  &:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #60a5fa;
+  }
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  &.focus-visible, &:focus-within, &:focus {
+    outline: none;
+    border-color: #60a5fa;
+    background: #dbeafe;
+  }
+`;
+
+const ReloadIcon = styled.svg`
+  width: 13px;
+  height: 13px;
+  ${(props) =>
+    props.$spinning &&
+    css`
+      animation: ${spin} 0.9s linear infinite;
+    `}
+`;
+
+const KeywordsManagerCount = styled.span`
+  font-size: 12px;
+  color: #64748b;
+  margin-left: 6px;
+  font-weight: 500;
+`;
+
+const KeywordsManagerTagWrap = styled.span`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+`;
+
+const KeywordsManagerItemActions = styled.div`
+  position: absolute;
+  right: -2px;
+  top: -30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  ${KeywordsManagerTagWrap}:hover & {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+`;
+
+const KeywordIconBtn = styled.button`
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1e40af;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+`;
+
 // Bulk overlay styled components
 const scanX = keyframes`
   0% { transform: translateX(-100%); }
@@ -927,6 +1053,7 @@ export default function ImportPage() {
   const fileRef = useRef(null);
   const gridRef = useRef(null);
   const controlsRef = useRef(null);
+  const keywordsManagerInputRef = useRef(null);
   const pendingPasteRef = useRef(false);
   const uploadBatchSummaryRef = useRef({ total: 0, success: 0, failed: 0 });
   const prevUploadingRef = useRef(false);
@@ -952,6 +1079,7 @@ export default function ImportPage() {
     startAnalyzeBatch, 
     getAnalyzeBatchStatus, 
     getAnalyzeStatusByImageIds, 
+    getGettyKeywordsCatalog,
     saveImageExportLogs
   } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
@@ -966,6 +1094,13 @@ export default function ImportPage() {
   const [pasteLoading, setPasteLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [embedLoading, setEmbedLoading] = useState(false);
+  const [keywordsManagerOpen, setKeywordsManagerOpen] = useState(false);
+  const [keywordsManagerDraft, setKeywordsManagerDraft] = useState("");
+  const [keywordsManagerDraftDebounced, setKeywordsManagerDraftDebounced] = useState("");
+  const [keywordsManagerHasDraft, setKeywordsManagerHasDraft] = useState(false);
+  const [gettyKeywordCatalog, setGettyKeywordCatalog] = useState([]);
+  const [gettyCatalogLoading, setGettyCatalogLoading] = useState(false);
+  const [gettyCatalogError, setGettyCatalogError] = useState("");
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTargetFolderId, setMoveTargetFolderId] = useState('');
   const [moveDropdownOpen, setMoveDropdownOpen] = useState(false);
@@ -1176,6 +1311,41 @@ export default function ImportPage() {
     }
   }, [analysisGettyMode]);
 
+  useEffect(() => {
+    if (!keywordsManagerOpen) return;
+    if (keywordsManagerInputRef.current) keywordsManagerInputRef.current.textContent = "";
+    setKeywordsManagerDraft("");
+    setKeywordsManagerDraftDebounced("");
+    setKeywordsManagerHasDraft(false);
+  }, [keywordsManagerOpen]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setKeywordsManagerDraftDebounced(keywordsManagerDraft);
+    }, 120);
+    return () => clearTimeout(t);
+  }, [keywordsManagerDraft]);
+
+  const loadGettyKeywordCatalog = useCallback(async () => {
+    try {
+      setGettyCatalogLoading(true);
+      setGettyCatalogError("");
+      const keywords = await getGettyKeywordsCatalog();
+      setGettyKeywordCatalog(Array.isArray(keywords) ? keywords : []);
+    } catch (err) {
+      console.error("Failed to load Getty keyword catalog:", err);
+      setGettyCatalogError("Could not load Getty keyword list.");
+    } finally {
+      setGettyCatalogLoading(false);
+    }
+  }, [getGettyKeywordsCatalog]);
+
+  useEffect(() => {
+    if (!keywordsManagerOpen) return;
+    if (gettyKeywordCatalog.length > 0) return;
+    void loadGettyKeywordCatalog();
+  }, [keywordsManagerOpen, loadGettyKeywordCatalog, gettyKeywordCatalog.length]);
+
   // Check if user should see import intro modal on page load
   useEffect(() => {
     const hideImportIntro = localStorage.getItem('hideImportIntroModal');
@@ -1229,6 +1399,153 @@ export default function ImportPage() {
 
   const showToast = (msg, type = 'success') => {
     showGlobalToast({ type, message: msg });
+  };
+
+  const normalizeKeywordList = (list) => {
+    const out = [];
+    const seen = new Set();
+    for (const item of Array.isArray(list) ? list : []) {
+      const s = String(item || "").trim();
+      if (!s) continue;
+      const low = s.toLowerCase();
+      if (seen.has(low)) continue;
+      seen.add(low);
+      out.push(s);
+    }
+    return out;
+  };
+
+  const parseKeywordField = (value) => {
+    if (Array.isArray(value)) return normalizeKeywordList(value);
+    return normalizeKeywordList(
+      String(value || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
+  };
+
+  const getEditableKeywordMeta = (row) => {
+    const getty = parseKeywordField(row?.gettyKeywords);
+    if (getty.length > 0) return { field: "gettyKeywords", list: getty };
+    return { field: "keywords", list: parseKeywordField(row?.keywords) };
+  };
+
+  const selectedRowsList = React.useMemo(() => {
+    const sel = selectedRows instanceof Set ? selectedRows : new Set();
+    if (!sel.size) return [];
+    return rows.filter((r) => sel.has(r.id));
+  }, [rows, selectedRows]);
+
+  const selectedUniqueKeywords = React.useMemo(() => {
+    const map = new Map();
+    for (const row of selectedRowsList) {
+      const { list } = getEditableKeywordMeta(row);
+      for (const kw of list) {
+        const key = kw.toLowerCase();
+        const hit = map.get(key);
+        if (!hit) map.set(key, { keyword: kw, count: 1 });
+        else hit.count += 1;
+      }
+    }
+    const items = Array.from(map.values()).sort((a, b) =>
+      b.count === a.count ? a.keyword.localeCompare(b.keyword) : b.count - a.count
+    );
+    return items;
+  }, [selectedRowsList]);
+
+  const keywordsManagerSuggestions = React.useMemo(() => {
+    const q = String(keywordsManagerDraftDebounced || "").trim().toLowerCase();
+    if (!q || !Array.isArray(gettyKeywordCatalog) || gettyKeywordCatalog.length === 0) return [];
+    const existing = new Set(selectedUniqueKeywords.map((k) => String(k.keyword || "").toLowerCase()));
+    const starts = [];
+    const contains = [];
+    for (const kw of gettyKeywordCatalog) {
+      const s = String(kw || "").trim();
+      if (!s) continue;
+      const low = s.toLowerCase();
+      if (existing.has(low) || low === q) continue;
+      if (low.startsWith(q)) starts.push(s);
+      else if (low.includes(q)) contains.push(s);
+      if (starts.length >= 8) break;
+    }
+    const merged = [...starts];
+    if (merged.length < 8) {
+      merged.push(...contains.slice(0, 8 - merged.length));
+    }
+    return merged;
+  }, [keywordsManagerDraftDebounced, gettyKeywordCatalog, selectedUniqueKeywords]);
+
+  const updateSelectedKeywords = async (transform, successMessage) => {
+    const sel = selectedRows instanceof Set ? selectedRows : new Set();
+    if (!sel.size) {
+      showToast("Select at least one image.", "error");
+      return;
+    }
+    const updates = [];
+    for (const row of rows) {
+      if (!sel.has(row.id)) continue;
+      const { field, list } = getEditableKeywordMeta(row);
+      const next = normalizeKeywordList(transform(list, row));
+      if (
+        next.length === list.length &&
+        next.every((v, i) => String(v || "").toLowerCase() === String(list[i] || "").toLowerCase())
+      ) {
+        continue;
+      }
+      updates.push({ id: row.id, field, next });
+    }
+    if (!updates.length) {
+      showToast("No changes to apply.", "error");
+      return;
+    }
+    const byId = new Map(updates.map((u) => [u.id, u]));
+    setRows((prev) =>
+      prev.map((r) => {
+        const u = byId.get(r.id);
+        if (!u) return r;
+        return { ...r, [u.field]: u.next };
+      })
+    );
+    await Promise.all(
+      updates.map((u) => saveMetadataChanges(u.id, { [u.field]: u.next }))
+    );
+    showToast(successMessage);
+  };
+
+  const handleKeywordManagerAddToAll = async (keyword) => {
+    const toAdd = String(keyword || "").trim();
+    if (!toAdd) return;
+    await updateSelectedKeywords(
+      (list) => [...list, toAdd],
+      `Added "${toAdd}" to all selected images.`
+    );
+  };
+
+  const handleKeywordManagerDelete = async (keyword) => {
+    const low = String(keyword || "").toLowerCase();
+    await updateSelectedKeywords(
+      (list) => list.filter((k) => String(k || "").toLowerCase() !== low),
+      `Removed "${keyword}" from selected images.`
+    );
+  };
+
+  const handleKeywordManagerPickSuggestion = async (keyword) => {
+    const picked = String(keyword || "").trim();
+    if (!picked) return;
+    await updateSelectedKeywords((list) => [...list, picked], `Added "${picked}" to selected images.`);
+    if (keywordsManagerInputRef.current) keywordsManagerInputRef.current.textContent = "";
+    setKeywordsManagerDraft("");
+    setKeywordsManagerHasDraft(false);
+  };
+
+  const commitKeywordManagerDraft = async () => {
+    const text = String(keywordsManagerInputRef.current?.textContent || "").trim();
+    if (!text) return;
+    await updateSelectedKeywords((list) => [...list, text], `Added "${text}" to selected images.`);
+    if (keywordsManagerInputRef.current) keywordsManagerInputRef.current.textContent = "";
+    setKeywordsManagerDraft("");
+    setKeywordsManagerHasDraft(false);
   };
 
   const analyzeRow = async (row, extraPrompt = "") => {
@@ -2742,6 +3059,29 @@ export default function ImportPage() {
                 Move
               </ToolbarPrimaryBtn>
             </FastTooltip>
+            <FastTooltip
+              label={
+                (selectedRows instanceof Set ? selectedRows.size : 0) > 0
+                  ? "Manage unique keywords for selected images"
+                  : "Select images first"
+              }
+            >
+              <ToolbarPrimaryBtn
+                $toolbar
+                onClick={() => {
+                  const hasSelection = (selectedRows instanceof Set ? selectedRows.size : 0) > 0;
+                  if (!hasSelection) {
+                    showToast("Select images first", "error");
+                    return;
+                  }
+                  setKeywordsManagerOpen(true);
+                }}
+                type="button"
+                disabled={(selectedRows instanceof Set ? selectedRows.size : 0) === 0}
+              >
+                Keywords
+              </ToolbarPrimaryBtn>
+            </FastTooltip>
             <ToolbarDivider aria-hidden />
             <FastTooltip
               label={
@@ -3072,6 +3412,145 @@ export default function ImportPage() {
               <Button type="button" onClick={applyPaste}>Apply</Button>
               <Button type="button" $variant="secondary" onClick={() => setPasteOpen(false)}>Cancel</Button>
             </ModalActions>
+          </ModalCard>
+        </PasteOverlay>
+      )}
+
+      {keywordsManagerOpen && (
+        <PasteOverlay onClick={() => setKeywordsManagerOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()} $w="820px" $h="560px">
+            <ModalHeader>
+              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>
+                Selected Keywords Manager
+              </h3>
+              <span style={{ color: '#64748b', fontSize: 13, fontWeight: 600 }}>
+                {selectedRowsList.length} image(s) selected
+              </span>
+            </ModalHeader>
+            <KeywordsManagerBody>
+              <div style={{ color: '#64748b', fontSize: 12 }}>
+                Type to add tag (Enter/comma/semicolon). Hover tag for actions.
+              </div>
+              <div style={{ color: gettyCatalogError ? '#b91c1c' : '#64748b', fontSize: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                {gettyCatalogLoading
+                  ? 'Loading Getty keyword catalog...'
+                  : gettyCatalogError
+                    ? gettyCatalogError
+                    : `Getty catalog ready: ${gettyKeywordCatalog.length} keywords`}
+                <KeywordsManagerReloadBtn
+                  type="button"
+                  onClick={() => void loadGettyKeywordCatalog()}
+                  disabled={gettyCatalogLoading}
+                  title="Reload Getty keyword catalog"
+                >
+                  <ReloadIcon
+                    $spinning={gettyCatalogLoading}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round" />
+                    <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </ReloadIcon>
+                  {gettyCatalogLoading ? "Loading..." : "Reload"}
+                </KeywordsManagerReloadBtn>
+              </div>
+              <KeywordsManagerList>
+                <MetaChips
+                  onClick={() => keywordsManagerInputRef.current && keywordsManagerInputRef.current.focus()}
+                  style={{ cursor: 'text', height: 'auto', minHeight: 140, paddingRight: 8, overflow: 'visible' }}
+                >
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {selectedUniqueKeywords.map((item) => {
+                      const key = item.keyword.toLowerCase();
+                      const isOnAllSelected = item.count >= selectedRowsList.length && selectedRowsList.length > 0;
+                      return (
+                        <KeywordsManagerTagWrap key={key}>
+                          <MetaChip style={{ cursor: 'default' }} title={item.keyword}>
+                            {item.keyword}
+                            <KeywordsManagerCount>({item.count})</KeywordsManagerCount>
+                          </MetaChip>
+                          <KeywordsManagerItemActions>
+                            {!isOnAllSelected && (
+                              <KeywordIconBtn
+                                type="button"
+                                onClick={() => handleKeywordManagerAddToAll(item.keyword)}
+                                title="Add this tag to all selected images"
+                              >
+                                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 8l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </KeywordIconBtn>
+                            )}
+                            <KeywordIconBtn
+                              type="button"
+                              onClick={() => handleKeywordManagerDelete(item.keyword)}
+                              title="Remove this tag from selected images"
+                            >
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 6h18" strokeLinecap="round" />
+                                <path d="M8 6V4h8v2" />
+                                <path d="M19 6l-1 14H6L5 6" />
+                                <path d="M10 10v7M14 10v7" strokeLinecap="round" />
+                              </svg>
+                            </KeywordIconBtn>
+                          </KeywordsManagerItemActions>
+                        </KeywordsManagerTagWrap>
+                      );
+                    })}
+                    <MetaEditableKeywords
+                      ref={keywordsManagerInputRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      style={{ minWidth: 8 }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
+                          e.preventDefault();
+                          void commitKeywordManagerDraft();
+                        }
+                        if (e.key === 'Backspace') {
+                          const content = (keywordsManagerInputRef.current?.textContent || '').trim();
+                          if (!content && selectedUniqueKeywords.length > 0) {
+                            e.preventDefault();
+                            setKeywordsManagerDraft("");
+                            const last = selectedUniqueKeywords[selectedUniqueKeywords.length - 1];
+                            if (last?.keyword) void handleKeywordManagerDelete(last.keyword);
+                          }
+                        }
+                      }}
+                      onInput={() => {
+                        const txt = (keywordsManagerInputRef.current?.textContent || '').trim();
+                        setKeywordsManagerDraft(txt);
+                        setKeywordsManagerHasDraft(!!txt);
+                      }}
+                    />
+                  </div>
+                  {!selectedUniqueKeywords.length && !keywordsManagerHasDraft && (
+                    <MetaPlaceholder>Type keyword and press Enter</MetaPlaceholder>
+                  )}
+                </MetaChips>
+              </KeywordsManagerList>
+              {keywordsManagerSuggestions.length > 0 && (
+                <KeywordsManagerSuggestions>
+                  {keywordsManagerSuggestions.map((kw) => (
+                    <KeywordsManagerSuggestion
+                      key={kw}
+                      type="button"
+                      onClick={() => handleKeywordManagerPickSuggestion(kw)}
+                      title={`Add "${kw}"`}
+                    >
+                      {kw}
+                    </KeywordsManagerSuggestion>
+                  ))}
+                </KeywordsManagerSuggestions>
+              )}
+            </KeywordsManagerBody>
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button type="button" $variant="secondary" onClick={() => setKeywordsManagerOpen(false)}>
+                Close
+              </Button>
+            </div>
           </ModalCard>
         </PasteOverlay>
       )}

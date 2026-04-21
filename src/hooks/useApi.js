@@ -199,6 +199,11 @@ export function useApi() {
     return data;
   }, [apiCall]);
 
+  const getGettyKeywordsCatalog = useCallback(async () => {
+    const data = await apiCall('/api/analyze/getty-keywords');
+    return Array.isArray(data?.keywords) ? data.keywords : [];
+  }, [apiCall]);
+
   // Auth API
   const login = useCallback(async (email, password) => {
     const data = await apiCall('/api/auth/login', {
@@ -352,6 +357,7 @@ export function useApi() {
     startAnalyzeBatch,
     getAnalyzeBatchStatus,
     getAnalyzeStatusByImageIds,
+    getGettyKeywordsCatalog,
     mapKeywordsToGetty,
     mapGettyBatch,
     saveImageExportLogs,
