@@ -111,10 +111,16 @@ export function useApi() {
         // Add thumbnail blob as file
         formData.append('thumbnail', imageData[key], `thumb_${imageData.name || 'image.jpg'}`);
       } else if (key !== 'blob' && key !== 'thumbnailBlob') {
+        const value = imageData[key];
+        if (value === null || value === undefined) {
+          // Avoid sending literal "null"/"undefined" strings for optional fields (e.g. imageCreatedAt)
+          formData.append(key, '');
+          return;
+        }
         // Add other fields as JSON
-        formData.append(key, typeof imageData[key] === 'object' 
-          ? JSON.stringify(imageData[key]) 
-          : String(imageData[key])
+        formData.append(key, typeof value === 'object' 
+          ? JSON.stringify(value) 
+          : String(value)
         );
       }
     });
@@ -141,7 +147,8 @@ export function useApi() {
         folderId,
         imageIds,
         maxKeywords: options.maxKeywords,
-        prompt: options.prompt
+        prompt: options.prompt,
+        gettyMode: options.gettyMode,
       })
     });
     return data;

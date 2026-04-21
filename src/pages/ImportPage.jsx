@@ -15,7 +15,6 @@ import { useStore } from "../store/index.js";
 import ImportIntroModal from "../components/ImportIntroModal.jsx";
 import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 import IstockGettyExportModal from "../components/IstockGettyExportModal.jsx";
-import GettyMappingModal from "../components/GettyMappingModal.jsx";
 import FastTooltip from "../components/FastTooltip.jsx";
 import piexif from "piexifjs";
 
@@ -45,6 +44,23 @@ async function extractImageCreatedAt(file) {
   } catch {
     return null;
   }
+}
+
+const ANALYSIS_GETTY_MODE_OPTIONS = [
+  { value: "max", label: "Max" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+  { value: "lowest", label: "Lowest" },
+];
+
+function normalizeGettyMode(raw) {
+  const value = String(raw || "").trim().toLowerCase();
+  if (["max", "medium", "low", "lowest"].includes(value)) return value;
+  // Backward compatibility with previously saved values
+  if (value === "max_accuracy") return "max";
+  if (value === "fast") return "medium";
+  if (value === "off") return "medium";
+  return "max";
 }
 
 // Reusable checkbox pair for paste options
@@ -274,15 +290,6 @@ const ExportButton = styled(Button)`
   }
 `;
 
-const GettyMapButton = styled(Button)`
-  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
-  border: 1px solid rgba(180, 83, 9, 0.35);
-  color: #fff;
-  &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
-  }
-`;
-
 /** Primary actions (Upload, Move) — same polish as other toolbar tones */
 const ToolbarPrimaryBtn = styled(Button)`
   background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
@@ -300,7 +307,7 @@ const KeywordsCountContainer = styled.div`
   background: #f8fafc;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 4px 6px;
   font-size: 14px;
   color: #374151;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -312,11 +319,12 @@ const KeywordsCountLabel = styled.span`
 `;
 
 const KeywordsCountSelect = styled.div`
+  width: 60px;
   position: relative;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 6px 8px;
   font-size: 14px;
   color: #374151;
   cursor: pointer;
@@ -944,7 +952,6 @@ export default function ImportPage() {
     startAnalyzeBatch, 
     getAnalyzeBatchStatus, 
     getAnalyzeStatusByImageIds, 
-    mapGettyBatch,
     saveImageExportLogs
   } = useApi();
   const currentFolder = folders?.find(f => String(f.id) === String(folderId));
@@ -977,6 +984,7 @@ export default function ImportPage() {
     }
   });
   const [isKeywordsDropdownOpen, setIsKeywordsDropdownOpen] = useState(false);
+  const [isGettyModeDropdownOpen, setIsGettyModeDropdownOpen] = useState(false);
   const [spendingInfo, setSpendingInfo] = useState(null);
   const noAnalysesLeft = spendingInfo && spendingInfo.remaining <= 0;
 
@@ -1005,7 +1013,6 @@ export default function ImportPage() {
   // Fallback state to avoid undefined refs if paste modal JSX is present
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteData, setPasteData] = useState({ title: '', description: '', keywords: [] });
-  const [keywordsViewMode, setKeywordsViewMode] = useState('custom'); // 'custom' | 'getty'
   const [pasteOptions, setPasteOptions] = useState({
     title: { include: true, clear: false },
     description: { include: true, clear: false },
@@ -1079,8 +1086,13 @@ export default function ImportPage() {
   const [istockExportOpen, setIstockExportOpen] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [csvExportProgress, setCsvExportProgress] = useState({ current: 0, total: 0 });
-  const [mappingGettyLoading, setMappingGettyLoading] = useState(false);
-  const [gettyMapModalOpen, setGettyMapModalOpen] = useState(false);
+  const [analysisGettyMode, setAnalysisGettyMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem("analysisGettyMode");
+      return normalizeGettyMode(saved);
+    } catch {}
+    return "max";
+  });
 
   // Samo slike u redu ili u obradi su "busy"; učitane (completed/none/failed) nisu disabled
   const isImageInQueueOrProcessing = (row) => {
@@ -1095,34 +1107,6 @@ export default function ImportPage() {
     if (sel.size === 0) return false;
     const selectedRowsList = rows.filter(r => sel.has(r.id));
     return selectedRowsList.length > 0 && selectedRowsList.every(isImageInQueueOrProcessing);
-  }, [rows, selectedRows, analyzingIds]);
-
-  /** Getty mapping: needs custom keywords on every selection + no row stuck in analysis queue. */
-  const gettyMapEligibility = React.useMemo(() => {
-    const sel = selectedRows instanceof Set ? selectedRows : new Set();
-    if (sel.size === 0) return { ok: false, reason: "Select at least one image." };
-    const list = rows.filter((r) => sel.has(r.id));
-    for (const r of list) {
-      const kw = Array.isArray(r.keywords)
-        ? r.keywords
-        : String(r.keywords || "")
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-      if (kw.length === 0) {
-        return {
-          ok: false,
-          reason: "Run Keyword Wizard first — each selected image needs custom keywords.",
-        };
-      }
-      if (isImageInQueueOrProcessing(r)) {
-        return {
-          ok: false,
-          reason: "Wait until analysis finishes for the selected row(s).",
-        };
-      }
-    }
-    return { ok: true, reason: "" };
   }, [rows, selectedRows, analyzingIds]);
 
   // ID-evi za polling: izabrane u redu ILI bilo koja slika u folderu sa pending/processing (npr. posle refresh-a)
@@ -1183,6 +1167,14 @@ export default function ImportPage() {
       console.error('Failed to save keywordsCount to localStorage:', error);
     }
   }, [keywordsCount]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("analysisGettyMode", analysisGettyMode);
+    } catch (error) {
+      console.error("Failed to save analysisGettyMode to localStorage:", error);
+    }
+  }, [analysisGettyMode]);
 
   // Check if user should see import intro modal on page load
   useEffect(() => {
@@ -1274,13 +1266,18 @@ export default function ImportPage() {
       if (extra) parts.push(`Added extra suggestion: ${extra}`);
       const combinedPrompt = parts.join(' <br/> ');
 
-      const data = await analyzeImage(blob, keywordsCount, combinedPrompt);
+      const data = await analyzeImage(blob, keywordsCount, combinedPrompt, {
+        gettyMode: analysisGettyMode,
+      });
 
       let nextTitle = row.title || '';
       let nextDescription = row.description || '';
       let nextKeywords = Array.isArray(row.keywords)
         ? row.keywords
         : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+      let nextGettyKeywords = Array.isArray(row.gettyKeywords)
+        ? row.gettyKeywords
+        : String(row.gettyKeywords || '').split(',').map(s=>s.trim()).filter(Boolean);
 
       if (data) {
         try {
@@ -1289,6 +1286,10 @@ export default function ImportPage() {
           if (typeof payload.description === 'string') nextDescription = payload.description;
           if (Array.isArray(payload.keywords)) nextKeywords = payload.keywords;
           if (typeof payload.keywords === 'string') nextKeywords = payload.keywords.split(',').map(s=>s.trim()).filter(Boolean);
+          if (Array.isArray(payload.gettyKeywords)) nextGettyKeywords = payload.gettyKeywords;
+          if (typeof payload.gettyKeywords === 'string') {
+            nextGettyKeywords = payload.gettyKeywords.split(',').map(s=>s.trim()).filter(Boolean);
+          }
           
           // Auto-add suggested tags to folder if folder has no tags yet (ignore blank tags)
           const existingFolderTags = Array.isArray(folder?.tags)
@@ -1324,6 +1325,7 @@ export default function ImportPage() {
                 title: nextTitle,
                 description: nextDescription,
                 keywords: nextKeywords,
+                gettyKeywords: nextGettyKeywords,
                 analysis_status: "completed",
                 analyzedAt: analyzedAtIso,
               }
@@ -1335,12 +1337,13 @@ export default function ImportPage() {
         title: nextTitle,
         description: nextDescription,
         keywords: nextKeywords,
+        gettyKeywords: nextGettyKeywords,
         analysis_status: "completed",
         analyzedAt: analyzedAtIso,
       });
 
       window.dispatchEvent(new CustomEvent('refresh-user'));
-      showToast('Metadata updated');
+      showToast("Metadata + Getty keywords updated");
     } catch (e) {
       console.error('Analysis error:', e);
       // Show user-friendly error messages
@@ -1403,7 +1406,8 @@ export default function ImportPage() {
       const combinedPrompt = parts.join(' <br/> ');
       const { batchId, total } = await startAnalyzeBatch(folderId, withUrl, {
         prompt: combinedPrompt,
-        maxKeywords: keywordsCount
+        maxKeywords: keywordsCount,
+        gettyMode: analysisGettyMode,
       });
       setBulkTotal(total);
       const poll = async () => {
@@ -1855,7 +1859,7 @@ export default function ImportPage() {
     },
     {
       key: "keywords",
-      name: "Keywords",
+      name: "Keywords (Getty/iStock)",
       frozen: true,
       width: '4.5fr',
       cellClass: (row) => {
@@ -1863,62 +1867,23 @@ export default function ImportPage() {
         return `flex-start-cell${busy ? ' ' + busy : ''}`;
       },
       renderHeaderCell: () => {
-        const hasAnyGetty = rows.some(r => Array.isArray(r.gettyKeywords) && r.gettyKeywords.length > 0);
-        return (
-          <div className="hdr" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, pointerEvents: 'auto', width: '100%' }}>
-            <span>Keywords</span>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setKeywordsViewMode('custom'); }}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  border: '1px solid #93c5fd',
-                  borderRadius: 6,
-                  background: keywordsViewMode === 'custom' ? '#1e40af' : '#eff6ff',
-                  color: keywordsViewMode === 'custom' ? '#fff' : '#1e40af',
-                  cursor: 'pointer',
-                }}
-              >
-                Custom
-              </button>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); if (hasAnyGetty) setKeywordsViewMode('getty'); }}
-                disabled={!hasAnyGetty}
-                title={hasAnyGetty ? 'Getty/iStock mapped keywords (saved on server or from export)' : 'Use “Map to Getty/iStock” on selected rows, or export CSV after mapping'}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  border: '1px solid #93c5fd',
-                  borderRadius: 6,
-                  background: keywordsViewMode === 'getty' ? '#1e40af' : (hasAnyGetty ? '#eff6ff' : '#e5e7eb'),
-                  color: keywordsViewMode === 'getty' ? '#fff' : (hasAnyGetty ? '#1e40af' : '#9ca3af'),
-                  cursor: hasAnyGetty ? 'pointer' : 'not-allowed',
-                }}
-              >
-                Getty/iStock
-              </button>
-            </div>
-          </div>
-        );
+        return <span>Keywords (Getty/iStock)</span>;
       },
       renderCell: ({ row, onRowChange }) => {
-        const isGettyMode = keywordsViewMode === 'getty';
-        const gettyList = Array.isArray(row.gettyKeywords) ? row.gettyKeywords : [];
-        const list = isGettyMode
-          ? gettyList
-          : (Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean));
+        const customList = Array.isArray(row.keywords)
+          ? row.keywords
+          : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const gettyList = Array.isArray(row.gettyKeywords)
+          ? row.gettyKeywords
+          : String(row.gettyKeywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const isGettyDisplay = gettyList.length > 0;
+        const list = isGettyDisplay ? gettyList : customList;
         const chipsRef = React.useRef(null);
         const [hasDraft, setHasDraft] = useState(false);
         const addKeyword = (val) => {
-          if (isGettyMode) return; // read-only in Getty mode
+          if (isGettyDisplay) return; // Getty output is generated by AI; keep read-only here.
           const t = (val || '').trim();
           if (!t) return;
-          const customList = Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
           if (customList.includes(t)) return;
           const newKeywords = [...customList, t];
           onRowChange({ ...row, keywords: newKeywords }, true);
@@ -1928,15 +1893,13 @@ export default function ImportPage() {
           showToast('Keywords updated');
         };
         const removeAt = (idx) => {
-          if (isGettyMode) return;
-          const customList = Array.isArray(row.keywords) ? row.keywords : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
+          if (isGettyDisplay) return;
           const next = customList.filter((_, i) => i !== idx);
           onRowChange({ ...row, keywords: next }, true);
           saveMetadataChanges(row.id, { keywords: next });
           showToast('Keywords updated');
         };
         const handleKeyDown = (e) => {
-          if (isGettyMode) return;
           if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
             e.preventDefault();
             const sel = window.getSelection();
@@ -1952,22 +1915,6 @@ export default function ImportPage() {
             }
           }
         };
-        if (isGettyMode) {
-          return (
-            <MetaChipsWrapper>
-              <MetaChips style={{ cursor: 'default' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {list.length > 0 ? list.map((kw, idx) => (
-                    <MetaChip key={idx} style={{ cursor: 'default' }}>{kw}</MetaChip>
-                  )) : (
-                    <span style={{ color: '#9ca3af', fontSize: 12 }}>Not exported yet</span>
-                  )}
-                </div>
-              </MetaChips>
-              <KeywordCountBadge>{list.length}</KeywordCountBadge>
-            </MetaChipsWrapper>
-          );
-        }
         return (
           <MetaChipsWrapper>
             <MetaChips
@@ -1980,7 +1927,7 @@ export default function ImportPage() {
                 ))}
                 <MetaEditableKeywords
                   ref={chipsRef}
-                  contentEditable
+                  contentEditable={!isGettyDisplay}
                   suppressContentEditableWarning
                   style={{ minWidth: 8 }}
                   onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
@@ -1992,7 +1939,9 @@ export default function ImportPage() {
                 />
               </div>
               {!list.length && !hasDraft && (
-                <MetaPlaceholder>Type keyword and press Enter</MetaPlaceholder>
+                <MetaPlaceholder>
+                  {isGettyDisplay ? 'Getty keywords generated' : 'Type keyword and press Enter'}
+                </MetaPlaceholder>
               )}
             </MetaChips>
             <KeywordCountBadge>{list.length}</KeywordCountBadge>
@@ -2552,51 +2501,8 @@ export default function ImportPage() {
     onFiles(entries);
   };
 
-  const mapGettyForSelected = async ({ force = false, scoreThreshold } = {}) => {
-    const sel = selectedRows instanceof Set ? selectedRows : new Set();
-    const ids = [...sel];
-    if (!ids.length) {
-      showToast('Select at least one image', 'error');
-      return;
-    }
-    if (!folderId) return;
-    setMappingGettyLoading(true);
-    try {
-      const data = await mapGettyBatch({
-        folderId,
-        imageIds: ids,
-        maxKeywords: keywordsCount,
-        force,
-        scoreThreshold,
-      });
-      const results = Array.isArray(data?.results) ? data.results : [];
-      const byId = new Map(results.map((r) => [r.imageId, r]));
-      setRows((prev) =>
-        prev.map((r) => {
-          const u = byId.get(r.id);
-          if (!u) return r;
-          return { ...r, gettyKeywords: Array.isArray(u.gettyKeywords) ? u.gettyKeywords : [] };
-        })
-      );
-      const skipped = results.filter((r) => r.skipped).length;
-      const done = results.length - skipped;
-      if (skipped && !done) {
-        showToast('No custom keywords to map on selected rows.', 'error');
-      } else if (skipped) {
-        showToast(`Getty mapping saved for ${done} image(s). ${skipped} skipped (no keywords).`);
-      } else {
-        showToast(`Getty/iStock mapping saved for ${results.length} image(s).`);
-      }
-    } catch (e) {
-      console.error(e);
-      showToast(e?.message || 'Getty mapping failed', 'error');
-    } finally {
-      setMappingGettyLoading(false);
-    }
-  };
-
   // Export iStock/Getty CSV template (Excel-friendly): CRLF + UTF-8 (no BOM) + required columns/order
-  // Uses Getty keywords saved via "Map to Getty/iStock" (or legacy: last export log).
+  // Uses Getty keywords generated by Keyword Wizard Getty mode (or legacy: last export log).
   const exportWindowsCsv = async (shootDateOverride = '', countryOverride = '') => {
     setExportingCsv(true);
     setCsvExportProgress({ current: 0, total: rows.length });
@@ -2613,7 +2519,7 @@ export default function ImportPage() {
       });
       if (missingGetty.length > 0) {
         showToast(
-          `${missingGetty.length} image(s) have no Getty mapping — keywords column will be empty for those. Use "Map to Getty/iStock" first.`,
+          `${missingGetty.length} image(s) have no Getty mapping — keywords column will be empty for those. Run Keyword Wizard with Getty mode first.`,
           'warning'
         );
       }
@@ -2710,7 +2616,7 @@ export default function ImportPage() {
         } catch (logErr) {
           console.error('Failed to save export logs (non-fatal):', logErr);
         }
-        // Update rows with gettyKeywords so Getty/iStock button works immediately without refresh
+        // Keep local rows in sync with exported Getty keywords without refresh.
         setRows(prev => prev.map(r => {
           const item = exportLogItems.find(x => x.imageId === r.id);
           if (!item?.gettyKeywords?.length) return r;
@@ -2839,32 +2745,6 @@ export default function ImportPage() {
             <ToolbarDivider aria-hidden />
             <FastTooltip
               label={
-                gettyMapEligibility.ok
-                  ? 'Map custom keywords to Getty/iStock (saved to your account)'
-                  : gettyMapEligibility.reason
-              }
-            >
-              <GettyMapButton
-                $toolbar
-                onClick={() => {
-                  if (!gettyMapEligibility.ok) {
-                    showToast(gettyMapEligibility.reason, "error");
-                    return;
-                  }
-                  setGettyMapModalOpen(true);
-                }}
-                type="button"
-                disabled={
-                  mappingGettyLoading ||
-                  (selectedRows instanceof Set ? selectedRows.size : 0) === 0 ||
-                  !gettyMapEligibility.ok
-                }
-              >
-                {mappingGettyLoading ? 'Mapping…' : 'Getty / iStock'}
-              </GettyMapButton>
-            </FastTooltip>
-            <FastTooltip
-              label={
                 noAnalysesLeft ? 'No analyses left. Buy more to continue.' :
                 exportingCsv ? 'Export in progress...' :
                 'Export iStock/Getty CSV'
@@ -2933,35 +2813,64 @@ export default function ImportPage() {
           </FolderMeta>
 
           <KeywordsCountAside>
-            <KeywordsCountContainer>
-              <KeywordsCountLabel>Keywords</KeywordsCountLabel>
-              <KeywordsCountSelect
-                onClick={() => setIsKeywordsDropdownOpen(!isKeywordsDropdownOpen)}
-                onBlur={() => setTimeout(() => setIsKeywordsDropdownOpen(false), 150)}
-                tabIndex={0}
-              >
-                <span>{keywordsCount}</span>
-                <DropdownArrow />
-                <DropdownOptions isOpen={isKeywordsDropdownOpen}>
-                  {Array.from({ length: 5 }, (_, i) => {
-                    const value = 10 + i * 10;
-                    return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <KeywordsCountContainer>
+                <KeywordsCountLabel>Keywords</KeywordsCountLabel>
+                <KeywordsCountSelect
+                  onClick={() => setIsKeywordsDropdownOpen(!isKeywordsDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsKeywordsDropdownOpen(false), 150)}
+                  tabIndex={0}
+                >
+                  <span>{keywordsCount}</span>
+                  <DropdownArrow />
+                  <DropdownOptions isOpen={isKeywordsDropdownOpen}>
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const value = 10 + i * 10;
+                      return (
+                        <DropdownOption
+                          key={value}
+                          isSelected={value === keywordsCount}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setKeywordsCount(value);
+                            setIsKeywordsDropdownOpen(false);
+                          }}
+                        >
+                          {value}
+                        </DropdownOption>
+                      );
+                    })}
+                  </DropdownOptions>
+                </KeywordsCountSelect>
+                <KeywordsCountLabel>Getty mode</KeywordsCountLabel>
+                <KeywordsCountSelect
+                  onClick={() => setIsGettyModeDropdownOpen(!isGettyModeDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsGettyModeDropdownOpen(false), 150)}
+                  tabIndex={0}
+                  title="Controls if Keyword Wizard also generates Getty/iStock keywords"
+                >
+                  <span>
+                    {ANALYSIS_GETTY_MODE_OPTIONS.find((opt) => opt.value === analysisGettyMode)?.label || "Max"}
+                  </span>
+                  <DropdownArrow />
+                  <DropdownOptions isOpen={isGettyModeDropdownOpen}>
+                    {ANALYSIS_GETTY_MODE_OPTIONS.map((opt) => (
                       <DropdownOption
-                        key={value}
-                        isSelected={value === keywordsCount}
+                        key={opt.value}
+                        isSelected={opt.value === analysisGettyMode}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setKeywordsCount(value);
-                          setIsKeywordsDropdownOpen(false);
+                          setAnalysisGettyMode(opt.value);
+                          setIsGettyModeDropdownOpen(false);
                         }}
                       >
-                        {value}
+                        {opt.label}
                       </DropdownOption>
-                    );
-                  })}
-                </DropdownOptions>
-              </KeywordsCountSelect>
-            </KeywordsCountContainer>
+                    ))}
+                  </DropdownOptions>
+                </KeywordsCountSelect>
+              </KeywordsCountContainer>
+            </div>
           </KeywordsCountAside>
         </HeaderBar>
       </Header>
@@ -3236,19 +3145,6 @@ export default function ImportPage() {
         </PasteOverlay>
       )}
 
-      <GettyMappingModal
-        open={gettyMapModalOpen}
-        onClose={() => setGettyMapModalOpen(false)}
-        onConfirm={({ force, scoreThreshold }) => {
-          setGettyMapModalOpen(false);
-          mapGettyForSelected({ force, scoreThreshold });
-        }}
-        maxKeywords={keywordsCount}
-        selectedCount={selectedRows instanceof Set ? selectedRows.size : 0}
-        mappingAllowed={gettyMapEligibility.ok}
-        disabledHint={gettyMapEligibility.reason}
-      />
-
       <IstockGettyExportModal
         open={istockExportOpen}
         onClose={() => setIstockExportOpen(false)}
@@ -3288,13 +3184,12 @@ export default function ImportPage() {
       
       {/* Single global spinner with dynamic message */}
       <GlobalSpinner 
-        show={ pasteLoading || embedLoading || processingImages || uploadingImages || exportingCsv || mappingGettyLoading} 
+        show={ pasteLoading || embedLoading || processingImages || uploadingImages || exportingCsv} 
         text={
           pasteLoading ? "Applying paste..." :
           embedLoading ? "Embedding metadata..." :
           processingImages ? `Processing images... ${processingProgress.current}/${processingProgress.total}` :
           uploadingImages ? `Saving to database... ${uploadProgress.current}/${uploadProgress.total}` :
-          mappingGettyLoading ? "Mapping to Getty/iStock..." :
           exportingCsv ? `Exporting CSV… ${csvExportProgress.current}/${csvExportProgress.total || rows.length}` :
           "Loading..."
         } 
