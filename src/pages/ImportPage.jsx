@@ -2734,7 +2734,7 @@ export default function ImportPage() {
 
         const imageCreatedAt = await extractImageCreatedAt(f);
 
-        // Resize to 1024px for S3: one image for grid display and AI analysis
+        // Resize to 1024px for R2: one image for grid display and AI analysis
         const { blob: imageBlob } = await resizeImage(f, 1024, "image/jpeg", 0.85);
 
         return {
@@ -2742,8 +2742,8 @@ export default function ImportPage() {
           name: f.name,
           size: Math.round(f.size / 1024), // Original file size for reference
           type: f.type,
-          thumbUrl: null, // Will be set after S3 upload
-          thumbnailBlob: imageBlob, // 1024px blob → uploaded to S3, used for display + AI
+          thumbUrl: null, // Will be set after R2 upload
+          thumbnailBlob: imageBlob, // 1024px blob → uploaded to R2, used for display + AI
           originalBlob: f, // Keep original for analyzeRow (resized before send until we have queue)
           title: "",
           description: "",

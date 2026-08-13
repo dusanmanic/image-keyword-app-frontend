@@ -43,7 +43,7 @@ We use essential cookies and local storage for authentication and to keep the Se
 
 We share data with trusted providers only as necessary:
 
-• Infrastructure: cloud hosting providers (for example AWS or Hetzner, depending on our setup).
+• Infrastructure: cloud hosting providers (for example Cloudflare R2 or Hetzner, depending on our setup).
 • AI features: OpenAI or similar providers when you use analysis or related features; content is processed to generate keywords and descriptions.
 • Payments: Paddle (Merchant of Record).
 • Communication: email delivery services (for example Postmark or SendGrid, depending on our setup).
