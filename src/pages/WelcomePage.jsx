@@ -22,7 +22,7 @@ const WelcomeCard = styled.div`
 `;
 
 const Title = styled.h1`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 32px;
   font-weight: 700;
   margin-bottom: 16px;
@@ -55,7 +55,7 @@ const FeatureIcon = styled.div`
 `;
 
 const FeatureTitle = styled.h3`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
@@ -68,14 +68,14 @@ const FeatureDescription = styled.p`
 `;
 
 const CTA = styled.div`
-  background: #eff6ff;
+  background: var(--accent-wash);
   border-radius: 12px;
   padding: 24px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--accent-wash);
 `;
 
 const CTATitle = styled.h3`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 8px;
@@ -88,7 +88,7 @@ const CTAText = styled.p`
 `;
 
 const BuyCreditsButton = styled.button`
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -99,7 +99,7 @@ const BuyCreditsButton = styled.button`
   transition: background 0.2s;
 
   &:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
   }
 `;
 

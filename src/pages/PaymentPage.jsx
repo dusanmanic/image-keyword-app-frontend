@@ -7,7 +7,7 @@ import { useAuthRedux } from '../hooks/useAuthRedux.js';
 
 const Container = styled.div`
   min-height: 100vh;
-  background: #f3f4f6;
+  background: var(--paper);
   display: flex;
   padding: 20px;
   justify-content: center;
@@ -16,22 +16,24 @@ const Container = styled.div`
 const PaymentCard = styled.div`
   max-width: 800px;
   width: 100%;
-  background: white;
-  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
   padding: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 `;
 
 const Title = styled.h1`
-  color: #1e40af;
+  color: var(--ink);
+  font-family: var(--font-display);
   font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin-bottom: 12px;
   text-align: center;
 `;
 
 const Subtitle = styled.p`
-  color: #6b7280;
+  color: var(--muted);
   font-size: 18px;
   margin-bottom: 32px;
   text-align: center;
@@ -45,65 +47,71 @@ const PackageContainer = styled.div`
 
 const PackageCard = styled.div`
   padding: 32px;
-  border-radius: 16px;
-  border: 2px solid #1e40af;
-  background: #eff6ff;
+  border-radius: var(--radius);
+  border: 1px solid var(--ink);
+  background: var(--surface);
   max-width: 400px;
   width: 100%;
   text-align: center;
   position: relative;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 `;
 
 const PopularBadge = styled.div`
   position: absolute;
-  top: -8px;
+  top: -10px;
   right: 16px;
-  background: #1e40af;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  background: var(--accent);
+  color: var(--paper);
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
 `;
 
 const PackageName = styled.h3`
-  color: #1e40af;
+  color: var(--ink);
+  font-family: var(--font-display);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 8px;
 `;
 
 const PackageCredits = styled.div`
-  color: #6b7280;
+  color: var(--muted);
+  font-family: var(--font-mono);
   font-size: 16px;
   margin-bottom: 8px;
 `;
 
 const PackagePrice = styled.div`
-  color: #1e40af;
-  font-size: 24px;
-  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
   margin-bottom: 8px;
 `;
 
 const PackageDescription = styled.p`
-  color: #6b7280;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.5;
 `;
 
 const PaymentForm = styled.div`
-  background: #f8fafc;
-  border-radius: 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
   padding: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--rule);
 `;
 
 const FormTitle = styled.h3`
-  color: #1e40af;
+  color: var(--ink);
+  font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 16px;
 `;
 
@@ -112,12 +120,12 @@ const SecurityBadge = styled.div`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
+  background: var(--getty-wash);
+  border: 1px solid var(--getty-line);
+  border-radius: var(--radius-sm);
   padding: 12px;
   margin-bottom: 16px;
-  color: #059669;
+  color: var(--getty);
   font-size: 14px;
   font-weight: 500;
 `;
@@ -176,18 +184,18 @@ const StripeCardElement = styled.div`
 
 const PayButton = styled.button`
   width: 100%;
-  background: #1e40af;
-  color: white;
-  border: none;
+  background: var(--accent);
+  color: var(--paper);
+  border: 1px solid var(--accent);
   padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s;
 
   &:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: var(--accent-deep);
   }
 
   &:disabled {
@@ -243,7 +251,7 @@ const HistoryHeader = styled.div`
 `;
 
 const HistoryTitle = styled.h3`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -301,18 +309,19 @@ const TransactionActions = styled.div`
 `;
 
 const DownloadButton = styled.a`
-  background: #1e40af;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: transparent;
+  color: var(--accent-deep);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
   padding: 6px 12px;
+  font-family: var(--font-mono);
   font-size: 12px;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s;
 
   &:hover {
-    background: #1d4ed8;
+    background: var(--surface-2);
   }
 `;
 
@@ -325,16 +334,16 @@ const PaymentMethodTabs = styled.div`
 const TabButton = styled.button`
   padding: 10px 20px;
   border-radius: 8px;
-  border: 2px solid ${(p) => (p.$active ? '#1e40af' : '#e5e7eb')};
-  background: ${(p) => (p.$active ? '#eff6ff' : 'white')};
-  color: ${(p) => (p.$active ? '#1e40af' : '#6b7280')};
+  border: 1px solid ${(p) => (p.$active ? 'var(--accent)' : 'var(--rule-strong)')};
+  background: ${(p) => (p.$active ? 'var(--accent-wash)' : 'var(--surface)')};
+  color: ${(p) => (p.$active ? 'var(--accent-deep)' : 'var(--muted)')};
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: #1e40af;
-    color: #1e40af;
+    border-color: var(--accent);
+    color: var(--accent);
     outline: none;
   }
 

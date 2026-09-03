@@ -2,7 +2,7 @@ import React from "react";
 import styled from "styled-components";
 
 const Select = styled.select`
-  color: #1e40af;
+  color: var(--accent);
   width: 100%;
   padding: 10px;
   border: 1px solid #e5e7eb;
@@ -24,7 +24,7 @@ const HiddenFileInput = styled.input`
 
 const Button = styled.button`
   width: 100%;
-  background: #2563eb;
+  background: var(--accent);
   color: white;
   font-weight: 600;
   padding: 10px;
@@ -32,8 +32,8 @@ const Button = styled.button`
   border-radius: 8px;
   cursor: pointer;
 
-  &:hover { background: #1d4ed8; }
-  &:disabled { background: #93c5fd; cursor: not-allowed; }
+  &:hover { background: var(--accent-hover); }
+  &:disabled { background: var(--accent-line); cursor: not-allowed; }
   &:focus, &:active, &:focus-visible, &:focus-within { border-color: transparent; outline: none; }
 `;
 

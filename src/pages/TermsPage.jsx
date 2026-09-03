@@ -30,10 +30,10 @@ const Brand = styled(Link)`
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 700;
   font-size: 18px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const Logo = styled.img`
@@ -56,9 +56,9 @@ const NavLink = styled(Link)`
   text-decoration: none;
   padding: 8px 12px;
   border-radius: 8px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   &:hover {
-    color: #1e40af;
+    color: var(--accent);
     background: #f3f4f6;
   }
 `;
@@ -76,14 +76,14 @@ const PageTitle = styled.h1`
   color: #0f172a;
   margin: 0 0 8px 0;
   font-weight: 800;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const Meta = styled.p`
   font-size: 13px;
   color: #64748b;
   margin: 0 0 24px 0;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const Body = styled.div`
@@ -95,7 +95,7 @@ const Body = styled.div`
   line-height: 1.65;
   color: #334155;
   white-space: pre-wrap;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 `;
 
@@ -106,7 +106,7 @@ const ErrorBox = styled.div`
   padding: 14px 16px;
   border-radius: 12px;
   font-size: 14px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 export default function TermsPage() {

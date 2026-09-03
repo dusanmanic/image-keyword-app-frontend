@@ -20,7 +20,7 @@ const Header = styled.div`
 `;
 
 const Title = styled.h1`
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #8b5cf6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 50%, #8b5cf6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -32,7 +32,7 @@ const Title = styled.h1`
 `;
 
 const Button = styled.button`
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, var(--accent-hover) 100%);
   color: white;
   font-weight: 700;
   padding: 14px 20px;
@@ -44,7 +44,7 @@ const Button = styled.button`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   &:hover { 
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+    background: linear-gradient(135deg, var(--accent-hover) 0%, #1e3a8a 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
   }
@@ -79,7 +79,7 @@ const DropZoneView = styled.div`
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  color: #1e40af;
+  color: var(--accent);
 `;
 
 // DropZone for Upload tab (drag & drop)
@@ -96,11 +96,11 @@ const DropZoneUpload = styled.div`
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  color: #1e40af;
+  color: var(--accent);
   
   &:hover {
-    border-color: #2563eb;
-    background: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%);
+    border-color: var(--accent);
+    background: linear-gradient(135deg, #f0f9ff 0%, var(--accent-wash) 100%);
   }
 `;
 
@@ -145,7 +145,7 @@ const DropZoneHeading = styled.div`
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 12px;
-  color: ${props => props.color || '#1e40af'};
+  color: ${props => props.color || 'var(--accent)'};
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
@@ -182,7 +182,7 @@ const TabButton = styled.button`
   padding: 10px 20px;
   border: none;
   background: ${props => props.active 
-    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
+    ? 'linear-gradient(135deg, #3b82f6 0%, var(--accent-hover) 100%)' 
     : 'transparent'};
   color: ${props => props.active ? '#ffffff' : '#64748b'};
   font-size: 14px;
@@ -195,7 +195,7 @@ const TabButton = styled.button`
   
   &:hover {
     background: ${props => props.active 
-      ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' 
+      ? 'linear-gradient(135deg, #3b82f6 0%, var(--accent-hover) 100%)' 
       : 'linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%)'};
     color: ${props => props.active ? '#ffffff' : '#3b82f6'};
   }
@@ -270,7 +270,7 @@ const LoadingSpinner = styled.div`
 const LoadingTitle = styled.div`
   font-size: 20px;
   font-weight: 700;
-  color: #1e40af;
+  color: var(--accent);
   margin-bottom: 8px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
@@ -317,7 +317,7 @@ const StatCard = styled.div`
 const StatValue = styled.div`
   font-size: 18px;
   font-weight: 700;
-  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -370,7 +370,7 @@ const PaginationInfo = styled.div`
   text-align: center;
   
   strong {
-    color: #1e40af;
+    color: var(--accent);
     font-weight: 700;
   }
 `;
@@ -460,7 +460,7 @@ const DataGridContainer = styled.div`
     border: none;
     font-family: inherit;
     --rdg-background-color: white;
-    --rdg-header-background-color: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    --rdg-header-background-color: linear-gradient(135deg, var(--accent-wash) 0%, var(--accent-wash) 100%);
     --rdg-row-hover-background-color: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     --rdg-border-color: #f1f5f9;
     --rdg-selection-color: transparent;
@@ -484,7 +484,7 @@ const DataGridContainer = styled.div`
   
   .rdg-header-cell {
     font-weight: 700;
-    color: #1e40af;
+    color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 13px;
@@ -607,7 +607,7 @@ const AssetIdCell = styled.div`
 `;
 
 const AssetIdText = styled(TableCell)`
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 600;
   font-size: 12px;
   font-family: monospace;
@@ -625,7 +625,7 @@ const AssetIdText = styled(TableCell)`
 // Helper functions for asset styling
 const getAssetColor = (type, isDarker = false) => {
   const colors = {
-    'RF Clip': isDarker ? '#1e40af' : '#3b82f6',
+    'RF Clip': isDarker ? 'var(--accent)' : '#3b82f6',
     'RF Image': isDarker ? '#059669' : '#10b981',
     'iStock Subscription': isDarker ? '#dc2626' : '#ef4444',
     'Premium Access Time Limited': isDarker ? '#7c3aed' : '#8b5cf6',
@@ -813,7 +813,7 @@ export default function StatisticPage() {
       width: columnWidths.id || '6%',
       minWidth: 60,
       renderCell: ({ row }) => (
-        <TableCell color="#1e40af" fontWeight="600" fontSize="14px">{row.id}</TableCell>
+        <TableCell color="var(--accent)" fontWeight="600" fontSize="14px">{row.id}</TableCell>
       )
     },
     {
@@ -853,7 +853,7 @@ export default function StatisticPage() {
         <TableCell 
           color="#1f2937" 
           fontSize="14px" 
-          hoverColor="#1e40af"
+          hoverColor="var(--accent)"
           onClick={(e) => {
               e.preventDefault();
               const iStockUrl = `https://www.istockphoto.com/search/2/image-film?family=creative&phrase=${row.imageId}`;

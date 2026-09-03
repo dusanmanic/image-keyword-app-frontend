@@ -70,11 +70,11 @@ function PasteOption({ label, includeChecked, clearChecked, onChangeInclude, onC
     <div style={{ width: '100%', minHeight: '44px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <input type="checkbox" checked={includeChecked} onChange={onChangeInclude} style={{ width: 18, height: 18 }} />
-        <span style={{ color: '#1e40af', fontSize: 14, fontWeight: 600 }}>{label}</span>
+        <span style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>{label}</span>
       </label>
       <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <input type="checkbox" checked={clearChecked} onChange={onChangeClear} style={{ width: 18, height: 18 }} />
-        <span style={{ color: '#1e40af', fontSize: 14 }}>Clear first</span>
+        <span style={{ color: 'var(--accent)', fontSize: 14 }}>Clear first</span>
       </label>
     </div>
   );
@@ -89,7 +89,7 @@ function PastePreview({ data }) {
   const labelStyle = { fontWeight: 800 };
   const valueStyle = { wordBreak: 'break-word' };
   return (
-    <div style={{ marginTop: 8, color: '#1e40af' }}>
+    <div style={{ marginTop: 8, color: 'var(--accent)' }}>
       <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Paste preview</div>
       <div style={rowStyle}><span style={labelStyle}>Title:</span><span style={valueStyle}>{title || '(empty)'}</span></div>
       <div style={rowStyle}><span style={labelStyle}>Description:</span><span style={valueStyle}>{description || '(empty)'}</span></div>
@@ -100,7 +100,7 @@ function PastePreview({ data }) {
 
 const Container = styled.div`
   height: calc(100vh - 85px);
-  background: #f3f4f6;
+  background: var(--paper);
   padding: 10px 10px 0 10px;
   display: flex;
   flex-direction: column;
@@ -118,7 +118,7 @@ const QueueStatusBar = styled.div`
   border-radius: 12px;
   border: 1px solid rgba(147, 197, 253, 0.8);
   background: linear-gradient(90deg, rgba(30, 64, 175, 0.10), rgba(147, 197, 253, 0.10));
-  color: #1e40af;
+  color: var(--accent);
   font-size: 13px;
   font-weight: 700;
   display: flex;
@@ -130,8 +130,8 @@ const QueueStatusBar = styled.div`
 const QueueSpinner = styled.span`
   width: 16px;
   height: 16px;
-  border: 2px solid #93c5fd;
-  border-top-color: #1e40af;
+  border: 2px solid var(--accent-line);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: ${spin} 0.7s linear infinite;
 `;
@@ -147,12 +147,9 @@ const HeaderBar = styled.div`
   align-items: center;
   gap: 10px 12px;
   padding: 8px 12px;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.9) inset,
-    0 4px 16px rgba(15, 23, 42, 0.06);
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--surface);
   min-width: 0;
   overflow: visible;
 `;
@@ -223,16 +220,16 @@ const ToolbarDivider = styled.span`
 `;
 
 const Button = styled.button`
-  height: ${(p) => (p.$toolbar ? "38px" : "44px")};
-  min-height: ${(p) => (p.$toolbar ? "38px" : "44px")};
-  background: ${props => props.$variant === 'secondary' ? 'white' : '#2563eb'};
-  color: ${props => props.$variant === 'secondary' ? '#1e40af' : 'white'};
-  font-weight: 600;
-  font-size: ${(p) => (p.$toolbar ? "13px" : undefined)};
-  letter-spacing: ${(p) => (p.$toolbar ? "-0.01em" : undefined)};
-  padding: ${(p) => (p.$toolbar ? "0 14px" : "10px 12px")};
-  border: 1px solid transparent;
-  border-radius: ${(p) => (p.$toolbar ? "10px" : "8px")};
+  height: ${(p) => (p.$toolbar ? "36px" : "42px")};
+  min-height: ${(p) => (p.$toolbar ? "36px" : "42px")};
+  background: ${props => props.$variant === 'secondary' ? 'var(--surface)' : 'var(--accent)'};
+  color: ${props => props.$variant === 'secondary' ? 'var(--ink)' : 'var(--paper)'};
+  font-weight: 500;
+  font-size: ${(p) => (p.$toolbar ? "13px" : "14px")};
+  letter-spacing: 0;
+  padding: ${(p) => (p.$toolbar ? "0 13px" : "10px 14px")};
+  border: 1px solid ${props => props.$variant === 'secondary' ? 'var(--rule-strong)' : 'var(--accent)'};
+  border-radius: var(--radius-sm);
   cursor: pointer;
   ${(p) =>
     p.$toolbar
@@ -243,62 +240,50 @@ const Button = styled.button`
     gap: 6px;
     flex: 0 0 auto;
     white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-    &:hover:not(:disabled) {
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
-    }
-    &:active:not(:disabled) {
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-    }
+    transition: background 0.14s, border-color 0.14s;
   `
       : ""}
-  &:hover {
-    background: ${props => props.$variant === 'secondary' ? 'white' : '#1d4ed8'};
-    border-color: ${props => props.$variant === 'secondary' ? '#93c5fd' : 'transparent'};
+  &:hover:not(:disabled) {
+    background: ${props => props.$variant === 'secondary' ? 'var(--surface-2)' : 'var(--accent-deep)'};
+    border-color: ${props => props.$variant === 'secondary' ? 'var(--rule-strong)' : 'var(--accent-deep)'};
   }
-  &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
   &:focus-visible {
-    outline: 2px solid #93c5fd;
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
   &:focus:not(:focus-visible), &:active, &:focus-within {
-    border-color: transparent;
     outline: none;
   }
 `;
 
+/* Toolbar actions read as one neutral family; a thin left rule tints each role. */
+const NeutralToolbarBtn = styled(Button)`
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-left-width: 3px;
+  &:hover:not(:disabled) { background: var(--surface-2); border-color: var(--rule-strong); }
+`;
+
+/* Keyword Wizard — the primary verb, keeps the accent fill. */
 const MagicButton = styled(Button)`
-  background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
-  border: 1px solid rgba(109, 40, 217, 0.25);
-  &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #9f7aea 0%, #7c3aed 100%);
-  }
+  background: var(--accent);
+  color: var(--paper);
+  border: 1px solid var(--accent);
+  &:hover:not(:disabled) { background: var(--accent-deep); border-color: var(--accent-deep); }
 `;
 
-const EmbedButton = styled(Button)`
-  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
-  border: 1px solid rgba(5, 120, 87, 0.3);
-  &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #059669 0%, #047857 100%);
-  }
+const EmbedButton = styled(NeutralToolbarBtn)`
+  border-left-color: var(--getty);
 `;
 
-const ExportButton = styled(Button)`
-  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
-  border: 1px solid rgba(2, 132, 199, 0.35);
-  &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
-  }
+const ExportButton = styled(NeutralToolbarBtn)`
+  border-left-color: var(--accent-line);
 `;
 
-/** Primary actions (Upload, Move) — same polish as other toolbar tones */
-const ToolbarPrimaryBtn = styled(Button)`
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
-  border: 1px solid rgba(30, 64, 175, 0.28);
-  color: #fff;
-  &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-  }
+const ToolbarPrimaryBtn = styled(NeutralToolbarBtn)`
+  border-left-color: var(--accent);
 `;
 
 const KeywordsCountContainer = styled.div`
@@ -337,7 +322,7 @@ const KeywordsCountSelect = styled.div`
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   
   &:hover {
-    border-color: #1e40af;
+    border-color: var(--accent);
   }
   
   &:focus {
@@ -390,8 +375,8 @@ const DropdownOption = styled.div`
   }
   
   ${props => props.isSelected && `
-    background-color: #eff6ff;
-    color: #1e40af;
+    background-color: var(--accent-wash);
+    color: var(--accent);
     font-weight: 600;
   `}
 `;
@@ -448,7 +433,7 @@ const MoveSelect = styled.div`
   justify-content: space-between;
   transition: border-color 0.2s ease;
   min-width: 280px;
-  &:hover { border-color: #1e40af; }
+  &:hover { border-color: var(--accent); }
   &:focus { outline: none; }
 `;
 
@@ -548,16 +533,16 @@ const KeywordsManagerSuggestion = styled.button`
   font-size: 12px;
   cursor: pointer;
   &:hover {
-    border-color: #93c5fd;
-    background: #eff6ff;
-    color: #1e40af;
+    border-color: var(--accent-line);
+    background: var(--accent-wash);
+    color: var(--accent);
   }
 `;
 
 const KeywordsManagerReloadBtn = styled.button`
-  border: 1px solid #93c5fd;
-  background: #eff6ff;
-  color: #1e40af;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent);
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 12px;
@@ -567,7 +552,7 @@ const KeywordsManagerReloadBtn = styled.button`
   gap: 6px;
   cursor: pointer;
   &:hover:not(:disabled) {
-    background: #dbeafe;
+    background: var(--accent-wash);
     border-color: #60a5fa;
   }
   &:disabled {
@@ -577,7 +562,7 @@ const KeywordsManagerReloadBtn = styled.button`
   &.focus-visible, &:focus-within, &:focus {
     outline: none;
     border-color: #60a5fa;
-    background: #dbeafe;
+    background: var(--accent-wash);
   }
 `;
 
@@ -613,7 +598,7 @@ const KeywordsManagerItemActions = styled.div`
   gap: 4px;
   padding: 2px;
   border-radius: 8px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--accent-wash);
   background: #ffffff;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
   opacity: 0;
@@ -631,16 +616,16 @@ const KeywordIconBtn = styled.button`
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid #dbeafe;
-  background: #eff6ff;
-  color: #1e40af;
+  border: 1px solid var(--accent-wash);
+  background: var(--accent-wash);
+  color: var(--accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   &:hover {
-    background: #dbeafe;
-    border-color: #93c5fd;
+    background: var(--accent-wash);
+    border-color: var(--accent-line);
   }
 `;
 
@@ -663,7 +648,7 @@ const BulkOverlay = styled.div`
 `;
 
 const BulkCardOutline = styled.div`
-  background: linear-gradient(135deg,#0ea5e9 0%, #1e40af 100%);
+  background: linear-gradient(135deg,#0ea5e9 0%, var(--accent) 100%);
   padding: 2px;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
@@ -783,18 +768,18 @@ const DropZone = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 2px dashed #93c5fd;
+  border: 2px dashed var(--accent-line);
   background: #f9fafb;
   border-radius: 12px;
   padding: 24px;
-  color: #1e40af;
+  color: var(--accent);
 `;
 
 const Toast = styled.div`
   position: fixed;
   right: 24px;
   bottom: 24px;
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   padding: 10px 14px;
   border-radius: 8px;
@@ -824,40 +809,44 @@ const MetaChips = styled.div`
 
 const KeywordCountBadge = styled.span`
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: #1e40af;
-  color: white;
+  top: 5px;
+  right: 5px;
+  font-family: var(--font-mono);
+  background: var(--surface);
+  color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
-  min-width: 22px;
-  height: 22px;
-  border-radius: 11px;
+  font-weight: 500;
+  min-width: 20px;
+  height: 20px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 5px;
+  padding: 0 4px;
   pointer-events: none;
   z-index: 1;
 `;
 
 const MetaChip = styled.span`
-  background: #dbeafe;
-  color: #1e40af;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.2;
+  font-family: var(--font-mono);
+  background: ${p => (p.$getty ? 'var(--getty-wash)' : 'var(--surface)')};
+  color: ${p => (p.$getty ? 'var(--getty)' : 'var(--ink-soft)')};
+  border: 1px solid ${p => (p.$getty ? 'var(--getty-line)' : 'var(--rule-strong)')};
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.15;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  &:hover { background: #bfdbfe; }
+  &:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-wash); }
 `;
 
 const MetaEditableKeywords = styled.span`
   outline: none;
-  color: #1e40af;
-  caret-color: #1e40af;
+  color: var(--ink);
+  caret-color: var(--accent);
 `;
 
 const MetaPlaceholder = styled.span`
@@ -901,14 +890,14 @@ const StyledDataGrid = styled(DataGrid)`
   }
   /* Re-enable visible selection inside inline editors */
   .rdg-cell [contenteditable="true"]::selection {
-    background: #cfe3ff;
+    background: var(--accent-wash);
     color: inherit;
   }
-  
+
   width: 100%;
-  border: 2px solid #DAE0E8;
+  border: 1px solid var(--rule-strong);
   background-color: transparent;
-  border-radius: 12px;
+  border-radius: var(--radius);
 
   /* Disabled row styling during analysis */
   .row-disabled {
@@ -933,9 +922,14 @@ const StyledDataGrid = styled(DataGrid)`
   }
     
   .hdr {
-    font-weight: 600;
-    color: #1e40af;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
+  .rdg-header-row .rdg-cell { background: var(--surface-2); }
 
   .flex-start-cell {
     display: flex;
@@ -944,7 +938,7 @@ const StyledDataGrid = styled(DataGrid)`
 
   /* Selected row outline without changing backgrounds */
   .rdg-row[aria-selected="true"] .rdg-cell {
-    background: #eef6ff;
+    background: var(--accent-wash);
   }
 
   /* Busy row cells: block interaction and dim */
@@ -957,8 +951,8 @@ const ActionButton = styled.button`
   padding: 6px;
   border-radius: 8px;
   cursor: pointer;
-  color: #1e40af;
-  &:hover { background: #eff6ff; }
+  color: var(--accent);
+  &:hover { background: var(--accent-wash); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
   &:focus, &:active, &:focus-visible, &:focus-within { outline: none; border-color: transparent; }
 `;
@@ -1008,8 +1002,8 @@ const Checkbox = styled.input`
   border-radius: 3px;
   
   &:checked {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: var(--accent);
+    border-color: var(--accent);
     background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
     background-size: 100% 100%;
     background-position: center;
@@ -1024,7 +1018,7 @@ const CheckboxLabel = styled.label`
   cursor: pointer;
   
   span {
-    color: #1e40af;
+    color: var(--accent);
     font-size: 14px;
     font-weight: 500;
   }
@@ -1034,7 +1028,7 @@ const WandIcon = () => (
   <svg width="18" height="18" viewBox="0 0 341.956 341.956" xmlns="http://www.w3.org/2000/svg" aria-hidden>
     <g>
       <g>
-        <path fill="#1e40af" d="M10.655,335.932l-3.984-3.984c-8.032-8.032-8.032-21.056,0-29.088L211.286,98.245 c8.032-8.032,21.056-8.032,29.088,0l3.984,3.984c8.032,8.032,8.032,21.056,0,29.088L39.743,335.932 C31.71,343.964,18.687,343.964,10.655,335.932z"/>
+        <path fill="var(--accent)" d="M10.655,335.932l-3.984-3.984c-8.032-8.032-8.032-21.056,0-29.088L211.286,98.245 c8.032-8.032,21.056-8.032,29.088,0l3.984,3.984c8.032,8.032,8.032,21.056,0,29.088L39.743,335.932 C31.71,343.964,18.687,343.964,10.655,335.932z"/>
         <path fill="#165C6C" d="M151.869,157.662L6.671,302.86c-8.032,8.032-8.032,21.056,0,29.088l3.984,3.984 c8.032,8.032,21.056,8.032,29.088,0l112.126-112.126V157.662z"/>
         <path fill="#32A5B9" d="M209.459,166.215l34.899-34.899c8.032-8.032,8.032-21.056,0-29.088l-3.984-3.984 c-8.032-8.032-21.056-8.032-29.088,0l-34.899,34.899L209.459,166.215z"/>
         <path fill="#F8B242" d="M280.346,76.043c-3.839,0-7.658-1.445-10.587-4.374c-5.858-5.857-5.838-15.336,0.019-21.193 l23.22-23.22c5.857-5.857,15.356-5.857,21.213,0c5.858,5.857,5.858,15.355,0,21.213l-23.22,23.22 C288.063,74.618,284.185,76.043,280.346,76.043z"/>
@@ -2023,7 +2017,7 @@ export default function ImportPage() {
         }}
         >
           {displayName ? (
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 4, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }} title={displayName}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, fontWeight: 500, color: 'var(--muted)', marginBottom: 4, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }} title={displayName}>
               {displayName}
             </div>
           ) : null}
@@ -2040,7 +2034,7 @@ export default function ImportPage() {
             </div>
           )}
           {dateStr ? (
-            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Created {dateStr}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>{dateStr}</div>
           ) : null}
           {row.embedded && (
             <EmbeddedBadge title="Embedded to folder">✓</EmbeddedBadge>
@@ -2258,13 +2252,13 @@ export default function ImportPage() {
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {list.map((kw, idx) => (
-                  <MetaChip key={idx} title="Click to remove" onClick={() => removeAt(idx)}>{kw}</MetaChip>
+                  <MetaChip key={idx} $getty={isGettyDisplay} title="Click to remove" onClick={() => removeAt(idx)}>{kw}</MetaChip>
                 ))}
                 <MetaEditableKeywords
                   ref={chipsRef}
                   contentEditable={!isGettyDisplay}
                   suppressContentEditableWarning
-                  style={{ minWidth: 8 }}
+                  style={{ minWidth: 8, fontFamily: 'var(--font-mono)', fontSize: 12 }}
                   onMouseDown={(e) => { try { e.stopPropagation(); } catch {} }}
                   onKeyDown={handleKeyDown}
                   onInput={() => {
@@ -3128,7 +3122,7 @@ export default function ImportPage() {
           </ToolbarScrollRegion>
 
           <FolderMeta>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%', color: '#1e40af', fontWeight: 800, fontSize: 15 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, width: '100%', color: 'var(--accent)', fontWeight: 800, fontSize: 15 }}>
               <span style={{ letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentFolder?.name || 'Folder'}</span>
               <span style={{ color: '#cbd5e1', flexShrink: 0 }} aria-hidden>|</span>
               <span style={{ color: '#64748b', fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
@@ -3388,7 +3382,7 @@ export default function ImportPage() {
       {pasteOpen && (
         <PasteOverlay onClick={() => setPasteOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $h="auto">
-            <ModalHeader><h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Paste options</h3></ModalHeader>
+            <ModalHeader><h3 style={{ color: 'var(--accent)', margin: 0, fontSize: 22 }}>Paste options</h3></ModalHeader>
             <ModalBody>
               <PasteLeft>
                 {lastCopied?.thumbUrl ? (
@@ -3439,7 +3433,7 @@ export default function ImportPage() {
         <PasteOverlay onClick={() => setKeywordsManagerOpen(false)}>
           <ModalCard onClick={(e) => e.stopPropagation()} $w="820px" $h="560px">
             <ModalHeader>
-              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>
+              <h3 style={{ color: 'var(--accent)', margin: 0, fontSize: 22 }}>
                 Selected Keywords Manager
               </h3>
               <span style={{ color: '#64748b', fontSize: 13, fontWeight: 600 }}>
@@ -3578,7 +3572,7 @@ export default function ImportPage() {
         <PasteOverlay onClick={() => setPromptConfirmOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
             <ModalHeader>
-              <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Add extra suggestion?</h3>
+              <h3 style={{ color: 'var(--accent)', margin: 0, fontSize: 22 }}>Add extra suggestion?</h3>
             </ModalHeader>
             <ModalBody>
               <div style={{ color: '#1f2937', fontSize: 15, lineHeight: 1.5 }}>
@@ -3586,7 +3580,7 @@ export default function ImportPage() {
               </div>
             </ModalBody>
             <ModalActions style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Button type="button" $variant="secondary" style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }} onClick={() => {
+              <Button type="button" $variant="secondary" style={{ background: 'white', color: 'var(--accent)', border: '1px solid #cbd5e1' }} onClick={() => {
                 setPromptConfirmOpen(false);
                 if (promptTargetRow) {
                   analyzeRow(promptTargetRow, "");
@@ -3603,7 +3597,7 @@ export default function ImportPage() {
       {promptOpen && (
         <PasteOverlay onClick={() => setPromptOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="725px" $h="250px">
-            <ModalHeader><h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Add details for AI suggestion</h3></ModalHeader>
+            <ModalHeader><h3 style={{ color: 'var(--accent)', margin: 0, fontSize: 22 }}>Add details for AI suggestion</h3></ModalHeader>
             <ModalBody $position="relative" $direction="column" $gap="5px" $h="200px">
               <ModalTextArea
                 value={promptText}

@@ -10,32 +10,34 @@ const PageContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: var(--paper);
   padding: 20px;
 `;
 
 const Card = styled.div`
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
   padding: 24px;
   width: 100%;
   max-width: 420px;
 `;
 
 const Title = styled.h1`
-  color: #1e40af;
-  font-size: 20px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   margin: 0 0 16px 0;
   text-align: center;
-  font-family: 'Nunito Sans';
 `;
 
 const MaskedEmail = styled.div`
   color: #1f2937;
   text-align: center;
   margin-bottom: 16px;
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
 `;
 
 const ButtonsGrid = styled.div`
@@ -45,22 +47,24 @@ const ButtonsGrid = styled.div`
 `;
 
 const PrimaryButton = styled.button`
-  background: #1e40af;
-  color: #fff;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  background: var(--accent);
+  color: var(--paper);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
   padding: 10px;
-  font-weight: 700;
+  font-weight: 500;
+  &:hover { background: var(--accent-deep); }
   cursor: pointer;
 `;
 
 const SecondaryButton = styled.button`
   background: transparent;
-  color: #1e40af;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
   padding: 10px;
-  font-weight: 700;
+  font-weight: 500;
+  &:hover { background: var(--surface-2); }
   cursor: pointer;
 `;
 
@@ -70,9 +74,9 @@ const PasswordInput = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: white;
-  color: #1e40af;
+  color: var(--ink);
   margin-bottom: 8px;
-  &:hover { background: #eff6ff; }
+  &:hover { background: var(--accent-wash); }
   &:focus,
   &:active,
   &:focus-visible,
@@ -83,7 +87,7 @@ const PasswordInput = styled.input`
 `;
 
 const ErrorLine = styled.div`
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-size: 12px;
   color: #dc2626;
   margin-bottom: 8px;
@@ -100,12 +104,12 @@ const LoginFooter = styled.div`
   text-align: center;
   font-size: 13px;
   color: #64748b;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   line-height: 1.6;
 `;
 
 const FooterLink = styled(Link)`
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 600;
   text-decoration: none;
   &:hover {

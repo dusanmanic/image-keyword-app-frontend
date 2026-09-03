@@ -8,7 +8,7 @@ const Container = styled.div`
   align-items: center;
   min-height: calc(100vh - 80px);
   padding: 40px 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, var(--accent-wash) 100%);
 `;
 
 const Card = styled.div`
@@ -26,7 +26,7 @@ const Icon = styled.div`
 `;
 
 const Title = styled.h1`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 16px 0;
@@ -40,22 +40,22 @@ const Message = styled.p`
 `;
 
 const InfoBox = styled.div`
-  background: #eff6ff;
-  border: 2px solid #bfdbfe;
+  background: var(--accent-wash);
+  border: 2px solid var(--accent-line);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 32px;
 `;
 
 const InfoText = styled.p`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 16px;
   margin: 0;
   line-height: 1.7;
 `;
 
 const BuyCreditsButton = styled.button`
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 14px 32px;
@@ -66,7 +66,7 @@ const BuyCreditsButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   }

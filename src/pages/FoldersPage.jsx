@@ -12,7 +12,7 @@ import ConfirmModal from "../components/ConfirmModal.jsx";
 
 const Container = styled.div`
   min-height: 100vh;
-  background: #f3f4f6;
+  background: var(--paper);
   padding: 20px;
 `;
 
@@ -72,14 +72,16 @@ const FilterLabel = styled.label`
   font-size: 12px;
   color: #6b7280;
   font-weight: 600;
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   padding-left: 5px;
 `;
 
 const Title = styled.h1`
-  color: #1e40af;
-  font-size: 20px;
-  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   margin: 0;
 `;
 
@@ -89,13 +91,13 @@ const Input = styled.input`
   background: transparent;
   border-radius: 8px;
   width: 260px;
-  color: #1e40af;
+  color: var(--accent);
 
-  &::placeholder { color: #9ca3af; font-family: 'Nunito Sans'; font-size: 14px; }
-  &::-webkit-input-placeholder { color: #9ca3af; font-family: 'Nunito Sans'; font-size: 14px; }
-  &::-moz-placeholder { color: #9ca3af; opacity: 1; font-family: 'Nunito Sans'; font-size: 14px; }
-  &:-ms-input-placeholder { color: #9ca3af; font-family: 'Nunito Sans'; font-size: 14px; }
-  &::-ms-input-placeholder { color: #9ca3af; font-family: 'Nunito Sans'; font-size: 14px; }
+  &::placeholder { color: #9ca3af; font-family: 'Inter'; font-size: 14px; }
+  &::-webkit-input-placeholder { color: #9ca3af; font-family: 'Inter'; font-size: 14px; }
+  &::-moz-placeholder { color: #9ca3af; opacity: 1; font-family: 'Inter'; font-size: 14px; }
+  &:-ms-input-placeholder { color: #9ca3af; font-family: 'Inter'; font-size: 14px; }
+  &::-ms-input-placeholder { color: #9ca3af; font-family: 'Inter'; font-size: 14px; }
 
   /* Date input tweaks */
   &[type='date'] {
@@ -105,13 +107,13 @@ const Input = styled.input`
   /* Default (empty) date fields look like placeholder */
   &[type='date']::-webkit-datetime-edit {
     color: #9ca3af;
-    font-family: 'Nunito Sans';
+    font-family: 'Inter';
     font-size: 14px;
   }
   /* When it has a value, use main text color */
   &[type='date']:not([value=""])::-webkit-datetime-edit {
-    color: #1e40af;
-    font-family: 'Nunito Sans';
+    color: var(--accent);
+    font-family: 'Inter';
     font-size: 14px;
   }
   /* Show calendar icon and make it visible */
@@ -132,21 +134,22 @@ const Input = styled.input`
 `;
 
 const Button = styled.button`
-  background: #2563eb;
-  color: white;
-  font-weight: 600;
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  background: var(--accent);
+  color: var(--paper);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 9px 14px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  &:hover { background: #1d4ed8; }
-  &:disabled { opacity: 0.6; cursor: not-allowed; }
+  &:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 
   ${props => props.$danger && `
-    background: #ef4444;
-    border: none;
-    color: white;
-    &:hover { background: #c83e3e; }
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--paper);
+    &:hover { background: #8f2f27; border-color: #8f2f27; }
   `}
 
   &:focus,
@@ -158,12 +161,14 @@ const Button = styled.button`
 `;
 
 const CardTitle = styled.div`
-  color: #1e40af;
-  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
 `;
 
 const Text = styled.div`
-  color: #6b7280;
+  color: var(--muted);
   font-size: ${props => props.$size || '12px'};
 `;
 
@@ -187,7 +192,7 @@ const ModalCard = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  color: #1e40af;
+  color: var(--accent);
   font-size: 18px;
   margin: 0 0 12px;
 `;
@@ -202,7 +207,7 @@ const ModalRow = styled.div`
 `;
 
 const Label = styled.label`
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 600;
 `;
 
@@ -213,15 +218,15 @@ const TextArea = styled.textarea`
   border-radius: 8px;
   min-height: 80px;
   resize: none;
-  color: #1e40af;
-  font-family: 'Nunito Sans';
+  color: var(--accent);
+  font-family: 'Inter';
   font-size: 14px;
 
-  &::placeholder { color: #9ca3af; font-size: 14px; font-family: 'Nunito Sans'; }
-  &::-webkit-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Nunito Sans'; }
-  &::-moz-placeholder { color: #9ca3af; opacity: 1; font-size: 14px; font-family: 'Nunito Sans'; }
-  &:-ms-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Nunito Sans'; }
-  &::-ms-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Nunito Sans'; }
+  &::placeholder { color: #9ca3af; font-size: 14px; font-family: 'Inter'; }
+  &::-webkit-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Inter'; }
+  &::-moz-placeholder { color: #9ca3af; opacity: 1; font-size: 14px; font-family: 'Inter'; }
+  &:-ms-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Inter'; }
+  &::-ms-input-placeholder { color: #9ca3af; font-size: 14px; font-family: 'Inter'; }
 
   &:focus,
   &:active,
@@ -236,11 +241,11 @@ const TextArea = styled.textarea`
 const IconButton = styled.button`
   background: transparent;
   border: none;
-  color: #1e40af;
+  color: var(--accent);
   cursor: pointer;
   padding: 6px;
   border-radius: 8px;
-  &:hover { background: #eff6ff; }
+  &:hover { background: var(--accent-wash); }
   &:focus,
   &:active,
   &:focus-visible,
@@ -275,13 +280,13 @@ const DeleteCornerButton = styled.button`
 
 
 const FolderIcon = () => (
-  <svg width="60" height="60" viewBox="0 0 24 24" fill="#1e40af" xmlns="http://www.w3.org/2000/svg">
+  <svg width="60" height="60" viewBox="0 0 24 24" fill="var(--accent)" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6H12L10 4Z"/>
   </svg>
 );
 
 const PencilIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#1e40af" xmlns="http://www.w3.org/2000/svg">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" xmlns="http://www.w3.org/2000/svg">
     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
   </svg>
 );
@@ -290,19 +295,17 @@ const RowCard = styled.div`
   position: relative;
   width: 350px;
   height: 208px;
-  background: ${props => props.$cardBg || '#ffffff'};
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 16px;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease;
+  transition: border-color 120ms ease;
 
   &:hover {
-    border-color: #e5e7eb;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.12);
-    transform: translateY(-1px);
+    border-color: var(--accent);
   }
 `;
 
@@ -358,27 +361,31 @@ const Badge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  min-width: 22px;
   height: 20px;
-  border-radius: 12px;
-  background: #eff6ff;
-  color: #1e40af;
-  font-weight: 700;
-  font-size: 12px;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 11px;
 `;
 
 const Tag = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: ${props => props.$bgColor || '#f3f4f6'};
-  color: ${props => props.$textColor || '#6b7280'};
-  border: 1px solid ${props => props.$borderColor || '#e5e7eb'};
+  letter-spacing: 0.06em;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--rule-strong);
 `;
 
 const TagSelector = styled.div`
@@ -428,14 +435,14 @@ const ColorOption = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 3px solid ${props => props.$isSelected ? '#1e40af' : '#e5e7eb'};
+  border: 3px solid ${props => props.$isSelected ? 'var(--accent)' : '#e5e7eb'};
   background: ${props => props.$color || '#ffffff'};
   cursor: pointer;
   transition: all 0.2s ease;
   
   &:hover {
     transform: scale(1.1);
-    border-color: #1e40af;
+    border-color: var(--accent);
   }
 
   &:focus,
@@ -466,7 +473,7 @@ const FloatingActionButton = styled.button`
   right: 24px;
   width: 54px;
   height: 54px;
-  background: #1e40af;
+  background: var(--accent);
   border: none;
   border-radius: 50%;
   color: white;
@@ -481,7 +488,7 @@ const FloatingActionButton = styled.button`
   justify-content: center;
   
   &:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
     transform: scale(1.05);
     box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4);
   }
@@ -754,7 +761,7 @@ export default function FoldersPage() {
               Create folder
             </Button>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <Button onClick={() => setShowFilters(!showFilters)} style={{ background: showFilters ? '#1e40af' : 'white', color: showFilters ? 'white' : '#1e40af', border: '1px solid #1e40af' }}>
+              <Button onClick={() => setShowFilters(!showFilters)} style={{ background: showFilters ? 'var(--accent)' : 'white', color: showFilters ? 'white' : 'var(--accent)', border: '1px solid var(--accent)' }}>
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
               </Button>
             </div>
@@ -776,7 +783,7 @@ export default function FoldersPage() {
               <FilterGroup $clearFilters>
                 {hasFilters && (
                   <Button
-                    style={{ background: 'white', color: '#1e40af', border: '1px solid #cbd5e1' }}
+                    style={{ background: 'white', color: 'var(--accent)', border: '1px solid #cbd5e1' }}
                     onClick={()=>{ setFilterName(''); setFilterDateFrom(''); setFilterDateTo(''); setFilterTagsCsv(''); }}
                     title="Clear filters"
                   >
@@ -896,7 +903,7 @@ export default function FoldersPage() {
                 
                 {/* Description Section - Always reserved space */}
                 <CardSection>
-                  <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Description</Text>
+                  <Text style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>Description</Text>
                   {f.description ? (
                     <Clamp $size="15px" $lines={1}>{f.description}</Clamp>
                   ) : (
@@ -906,7 +913,7 @@ export default function FoldersPage() {
                 
                 {/* Notes Section - Always reserved space */}
                 <CardSection>
-                  <Text $size="14px" style={{ color: '#1e40af', fontWeight: 600 }}>Notes</Text>
+                  <Text style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--muted)' }}>Notes</Text>
                   {f.notes ? (
                     <Clamp $size="15px" $lines={1}>{f.notes}</Clamp>
                   ) : (
@@ -1013,7 +1020,7 @@ export default function FoldersPage() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Button onClick={saveMetadata}>{selectedId ? 'Save' : 'Create'}</Button>
-                <Button onClick={()=> setIsModalOpen(false)} style={{ background: 'white', color: '#1e40af' }}>Cancel</Button>
+                <Button onClick={()=> setIsModalOpen(false)} style={{ background: 'white', color: 'var(--accent)' }}>Cancel</Button>
               </div>
             </div>
           </ModalCard>

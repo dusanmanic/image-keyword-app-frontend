@@ -1,7 +1,7 @@
 export const FOLDER_TAGS = {
   nature: { label: 'Nature', bgColor: '#dcfce7', textColor: '#166534', borderColor: '#bbf7d0', cardBg: '#f0fdf4' },
   medical: { label: 'Medical', bgColor: '#fef2f2', textColor: '#991b1b', borderColor: '#fecaca', cardBg: '#fef7f7' },
-  business: { label: 'Business', bgColor: '#eff6ff', textColor: '#1e40af', borderColor: '#dbeafe', cardBg: '#f8fafc' },
+  business: { label: 'Business', bgColor: 'var(--accent-wash)', textColor: 'var(--accent)', borderColor: 'var(--accent-wash)', cardBg: '#f8fafc' },
   travel: { label: 'Travel', bgColor: '#fef3c7', textColor: '#92400e', borderColor: '#fde68a', cardBg: '#fffbeb' },
   art: { label: 'Art', bgColor: '#f3e8ff', textColor: '#7c3aed', borderColor: '#e9d5ff', cardBg: '#faf5ff' },
   food: { label: 'Food', bgColor: '#fef7ed', textColor: '#ea580c', borderColor: '#fed7aa', cardBg: '#fff7ed' },
@@ -12,7 +12,7 @@ export const FOLDER_TAGS = {
   animals: { label: 'Animals', bgColor: '#d1fae5', textColor: '#065f46', borderColor: '#a7f3d0', cardBg: '#ecfdf5' },
   lifestyle: { label: 'Lifestyle', bgColor: '#fff1f2', textColor: '#be123c', borderColor: '#fecdd3', cardBg: '#fff5f7' },
   fashion: { label: 'Fashion', bgColor: '#f5d0fe', textColor: '#86198f', borderColor: '#f0abfc', cardBg: '#fae8ff' },
-  education: { label: 'Education', bgColor: '#dbeafe', textColor: '#1e3a8a', borderColor: '#bfdbfe', cardBg: '#eff6ff' },
+  education: { label: 'Education', bgColor: 'var(--accent-wash)', textColor: '#1e3a8a', borderColor: 'var(--accent-line)', cardBg: 'var(--accent-wash)' },
   family: { label: 'Family', bgColor: '#fed7aa', textColor: '#9a3412', borderColor: '#fdba74', cardBg: '#fff7ed' },
   fitness: { label: 'Fitness', bgColor: '#ccfbf1', textColor: '#134e4a', borderColor: '#99f6e4', cardBg: '#f0fdfa' },
   portrait: { label: 'Portrait', bgColor: '#ede9fe', textColor: '#5b21b6', borderColor: '#ddd6fe', cardBg: '#f5f3ff' },

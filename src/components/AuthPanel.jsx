@@ -16,15 +16,15 @@ const Tabs = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  background: #f3f4f6;
+  background: var(--paper);
   padding: 4px;
   border-radius: 10px;
   margin-bottom: 12px;
 `;
 
 const TabButton = styled.button`
-  background: ${props => props.$active ? '#1e40af' : 'transparent'};
-  color: ${props => props.$active ? '#fff' : '#1e40af'};
+  background: ${props => props.$active ? 'var(--accent)' : 'transparent'};
+  color: ${props => props.$active ? '#fff' : 'var(--accent)'};
   border: 1px solid transparent;
   border-radius: 8px;
   font-weight: 700;
@@ -45,9 +45,9 @@ const Input = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: white;
-  color: #1e40af;
+  color: var(--accent);
 
-  &:hover { background: #eff6ff; }
+  &:hover { background: var(--accent-wash); }
   &:focus,
   &:active,
   &:focus-visible,
@@ -59,7 +59,7 @@ const Input = styled.input`
 
 const Button = styled.button`
   width: 100%;
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   font-weight: 600;
   padding: 10px;
@@ -70,14 +70,14 @@ const Button = styled.button`
 `;
 
 const Line = styled.div`
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-size: 12px;
-  color: #1e40af;
+  color: var(--accent);
   margin-top: 6px;
 `;
 
 const ErrorLine = styled.div`
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-size: 12px;
   color: #dc2626;
   margin-top: 6px;
@@ -88,15 +88,15 @@ const ErrorLine = styled.div`
 `;
 
 const Title = styled.div`
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-weight: 700;
-  color: #1e40af;
+  color: var(--accent);
   font-size: 18px;
   margin-bottom: 2px;
 `;
 
 const Sub = styled.div`
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-size: 12px;
   color: #6b7280;
   margin-bottom: 8px;
