@@ -21,7 +21,7 @@ const Card = styled.div`
 `;
 
 const Title = styled.h2`
-  color: ${props => props.$danger ? "#b91c1c" : "#1e40af"};
+  color: ${props => props.$danger ? "#b91c1c" : "var(--accent)"};
   font-size: 18px;
   margin: 0 0 12px;
 `;
@@ -40,8 +40,8 @@ const Actions = styled.div`
 `;
 
 const Button = styled.button`
-  background: ${props => (props.$variant === "danger" ? "#ef4444" : props.$variant === "ghost" ? "white" : "#2563eb")};
-  color: ${props => (props.$variant === "ghost" ? "#1e40af" : "white")};
+  background: ${props => (props.$variant === "danger" ? "#ef4444" : props.$variant === "ghost" ? "white" : "var(--accent)")};
+  color: ${props => (props.$variant === "ghost" ? "var(--accent)" : "white")};
   font-weight: 600;
   padding: 10px 12px;
   border: 1px solid ${props => (props.$variant === "ghost" ? "#e5e7eb" : "transparent")};
@@ -50,7 +50,7 @@ const Button = styled.button`
 
   &:hover {
     background: ${props =>
-      props.$variant === "danger" ? "#c83e3e" : props.$variant === "ghost" ? "#f9fafb" : "#1d4ed8"};
+      props.$variant === "danger" ? "#c83e3e" : props.$variant === "ghost" ? "#f9fafb" : "var(--accent-hover)"};
   }
 
   &:disabled {

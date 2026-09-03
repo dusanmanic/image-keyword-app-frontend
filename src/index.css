@@ -1,11 +1,53 @@
+/* ============================================================
+   Jaba Keyword — app theme.
+   Shares the marketing site's language: ink on warm paper,
+   #1e40af accent, Fraunces display + Inter UI + IBM Plex Mono
+   for the technical bits (keyword chips, IDs, counts, filenames).
+   The working grid stays near-white for legibility.
+   ============================================================ */
+
 :root {
-  font-family: 'Nunito Sans', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+  /* neutrals — warm */
+  --ink: #17150f;
+  --ink-soft: #423d31;
+  --muted: #6b6455;
+  --paper: #f4f1e9;          /* app chrome / shell background */
+  --surface: #ffffff;        /* working surfaces: grid, cards, inputs */
+  --surface-2: #faf8f3;
+  --rule: #e2ddd0;
+  --rule-strong: #cec6b3;
+
+  /* accent — deep slate ink-blue, sits with the warm neutrals */
+  --accent: #24405c;
+  --accent-deep: #1a2e42;
+  --accent-hover: #2d4f70;
+  --accent-wash: #e9ecf0;
+  --accent-line: #c2ccd6;
+
+  /* controlled-vocabulary / Getty green */
+  --getty: #15803d;
+  --getty-wash: #e7f2ea;
+  --getty-line: #bfe0c8;
+
+  /* semantic */
+  --danger: #b23b32;
+  --danger-wash: #f7ecea;
+  --warn: #9a5b12;
+  --ok: #15803d;
+
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --radius: 6px;
+  --radius-sm: 4px;
+
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: var(--ink);
+  background-color: var(--paper);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,63 +55,46 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-optical-sizing: auto;
+}
+
+h1 { font-size: 2.4rem; line-height: 1.1; font-weight: 400; }
+
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--accent-deep);
   text-decoration: inherit;
 }
-a:hover {
-  color: #535bf2;
-}
-
-body { margin: 0; min-width: 320px; min-height: 100vh; }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Global heading font */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Nunito Sans', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+a:hover { color: var(--accent); }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid transparent;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  font-family: var(--font-sans);
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+::selection { background: var(--accent); color: var(--paper); }
 
-/* Spinner animation */
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

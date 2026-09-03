@@ -7,7 +7,7 @@ const Shell = styled.div`
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #f8fafc 0%, #eff6ff 35%, #f8fafc 100%);
+  background: linear-gradient(180deg, #f8fafc 0%, var(--accent-wash) 35%, #f8fafc 100%);
 `;
 
 const TopBar = styled.header`
@@ -38,8 +38,8 @@ const Logo = styled.img`
 const BrandName = styled.span`
   font-size: clamp(16px, 3.5vw, 20px);
   font-weight: 700;
-  color: #1e40af;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  color: var(--accent);
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const TopActions = styled.div`
@@ -49,28 +49,28 @@ const TopActions = styled.div`
 `;
 
 const GhostLink = styled(Link)`
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 600;
   text-decoration: none;
   padding: 10px 16px;
   border-radius: 10px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   &:hover {
-    background: #eff6ff;
+    background: var(--accent-wash);
   }
 `;
 
 const PrimaryLink = styled(Link)`
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   font-weight: 600;
   text-decoration: none;
   padding: 10px 18px;
   border-radius: 10px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   box-shadow: 0 2px 4px rgba(30, 64, 175, 0.2);
   &:hover {
-    background: #1d4ed8;
+    background: var(--accent-hover);
   }
 `;
 
@@ -80,7 +80,7 @@ const Content = styled.div`
   max-width: 960px;
   margin: 0 auto;
   padding: 0 24px 64px;
-  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 `;
 
 const Hero = styled.section`
@@ -170,7 +170,7 @@ const FeatureCard = styled.article`
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
   &:hover {
-    border-color: #bfdbfe;
+    border-color: var(--accent-line);
     box-shadow: 0 8px 24px rgba(30, 64, 175, 0.08);
   }
 `;
@@ -183,7 +183,7 @@ const FeatureIcon = styled.div`
 
 const FeatureTitle = styled.h3`
   font-size: 1.1rem;
-  color: #1e40af;
+  color: var(--accent);
   margin: 0 0 8px 0;
   font-weight: 700;
 `;
@@ -224,7 +224,7 @@ const Step = styled.li`
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%);
     color: #fff;
     font-weight: 800;
     font-size: 0.95rem;
@@ -246,7 +246,7 @@ const CtaBand = styled.section`
   margin-top: 8px;
   padding: 40px 28px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, var(--accent) 50%, var(--accent) 100%);
   color: #fff;
   text-align: center;
   box-shadow: 0 12px 40px rgba(30, 64, 175, 0.25);
@@ -278,7 +278,7 @@ const CtaBandRow = styled.div`
 const CtaPrimary = styled(Link)`
   display: inline-block;
   background: #fff;
-  color: #1e40af;
+  color: var(--accent);
   font-weight: 700;
   text-decoration: none;
   padding: 12px 24px;
@@ -313,14 +313,14 @@ const Footer = styled.footer`
 
 const FooterBrand = styled.div`
   font-weight: 700;
-  color: #1e40af;
+  color: var(--accent);
   margin-bottom: 6px;
 `;
 
 const FooterLinks = styled.div`
   margin-top: 12px;
   a {
-    color: #1e40af;
+    color: var(--accent);
     font-weight: 600;
     text-decoration: none;
     &:hover {

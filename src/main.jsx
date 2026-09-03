@@ -26,14 +26,13 @@ import { AuthProvider } from './context/AuthContext.jsx'
 const Header = styled.header`
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-  border-bottom: 1px solid #e5e7eb;
-  padding: 16px 24px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 40;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   overflow: visible;
 `;
 
@@ -50,10 +49,12 @@ const AppIcon = styled.img`
 `;
 
 const AppTitle = styled.h1`
-  color: #1e40af;
-  font-size: clamp(14px, 2.4vw, 22px);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2.4vw, 21px);
   margin: 0;
-  font-weight: 700;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 `;
 
@@ -65,50 +66,44 @@ const Nav = styled.nav`
 `;
 
 const NavLink = styled(Link)`
-  color: #1e40af;
-  font-weight: 600;
+  color: var(--ink-soft);
+  font-weight: 500;
+  font-size: 14px;
   text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
   background: transparent;
   position: relative;
-  
-  &:hover {
-    background: #f3f4f6;
-  }
-  
+
+  &:hover { color: var(--ink); background: var(--surface-2); }
+
   &.active {
-    background: #f3f4f6;
-    
+    color: var(--ink);
     &::after {
       content: '';
       position: absolute;
-      bottom: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80%;
-      height: 3px;
-      background: #1e40af;
-      border-radius: 2px;
+      bottom: -1px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background: var(--accent);
     }
   }
 `;
 
 const LogoutButton = styled.button`
-  background: #1e40af;
-  color: white;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 10px 16px;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(30,64,175,0.2);
-  
-  &:hover {
-    background: #1d4ed8;
-  }
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover { background: var(--surface-2); color: var(--ink); }
 `;
 
 const ToastBox = styled.div`
@@ -138,14 +133,14 @@ const StorageIndicator = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: ${props => props.$isOverLimit ? 'rgba(239,68,68,0.15)' : props.$isWarning ? 'rgba(245,158,11,0.15)' : 'rgba(37,99,235,0.1)'};
-  border: 1px solid ${props => props.$isOverLimit ? 'rgba(239,68,68,0.3)' : props.$isWarning ? 'rgba(245,158,11,0.3)' : 'rgba(37,99,235,0.2)'};
-  color: ${props => props.$isOverLimit ? '#dc2626' : props.$isWarning ? '#d97706' : '#1e40af'};
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.2s ease;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid ${props => props.$isOverLimit ? 'var(--danger)' : props.$isWarning ? 'var(--warn)' : 'var(--rule-strong)'};
+  color: ${props => props.$isOverLimit ? 'var(--danger)' : props.$isWarning ? 'var(--warn)' : 'var(--muted)'};
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
 `;
 
 const StorageText = styled.span`
@@ -162,7 +157,7 @@ const StorageProgress = styled.div`
 
 const StorageProgressBar = styled.div`
   height: 100%;
-  background: ${props => props.$isOverLimit ? '#dc2626' : props.$isWarning ? '#d97706' : '#1e40af'};
+  background: ${props => props.$isOverLimit ? 'var(--danger)' : props.$isWarning ? 'var(--warn)' : 'var(--accent)'};
   width: ${props => Math.min(100, props.$percentage)}%;
   transition: width 0.3s ease;
 `;
@@ -387,14 +382,14 @@ const LoadingScreen = () => (
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
-    background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)'
+    background: 'linear-gradient(135deg, #f8fafc 0%, var(--accent-wash) 100%)'
   }}>
     <div style={{ textAlign: 'center' }}>
       <div style={{
         width: '40px',
         height: '40px',
         border: '4px solid #e5e7eb',
-        borderTop: '4px solid #1e40af',
+        borderTop: '4px solid var(--accent)',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
         margin: '0 auto 16px'

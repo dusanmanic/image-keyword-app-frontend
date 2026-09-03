@@ -18,7 +18,7 @@ const Input = styled.input`
   width: ${props => props.$width || '180px'};
   color: #111827;
   color-scheme: light;
-  font-family: 'Nunito Sans';
+  font-family: 'Inter';
   font-size: 14px;
 
   &::-webkit-calendar-picker-indicator {
@@ -41,7 +41,7 @@ const Icon = styled.span`
   position: absolute;
   right: 10px;
   pointer-events: none;
-  color: #1e40af;
+  color: var(--accent);
 `;
 
 export default function DatePicker({ id, value, onChange, placeholder, width }) {
@@ -92,10 +92,10 @@ const GlobalStyles = createGlobalStyle`
     border-radius: 12px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.12) !important;
     overflow: hidden;
-    font-family: 'Nunito Sans';
+    font-family: 'Inter';
   }
   .react-datepicker__header {
-    background: #eff6ff !important;
+    background: var(--accent-wash) !important;
     border-bottom: 1px solid #e5e7eb !important;
   }
   .react-datepicker__day {
@@ -104,19 +104,19 @@ const GlobalStyles = createGlobalStyle`
     transition: background-color 0.15s ease, color 0.15s ease;
   }
   .react-datepicker__day:hover {
-    background: #eff6ff !important;
-    color: #1e40af !important;
+    background: var(--accent-wash) !important;
+    color: var(--accent) !important;
   }
   .react-datepicker__day--selected,
   .react-datepicker__day--keyboard-selected {
     background: transparent !important;
-    color: #1e40af !important;
-    border: 2px solid #1e40af !important;
+    color: var(--accent) !important;
+    border: 2px solid var(--accent) !important;
   }
   .react-datepicker__day--today {
     border-radius: 999px !important;
     outline: none !important;
-    border: 1px dashed #93c5fd !important;
+    border: 1px dashed var(--accent-line) !important;
   }
 
   /* Ensure library close icon stays hidden */

@@ -45,7 +45,7 @@ const Actions = styled.div`
 `;
 
 const PrimaryButton = styled.button`
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 10px;
@@ -63,7 +63,7 @@ const PrimaryButton = styled.button`
 
 const SecondaryButton = styled.button`
   background: white;
-  color: #1e40af;
+  color: var(--accent);
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   padding: 10px 14px;
@@ -79,7 +79,7 @@ const SecondaryButton = styled.button`
 `;
 
 const Title = styled.h3`
-  color: #1e40af;
+  color: var(--accent);
   margin: 0;
   font-size: 22px;
 `;
@@ -126,7 +126,7 @@ const TextInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #1e40af;
+    border-color: var(--accent);
     box-shadow: none;
   }
 `;
@@ -149,7 +149,7 @@ const Option = styled.div`
   padding: 10px 12px;
   font-size: 14px;
   color: #374151;
-  background: ${p => (p.$active ? "#eff6ff" : "white")};
+  background: ${p => (p.$active ? "var(--accent-wash)" : "white")};
   cursor: pointer;
 `;
 

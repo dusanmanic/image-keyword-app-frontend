@@ -50,7 +50,7 @@ const FullPageLink = styled(Link)`
   margin-top: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #1e40af;
+  color: var(--accent);
   text-decoration: none;
   &:hover {
     text-decoration: underline;
@@ -95,7 +95,7 @@ const Checkbox = styled.input`
 `;
 
 const AcceptButton = styled.button`
-  background: #1e40af;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 10px;
@@ -106,7 +106,7 @@ const AcceptButton = styled.button`
   transition: background 0.2s;
 
   &:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: var(--accent-hover);
   }
 
   &:disabled {

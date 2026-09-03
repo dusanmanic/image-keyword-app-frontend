@@ -44,7 +44,7 @@ const Toast = styled.div`
       case 'warning':
         return 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
       case 'info':
-        return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+        return 'linear-gradient(135deg, #3b82f6 0%, var(--accent-hover) 100%)';
       default:
         return 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
     }

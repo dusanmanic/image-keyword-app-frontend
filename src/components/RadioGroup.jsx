@@ -10,7 +10,7 @@ const RadioLabel = styled.label`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: ${props => props.$isSelected ? '#1e40af' : '#6b7280'};
+  color: ${props => props.$isSelected ? 'var(--accent)' : '#6b7280'};
   font-weight: 600;
   cursor: pointer;
 `;
@@ -21,11 +21,11 @@ const RadioInput = styled.input`
   margin: 0;
   cursor: pointer;
   appearance: none;
-  border: ${props => props.$isSelected ? '2px solid #1e40af' : '2px solid #e5e7eb'};
+  border: ${props => props.$isSelected ? '2px solid var(--accent)' : '2px solid #e5e7eb'};
   border-radius: 50%;
   background-color: white;
   position: relative;
-  background-image: ${props => props.$isSelected ? 'radial-gradient(circle, #1e40af 6px, white 6px)' : 'none'};
+  background-image: ${props => props.$isSelected ? 'radial-gradient(circle, var(--accent) 6px, white 6px)' : 'none'};
 `;
 
 export default function RadioGroup({ 
@@ -37,7 +37,7 @@ export default function RadioGroup({
 }) {
   return (
     <div style={{ display: 'grid'}}>
-      {label && <span style={{ color: '#1e40af', fontWeight: 600, fontSize: 14 }}>{label}</span>}
+      {label && <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 14 }}>{label}</span>}
       <RadioGroupContainer>
         {options.map((option) => (
           <RadioLabel 
