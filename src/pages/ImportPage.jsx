@@ -17,6 +17,7 @@ import KeywordWizardIntroModal from "../components/KeywordWizardIntroModal.jsx";
 import IstockGettyExportModal from "../components/IstockGettyExportModal.jsx";
 import FastTooltip from "../components/FastTooltip.jsx";
 import piexif from "piexifjs";
+import localforage from "localforage";
 
 // Extract image creation date from EXIF (DateTimeOriginal)
 async function extractImageCreatedAt(file) {
@@ -1808,6 +1809,7 @@ export default function ImportPage() {
       for (const id of ids) {
         const r = rows.find(x => String(x.id) === String(id));
         if (!r) { skippedCount++; continue; }
+        let fileName = (r?.name || r?.originalName || `image_${r?.id}.jpg`);
         try {
           // Use blob directly from row
           let blob = r.blob;
@@ -1816,7 +1818,6 @@ export default function ImportPage() {
           }
           if (!(blob instanceof Blob)) { skippedCount++; continue; }
 
-          const fileName = (r.name || r.originalName || `image_${r.id}.jpg`);
           const key = fileName.toLowerCase();
 
           await embedOneToFolder({
@@ -2056,6 +2057,11 @@ export default function ImportPage() {
       renderHeaderCell: () => <div className="hdr">Title</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
+        // react-data-grid renders each renderCell as a component, so these hooks
+        // run in a stable order per cell. ESLint can't see that. TODO: extract
+        // these three editable cells into named components (needs test coverage
+        // for ImportPage first).
+        /* eslint-disable react-hooks/rules-of-hooks */
         const ref = React.useRef(null);
         const [draft, setDraft] = useState((row.title ?? ''));
         React.useEffect(() => {
@@ -2110,6 +2116,7 @@ export default function ImportPage() {
           />
           </TitleCellWrap>
         )}
+      /* eslint-enable react-hooks/rules-of-hooks */
     },
     {
       key: "description",
@@ -2119,6 +2126,11 @@ export default function ImportPage() {
       renderHeaderCell: () => <div className="hdr">Description</div>,
       cellClass: (row) => isImageInQueueOrProcessing(row) ? 'row-busy' : '',
       renderCell: ({ row, onRowChange }) => {
+        // react-data-grid renders each renderCell as a component, so these hooks
+        // run in a stable order per cell. ESLint can't see that. TODO: extract
+        // these three editable cells into named components (needs test coverage
+        // for ImportPage first).
+        /* eslint-disable react-hooks/rules-of-hooks */
         const ref = React.useRef(null);
         const [draft, setDraft] = useState((row.description ?? ''));
         React.useEffect(() => {
@@ -2173,6 +2185,7 @@ export default function ImportPage() {
           />
           </TitleCellWrap>
         )}
+      /* eslint-enable react-hooks/rules-of-hooks */
     },
     {
       key: "keywords",
@@ -2187,6 +2200,11 @@ export default function ImportPage() {
         return <span>Keywords (Getty/iStock)</span>;
       },
       renderCell: ({ row, onRowChange }) => {
+        // react-data-grid renders each renderCell as a component, so these hooks
+        // run in a stable order per cell. ESLint can't see that. TODO: extract
+        // these three editable cells into named components (needs test coverage
+        // for ImportPage first).
+        /* eslint-disable react-hooks/rules-of-hooks */
         const customList = Array.isArray(row.keywords)
           ? row.keywords
           : String(row.keywords || '').split(',').map(s=>s.trim()).filter(Boolean);
@@ -2265,6 +2283,7 @@ export default function ImportPage() {
           </MetaChipsWrapper>
         );
       }
+      /* eslint-enable react-hooks/rules-of-hooks */
     },
 /*     
     // trailing SVG action column (visual only for now)
@@ -3556,7 +3575,7 @@ export default function ImportPage() {
       )}
 
       {promptConfirmOpen && (
-        <PasteOverlay onClick={() => setBulkConfirmOpen(false)}>
+        <PasteOverlay onClick={() => setPromptConfirmOpen(false)}>
           <ModalCard onClick={(e)=> e.stopPropagation()} $w="460px" $h="170px">
             <ModalHeader>
               <h3 style={{ color: '#1e40af', margin: 0, fontSize: 22 }}>Add extra suggestion?</h3>

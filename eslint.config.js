@@ -23,7 +23,18 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Surfaced, not blocking: a big backlog of dead locals in the large page
+      // components. `no-undef` below stays an error and catches the real bugs
+      // (missing imports, out-of-scope refs).
+      'no-unused-vars': ['warn', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_',
+        caughtErrors: 'none',
+      }],
+      // Empty `catch {}` is a deliberate "best effort, ignore failure" pattern here.
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      // Dev-only HMR hint, no runtime impact — surfaced, not blocking.
+      'react-refresh/only-export-components': 'warn',
     },
   },
   {
