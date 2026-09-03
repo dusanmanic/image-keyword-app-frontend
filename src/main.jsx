@@ -32,8 +32,14 @@ const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
   z-index: 40;
   overflow: visible;
+
+  @media (max-width: 720px) {
+    padding: 12px 16px;
+  }
 `;
 
 const HeaderLeft = styled.div`
@@ -61,6 +67,8 @@ const AppTitle = styled.h1`
 const Nav = styled.nav`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   overflow: visible;
 `;

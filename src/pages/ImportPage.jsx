@@ -140,6 +140,24 @@ const Header = styled.div`
   margin-bottom: 14px;
 `;
 
+/** Small heads-up shown only on narrow screens — the editing grid needs room. */
+const DesktopHint = styled.div`
+  display: none;
+
+  @media (max-width: 720px) {
+    display: block;
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--rule-strong);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+`;
+
 /** One row: action buttons · folder meta · keyword count (right). Horizontal scroll when needed. */
 const HeaderBar = styled.div`
   display: flex;
@@ -3021,6 +3039,10 @@ export default function ImportPage() {
   
   return (
     <Container>
+      <DesktopHint>
+        The keywording grid is built for a wide screen — for editing titles,
+        descriptions and keywords, open Jaba Keyword on a desktop.
+      </DesktopHint>
       <Header>
         <HeaderBar ref={controlsRef}>
           <ToolbarScrollRegion>

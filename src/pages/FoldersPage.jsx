@@ -90,7 +90,8 @@ const Input = styled.input`
   border: 1px solid #e5e7eb;
   background: transparent;
   border-radius: 8px;
-  width: 260px;
+  width: 100%;
+  max-width: 260px;
   color: var(--accent);
 
   &::placeholder { color: #9ca3af; font-family: 'Inter'; font-size: 14px; }
@@ -293,8 +294,9 @@ const PencilIcon = () => (
 
 const RowCard = styled.div`
   position: relative;
-  width: 350px;
-  height: 208px;
+  width: 100%;
+  max-width: 380px;
+  min-height: 208px;
   background: var(--surface);
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
@@ -311,7 +313,7 @@ const RowCard = styled.div`
 
 const CardsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, 380px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 380px));
   gap: 12px;
   width: 100%;
   margin: 0 auto;
@@ -507,7 +509,8 @@ const FloatingActionButton = styled.button`
 
 const FiltersTop = styled.div`
   position: relative;
-  width: 1000px;
+  width: 100%;
+  max-width: 1000px;
   display: flex;
   align-items: center;
   justify-content: center;

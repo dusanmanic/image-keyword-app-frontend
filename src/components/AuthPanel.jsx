@@ -40,7 +40,7 @@ const TabButton = styled.button`
 `;
 
 const Input = styled.input`
-  width: 438px;
+  width: 100%;
   padding: 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
