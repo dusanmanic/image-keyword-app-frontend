@@ -41,19 +41,36 @@ const Subtitle = styled.p`
 
 const PackageContainer = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 32px;
+  gap: 14px;
+  margin-bottom: 20px;
 `;
 
 const PackageCard = styled.div`
-  padding: 32px;
+  padding: 28px 24px;
   border-radius: var(--radius);
-  border: 1px solid var(--ink);
-  background: var(--surface);
-  max-width: 400px;
+  border: 1px solid ${p => (p.$selected ? 'var(--accent)' : 'var(--rule-strong)')};
+  box-shadow: ${p => (p.$selected ? '0 0 0 1px var(--accent)' : 'none')};
+  background: ${p => (p.$selected ? 'var(--accent-wash)' : 'var(--surface)')};
+  max-width: 320px;
   width: 100%;
   text-align: center;
   position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+
+  &:hover { border-color: var(--accent); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+`;
+
+const NoTrialNote = styled.p`
+  max-width: 520px;
+  margin: 0 auto 28px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+  text-align: center;
 `;
 
 const PopularBadge = styled.div`
@@ -542,7 +559,9 @@ export default function PaymentPage() {
         const packagesData = await getCreditPackages();
         setPackages(packagesData);
         if (packagesData.length > 0) {
-          setSelectedPackage(packagesData.find((p) => p.popular) || packagesData[0]);
+          // Default to the cheapest pack — lowest-friction first purchase.
+          const cheapest = [...packagesData].sort((a, b) => a.price - b.price)[0];
+          setSelectedPackage(cheapest || packagesData[0]);
         }
       } catch (error) {
         console.error('Error fetching packages:', error);
@@ -633,7 +652,17 @@ export default function PaymentPage() {
 
         <PackageContainer>
           {packages.map((pkg) => (
-            <PackageCard key={pkg.id}>
+            <PackageCard
+              key={pkg.id}
+              role="button"
+              tabIndex={0}
+              $selected={selectedPackage?.id === pkg.id}
+              aria-pressed={selectedPackage?.id === pkg.id}
+              onClick={() => setSelectedPackage(pkg)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedPackage(pkg); }
+              }}
+            >
               {pkg.popular && <PopularBadge>Most Popular</PopularBadge>}
               <PackageName>{pkg.name}</PackageName>
               <PackageCredits>{pkg.credits.toLocaleString()} Analyses</PackageCredits>
@@ -642,6 +671,13 @@ export default function PaymentPage() {
             </PackageCard>
           ))}
         </PackageContainer>
+
+        <NoTrialNote>
+          No free trial: every analysis runs a vision model and costs real money, so
+          a free tier just gets farmed. The Starter pack is the smallest way in — same
+          $0.01 per image as every pack. Not what you expected? Email us within 14 days
+          for a refund.
+        </NoTrialNote>
 
         {selectedPackage && (
           <PaymentForm>
