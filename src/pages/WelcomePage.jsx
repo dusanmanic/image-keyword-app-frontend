@@ -9,21 +9,26 @@ const Container = styled.div`
   display: flex;
   padding: 20px;
   justify-content: center;
+  align-items: flex-start;
+
+  @media (max-width: 560px) {
+    padding: 12px;
+  }
 `;
 
 const WelcomeCard = styled.div`
-  height: 650px;
+  width: 100%;
   max-width: 1000px;
   background: white;
   border-radius: 16px;
-  padding: 40px;
+  padding: clamp(20px, 5vw, 40px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
 `;
 
 const Title = styled.h1`
   color: var(--accent);
-  font-size: 32px;
+  font-size: clamp(24px, 5vw, 32px);
   font-weight: 700;
   margin-bottom: 16px;
 `;
