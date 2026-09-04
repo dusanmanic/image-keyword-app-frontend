@@ -675,8 +675,7 @@ export default function PaymentPage() {
         <NoTrialNote>
           No free trial: every analysis runs a vision model and costs real money, so
           a free tier just gets farmed. The Starter pack is the smallest way in — same
-          $0.01 per image as every pack. Not what you expected? Email us within 14 days
-          for a refund.
+          $0.01 per image as every pack, and you only pay for analyses that return a result.
         </NoTrialNote>
 
         {selectedPackage && (
