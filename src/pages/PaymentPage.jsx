@@ -542,7 +542,7 @@ export default function PaymentPage() {
         const packagesData = await getCreditPackages();
         setPackages(packagesData);
         if (packagesData.length > 0) {
-          setSelectedPackage(packagesData[0]);
+          setSelectedPackage(packagesData.find((p) => p.popular) || packagesData[0]);
         }
       } catch (error) {
         console.error('Error fetching packages:', error);
@@ -625,7 +625,10 @@ export default function PaymentPage() {
       <PaymentCard>
         <Title>Buy Analyses</Title>
         <Subtitle>
-          Get 10,000 AI analyses for $100. Each analysis = 1 image keyword extraction.
+          {selectedPackage
+            ? `Get ${selectedPackage.credits.toLocaleString()} AI analyses for $${selectedPackage.price}. `
+            : ''}
+          Each analysis = one image&apos;s title, description and iStock/Getty keywords.
         </Subtitle>
 
         <PackageContainer>
