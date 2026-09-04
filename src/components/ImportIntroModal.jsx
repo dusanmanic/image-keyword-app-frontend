@@ -10,6 +10,11 @@ const Overlay = styled.div`
   justify-content: center;
   z-index: 9999;
   padding: 20px;
+  overflow-y: auto;
+
+  @media (max-width: 560px) {
+    padding: 10px;
+  }
 `;
 
 const Modal = styled.div`
@@ -17,15 +22,19 @@ const Modal = styled.div`
   border-radius: 16px;
   max-width: 600px;
   width: 100%;
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 `;
 
 const Header = styled.div`
   background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
-  padding: 32px;
+  padding: clamp(20px, 5vw, 32px);
   text-align: center;
   color: white;
+  flex-shrink: 0;
 `;
 
 const Icon = styled.div`
@@ -46,7 +55,10 @@ const Subtitle = styled.p`
 `;
 
 const Content = styled.div`
-  padding: 32px;
+  padding: clamp(20px, 5vw, 32px);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 const Section = styled.div`
@@ -91,12 +103,15 @@ const SectionText = styled.p`
 `;
 
 const Footer = styled.div`
-  padding: 24px 32px;
+  padding: clamp(16px, 4vw, 24px) clamp(20px, 5vw, 32px);
   background: #f9fafb;
   display: flex;
   gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
   justify-content: flex-end;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 `;
 
 const Button = styled.button`
