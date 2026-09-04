@@ -8,7 +8,6 @@ import { useAuthRedux } from './hooks/useAuthRedux.js'
 import { useFoldersRedux } from './hooks/useFoldersRedux.js'
 import GlobalSpinner from './components/GlobalSpinner.jsx'
 import LoginPage from './pages/LoginPage.jsx'
-import LandingPage from './pages/LandingPage.jsx'
 import TermsPage from './pages/TermsPage.jsx'
 import PrivacyPage from './pages/PrivacyPage.jsx'
 import WelcomePage from './pages/WelcomePage.jsx'
@@ -467,7 +466,8 @@ function MainApp() {
   }
 
   if (!authed) {
-    if (pathname === '/') return <LandingPage />;
+    // The public marketing site is the front door; the app's "/" just goes to sign-in.
+    if (pathname === '/') return <Navigate to="/login" replace />;
     if (pathname === '/login') return <LoginPage />;
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
@@ -489,12 +489,8 @@ function MainApp() {
     );
   }
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/') {
     return <Navigate to="/folders" replace />;
-  }
-
-  if (pathname === '/') {
-    return <LandingPage />;
   }
 
   return <AuthenticatedApp />;
