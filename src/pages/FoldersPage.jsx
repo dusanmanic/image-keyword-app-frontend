@@ -5,6 +5,7 @@ import { useApi } from "../hooks/useApi.js";
 import DatePicker from "../components/DatePicker.jsx";
 import { FOLDER_TAGS as SHARED_TAGS, FOLDER_COLORS as SHARED_COLORS } from "../config/tags.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import IntroductionModal from "../components/IntroductionModal.jsx";
 import { useStore } from "../store/useStore.js";
 import ConfirmModal from "../components/ConfirmModal.jsx";
@@ -534,6 +535,8 @@ export const FOLDER_TAGS = SHARED_TAGS;
 export const FOLDER_COLORS = SHARED_COLORS;
 
 export default function FoldersPage() {
+  // Folder creation/editing is a desktop task (see ImportPage).
+  const isNarrowScreen = useMediaQuery('(max-width: 720px)');
   const [counts, setCounts] = useState({});
   const [selectedId, setSelectedId] = useState(null);
  
@@ -746,23 +749,25 @@ export default function FoldersPage() {
     <Container>
         <Header>
           <FiltersBar>
-            <Button 
-              onClick={openCreateModal} 
-              title="Create new folder"
-              style={{
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: 6,
-                marginRight: 10,
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Create folder
-            </Button>
+            {!isNarrowScreen && (
+              <Button
+                onClick={openCreateModal}
+                title="Create new folder"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  marginRight: 10,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Create folder
+              </Button>
+            )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <Button onClick={() => setShowFilters(!showFilters)} style={{ background: showFilters ? 'var(--accent)' : 'white', color: showFilters ? 'white' : 'var(--accent)', border: '1px solid var(--accent)' }}>
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
@@ -833,10 +838,16 @@ export default function FoldersPage() {
           ) : (
             <>
               <EmptyTitle>No folders yet</EmptyTitle>
-              <EmptyMessage>Create your first folder to add images</EmptyMessage>
-              <div style={{ marginTop: 16 }}>
-                <Button onClick={openCreateModal}>Create folder</Button>
-              </div>
+              {isNarrowScreen ? (
+                <EmptyMessage>Open Jaba Keyword on a desktop to create your first folder.</EmptyMessage>
+              ) : (
+                <>
+                  <EmptyMessage>Create your first folder to add images</EmptyMessage>
+                  <div style={{ marginTop: 16 }}>
+                    <Button onClick={openCreateModal}>Create folder</Button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </EmptyState>
