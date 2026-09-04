@@ -4,7 +4,8 @@ import { DataGrid } from "react-data-grid";
 import 'react-data-grid/lib/styles.css';
 // import ToastComponent from "../components/Toast";
 // import { useToast } from "../hooks/useToast";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useEmbedToFolder } from "../components/AppHandlers.jsx";
 import { analyzeImage } from "../services/analyzeService.js";
 import { useFoldersRedux } from "../hooks/useFoldersRedux.js";
@@ -140,21 +141,42 @@ const Header = styled.div`
   margin-bottom: 14px;
 `;
 
-/** Small heads-up shown only on narrow screens — the editing grid needs room. */
-const DesktopHint = styled.div`
-  display: none;
+/** Full-screen stand-in shown on phones — the import/keywording workflow is desktop-only. */
+const MobileNotice = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 20px;
+  max-width: 440px;
+  margin: 0 auto;
 
-  @media (max-width: 720px) {
-    display: block;
-    margin: 0 0 10px;
-    padding: 8px 12px;
-    border: 1px solid var(--rule-strong);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius-sm);
-    background: var(--surface-2);
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0;
+    color: var(--ink);
+  }
+  .count {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
     color: var(--ink-soft);
-    font-size: 12.5px;
-    line-height: 1.4;
+  }
+  a {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-deep);
   }
 `;
 
@@ -1073,6 +1095,9 @@ export default function ImportPage() {
   const location = useLocation();
 
   const folderId = location.pathname.startsWith('/import/') ? location.pathname.split('/import/')[1] : null;
+
+  // The import + keywording workflow (toolbar, DataGrid editing) is desktop-only.
+  const isNarrowScreen = useMediaQuery('(max-width: 720px)');
 
   const [open, setOpen] = useState(false);
   const [showImportIntroModal, setShowImportIntroModal] = useState(false);
@@ -3037,12 +3062,29 @@ export default function ImportPage() {
     }
   };
   
+  if (isNarrowScreen) {
+    return (
+      <Container>
+        <MobileNotice>
+          <h2>{currentFolder?.name || 'This folder'}</h2>
+          {folderStats && (
+            <span className="count">
+              {folderStats.imageCount} images · {folderStats.storage.formatted}
+            </span>
+          )}
+          <p>
+            Uploading images, editing titles and keywords, running the Keyword
+            Wizard and exporting all need a wide screen. Open Jaba Keyword on a
+            desktop to work on this folder.
+          </p>
+          <Link to="/folders">← All folders</Link>
+        </MobileNotice>
+      </Container>
+    );
+  }
+
   return (
     <Container>
-      <DesktopHint>
-        The keywording grid is built for a wide screen — for editing titles,
-        descriptions and keywords, open Jaba Keyword on a desktop.
-      </DesktopHint>
       <Header>
         <HeaderBar ref={controlsRef}>
           <ToolbarScrollRegion>
