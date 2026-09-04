@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuthRedux } from '../hooks/useAuthRedux.js';
 import { PRIVACY_CONTENT, PRIVACY_LAST_UPDATED } from '../config/privacyContent.js';
+import { homeLinkProps } from '../utils/marketingUrl.js';
 
 const Shell = styled.div`
   min-height: 100vh;
@@ -105,12 +106,12 @@ export default function PrivacyPage() {
   return (
     <Shell>
       <TopBar>
-        <Brand to="/">
+        <Brand {...homeLinkProps}>
           <Logo src="/logo-app.svg" alt="" />
           Jaba Keyword
         </Brand>
         <NavLinks>
-          <NavLink to="/">Back to home</NavLink>
+          <NavLink {...homeLinkProps}>Back to home</NavLink>
           <NavLink to="/terms">Terms of Service</NavLink>
           {isAuthenticated ? <NavLink to="/folders">App</NavLink> : <NavLink to="/login">Log in</NavLink>}
         </NavLinks>

@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuthRedux } from '../hooks/useAuthRedux.js';
 import { getPostLoginPath } from '../utils/postLoginRedirect.js';
+import { homeLinkProps } from '../utils/marketingUrl.js';
 import AuthPanel from '../components/AuthPanel.jsx';
 
 const PageContainer = styled.div`
@@ -143,7 +144,7 @@ function LoginPage() {
             </SecondaryButton>
           </ButtonsGrid>
           <LoginFooter>
-            <FooterLink to="/">Back to home</FooterLink>
+            <FooterLink {...homeLinkProps}>Back to home</FooterLink>
             {' · '}
             <FooterLink to="/terms">Terms of Service</FooterLink>
             {' · '}
@@ -191,7 +192,7 @@ function LoginPage() {
             </SecondaryButton>
           </ButtonsGrid>
           <LoginFooter>
-            <FooterLink to="/">Back to home</FooterLink>
+            <FooterLink {...homeLinkProps}>Back to home</FooterLink>
             {' · '}
             <FooterLink to="/terms">Terms of Service</FooterLink>
             {' · '}
@@ -208,7 +209,7 @@ function LoginPage() {
         <Title>Login / Register</Title>
         <AuthPanel initialTab="login" initialEmail={savedEmail} />
         <LoginFooter>
-          <FooterLink to="/">Back to home</FooterLink>
+          <FooterLink {...homeLinkProps}>Back to home</FooterLink>
           {' · '}
           <FooterLink to="/terms">Terms of Service</FooterLink>
           {' · '}
