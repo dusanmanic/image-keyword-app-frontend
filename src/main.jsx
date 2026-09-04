@@ -38,6 +38,7 @@ const Header = styled.header`
 
   @media (max-width: 720px) {
     padding: 12px 16px;
+    justify-content: center;
   }
 `;
 
@@ -70,6 +71,40 @@ const Nav = styled.nav`
   justify-content: flex-end;
   gap: 8px;
   overflow: visible;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+`;
+
+/* On desktop these wrappers are transparent (display: contents) so the header
+   lays out exactly as before. On mobile each becomes its own centered row:
+   the two meter pills together, the nav buttons underneath. */
+const HeaderMeters = styled.div`
+  display: contents;
+
+  @media (max-width: 720px) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+`;
+
+const HeaderLinks = styled.div`
+  display: contents;
+
+  @media (max-width: 720px) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 `;
 
 const NavLink = styled(Link)`
@@ -303,6 +338,7 @@ function AuthenticatedApp() {
           <AppTitle>Jaba Keyword</AppTitle>
         </HeaderLeft>
         <Nav>
+          <HeaderMeters>
           {spendingInfo && !loadingSpending && (
             spendingInfo.remaining <= 0 ? (
               <FastTooltip label="No analyses left. Click to buy more.">
@@ -357,18 +393,21 @@ function AuthenticatedApp() {
               </StorageIndicator>
             </FastTooltip>
           )}
+          </HeaderMeters>
+          <HeaderLinks>
           <NavLink to="/home" className={isActiveRoute('/home') ? 'active' : ''}>Home</NavLink>
           <NavLink to="/folders" className={isActiveRoute('/folders') ? 'active' : ''}>Folders</NavLink>
           {/* <NavLink to="/statistics" className={isActiveRoute('/statistics') ? 'active' : ''}>Statistics</NavLink> */}
           <NavLink to="/payment" className={isActiveRoute('/payment') ? 'active' : ''}>Buy Analyses</NavLink>
           <FastTooltip label={`Logout${email ? ` (${email})` : ''}`}>
-            <LogoutButton 
-              onClick={()=>{ logout(); navigate('/login',{replace:true}); }} 
+            <LogoutButton
+              onClick={()=>{ logout(); navigate('/login',{replace:true}); }}
               aria-label="Logout"
             >
               Logout
             </LogoutButton>
           </FastTooltip>
+          </HeaderLinks>
         </Nav>
       </Header>
       {isActive === false && location.pathname !== '/payment' && location.pathname !== '/home' ? <AccountDeactivatedPage /> : renderCurrent()}
