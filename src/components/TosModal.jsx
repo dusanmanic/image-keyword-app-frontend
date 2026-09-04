@@ -12,17 +12,28 @@ const Overlay = styled.div`
   align-items: center;
   justify-content: center;
   padding: 24px;
+  overflow-y: auto;
+
+  @media (max-width: 560px) {
+    padding: 12px;
+    align-items: flex-start;
+  }
 `;
 
 const Modal = styled.div`
+  width: 100%;
   max-width: 640px;
-  max-height: 85vh;
+  max-height: 85dvh;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  @media (max-width: 560px) {
+    max-height: calc(100dvh - 24px);
+  }
 `;
 
 const Header = styled.div`
